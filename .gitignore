@@ -1,0 +1,25 @@
+# Godot 4 cache and generated data (rebuilt automatically)
+.godot/
+.import/
+
+# Export output (builds go outside the repo or to GitHub Releases)
+export/
+build/
+*.x86_64
+*.exe
+*.pck
+*.zip
+
+# Export presets can contain local paths and signing settings
+export_credentials.cfg
+
+# Blender backups
+*.blend1
+*.blend2
+
+# OS clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Keep: *.import and *.uid files are tracked on purpose (Godot needs them)

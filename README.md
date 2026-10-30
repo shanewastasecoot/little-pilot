@@ -99,14 +99,30 @@ The game has soft colours, gentle music and no pressure. The child decides where
 
 ## Getting Started
 
-> To be completed in Phase 1.
+### Prerequisites
+- **Git** with **Git LFS** (Git for Windows includes LFS. On Linux, install `git-lfs`.)
+- **Godot 4.x, standard version** (not .NET). Record the exact version here once chosen: `4.x.x`
+
+### Clone
 
 ```bash
-git clone https://github.com/<your-username>/little-pilot.git
+git lfs install
 ```
 
-Open `project.godot` in the pinned Godot 4.x version and press **F5** to run.
+```bash
+git clone https://github.com/shanewastasecoot/little-pilot.git
+```
+
+### First-time project creation (Phase 1, done once)
+1. Godot Project Manager: **Create**, select the cloned `little-pilot` folder, choose the **Mobile** renderer, and set **Version Control Metadata** to **None** so Godot doesn't replace the repo's `.gitignore` / `.gitattributes`. Godot warns that the folder isn't empty; that's expected, so continue.
+2. Commit the generated `project.godot` and `icon.svg`.
+
+### Run
+Open `project.godot` in Godot and press **F5**.
+
+### Steam Deck
+See [`docs/STEAM_DECK.md`](docs/STEAM_DECK.md).
 
 ## License
 
-To be decided. Recommended: **MIT** for code. Third-party assets keep their own licenses, recorded in `CREDITS.md`.
+Code is released under the **MIT License** (see [`LICENSE`](LICENSE)). Third-party assets keep their own licenses, recorded in [`CREDITS.md`](CREDITS.md).
