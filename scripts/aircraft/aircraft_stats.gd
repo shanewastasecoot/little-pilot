@@ -3,7 +3,15 @@ extends Resource
 ## All tuning values for one aircraft. A new aircraft is a new .tres file,
 ## not new code. Edit these live in the Inspector while the game runs.
 
+## Stable id used in the save file. Never rename once released.
+@export var id: String = "prop"
 @export var display_name: String = "Prop Plane"
+## Visual model; its root must use the AircraftVisuals script.
+@export var model_scene: PackedScene
+## Colour used behind this plane in menus.
+@export var menu_color: Color = Color("ff5a5f")
+## Pitch of the honk sound (1.0 = normal).
+@export var honk_pitch: float = 1.0
 
 @export_group("Speed")
 ## Forward speed with no boost or slow input (m/s). The plane never stops.

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="AircraftStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/aircraft/aircraft_stats.gd" id="1_stats"]
+[ext_resource type="PackedScene" path="res://scenes/aircraft/models/jet_model.tscn" id="2_model"]
+
+[resource]
+script = ExtResource("1_stats")
+id = "jet"
+display_name = "Fighter Jet"
+model_scene = ExtResource("2_model")
+menu_color = Color(0.25, 0.55, 1, 1)
+honk_pitch = 1.35
+cruise_speed = 35.0
+boost_multiplier = 1.5
+slow_multiplier = 0.65
+speed_response = 2.0
+turn_rate_deg = 72.0
+max_pitch_deg = 28.0
+pitch_rate_deg = 55.0
+input_smoothing = 6.0
+auto_level_strength = 1.0
+max_bank_deg = 32.0
+bank_response = 5.0
+lookahead_time = 2.2
+safe_clearance = 18.0
+min_clearance = 5.0
+max_rescue_pitch_deg = 35.0
+camera_distance = 11.0
+camera_height = 3.0
+camera_fov = 70.0
+boost_fov_bonus = 12.0

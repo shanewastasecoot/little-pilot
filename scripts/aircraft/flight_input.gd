@@ -40,6 +40,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if override_enabled:
+		return  # menus, autopilot and tests: buttons do nothing here
 	if event.is_action_pressed("honk"):
 		honk_pressed.emit()
 	elif event.is_action_pressed("camera"):

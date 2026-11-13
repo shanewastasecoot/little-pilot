@@ -4,7 +4,10 @@ extends CharacterBody3D
 ## never stalls, and can't crash. Differences between planes live in `stats`.
 ##
 ## Children it expects: FlightInput, FlightSafety, Sensor (Area3D),
-## Model (with an AircraftVisuals script).
+## Model (with an AircraftVisuals script). The model is replaced by
+## stats.model_scene, so swapping planes is just set_stats().
+
+signal stats_changed(stats: AircraftStats)
 
 @export var stats: AircraftStats
 
@@ -17,7 +20,7 @@ var turn: float = 0.0     # final turn command after safety blending
 
 @onready var input: FlightInput = $FlightInput
 @onready var safety: FlightSafety = $FlightSafety
-@onready var visuals: AircraftVisuals = $Model
+var visuals: AircraftVisuals
 
 
 func _ready() -> void:
@@ -27,19 +30,20 @@ func _ready() -> void:
 	collision_layer = GameSettings.LAYER_AIRCRAFT
 	collision_mask = GameSettings.LAYER_WORLD
 	heading = rotation.y
+	visuals = $Model
+	input.honk_pressed.connect(_on_honk)
+	_apply_stats(stats)
 	speed = stats.cruise_speed
 	velocity = _forward() * speed
-	input.smoothing = stats.input_smoothing
-	safety.setup(self, stats, $Sensor)
-	input.honk_pressed.connect(visuals.honk)
 
 
 func _physics_process(delta: float) -> void:
-	safety.evaluate(global_position, velocity, -turn * deg_to_rad(stats.turn_rate_deg))
+	safety.evaluate(global_position, velocity, turn)
 
 	# Turning: safety bias overrides the stick in proportion to its strength.
 	var bias := safety.turn_bias
 	turn = clampf(input.stick.x * (1.0 - absf(bias)) + bias, -1.0, 1.0)
+	turn = lerpf(turn, safety.turn_override, safety.turn_override_weight)
 	heading -= turn * deg_to_rad(stats.turn_rate_deg) * delta
 	heading = wrapf(heading, -PI, PI)
 
@@ -65,6 +69,37 @@ func _physics_process(delta: float) -> void:
 	safety.enforce()
 
 	visuals.update_visuals(turn, speed, stats, delta)
+
+
+## Switch to another aircraft mid-flight. Position, heading and the
+## fraction of cruise speed are kept.
+func set_stats(new_stats: AircraftStats) -> void:
+	if new_stats == null or new_stats == stats:
+		return
+	var speed_ratio := speed / stats.cruise_speed
+	_apply_stats(new_stats)
+	speed = stats.cruise_speed * speed_ratio
+	velocity = _forward() * speed
+
+
+func _apply_stats(new_stats: AircraftStats) -> void:
+	stats = new_stats
+	input.smoothing = stats.input_smoothing
+	safety.setup(self, stats, $Sensor)
+	if stats.model_scene and stats.model_scene.resource_path != visuals.scene_file_path:
+		var model := stats.model_scene.instantiate() as AircraftVisuals
+		var old := visuals
+		remove_child(old)
+		old.queue_free()
+		model.name = "Model"
+		add_child(model)
+		visuals = model
+	stats_changed.emit(stats)
+
+
+func _on_honk() -> void:
+	visuals.honk()
+	Sfx.play("honk", stats.honk_pitch)
 
 
 ## Instantly place the plane (spawning, respawning, plane swap).
