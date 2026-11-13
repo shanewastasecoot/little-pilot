@@ -43,6 +43,8 @@ The Linux export templates live in `~/.var/app/org.godotengine.Godot/data/godot/
 
 - Steam Input gives the game a standard Xbox-style gamepad. No custom layout is needed.
 - If the controls behave strangely, open the game's **Controller Settings** in Steam and choose the **Gamepad** template.
+- **Xbox controllers** (USB or Bluetooth) use the same layout and work alongside the built-in controls; any connected pad can fly. Menu (☰) pauses. If a controller disconnects mid-flight, the game pauses until you're back.
+- `./dev.sh test` includes a controller test that lists connected pads and checks every action on both the built-in and an external Xbox-layout controller.
 
 ## Checking performance
 

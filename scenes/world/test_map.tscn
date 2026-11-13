@@ -1,6 +1,57 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/world/greybox_map.gd" id="1_map"]
+[ext_resource type="Script" path="res://scripts/collectibles/star_trail.gd" id="2_trail"]
+
+[sub_resource type="Curve3D" id="curve_SpawnLine"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 10, 32, 150, 0, 0, 0, 0, 0, 0, 10, 32, 40),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="Curve3D" id="curve_ValleyRun"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -55, 40, -160, 0, 0, 0, 0, 0, 0, -55, 40, -330),
+"tilts": PackedFloat32Array(0, 0)
+}
+point_count = 2
+
+[sub_resource type="Curve3D" id="curve_HilltopArc"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, 260, 50, -60, 0, 0, 0, 0, 0, 0, 233, 67, -13, 0, 0, 0, 0, 0, 0, 207, 85, 33, 0, 0, 0, 0, 0, 0, 180, 72, 70, 0, 0, 0, 0, 0, 0, 150, 60, 100),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0)
+}
+point_count = 5
+
+[sub_resource type="Curve3D" id="curve_WestRing"]
+_data = {
+"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -105, 45, 22, 0, 0, 0, 0, 0, 0, -127.5, 45, 61, 0, 0, 0, 0, 0, 0, -172.5, 45, 61, 0, 0, 0, 0, 0, 0, -195, 45, 22, 0, 0, 0, 0, 0, 0, -172.5, 45, -17, 0, 0, 0, 0, 0, 0, -127.5, 45, -17),
+"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0)
+}
+point_count = 6
 
 [node name="TestMap" type="Node3D"]
 script = ExtResource("1_map")
+
+[node name="Stars" type="Node3D" parent="."]
+
+[node name="SpawnLine" type="Path3D" parent="Stars"]
+curve = SubResource("curve_SpawnLine")
+script = ExtResource("2_trail")
+star_count = 5
+
+[node name="ValleyRun" type="Path3D" parent="Stars"]
+curve = SubResource("curve_ValleyRun")
+script = ExtResource("2_trail")
+star_count = 6
+
+[node name="HilltopArc" type="Path3D" parent="Stars"]
+curve = SubResource("curve_HilltopArc")
+script = ExtResource("2_trail")
+star_count = 5
+
+[node name="WestRing" type="Path3D" parent="Stars"]
+curve = SubResource("curve_WestRing")
+script = ExtResource("2_trail")
+star_count = 6

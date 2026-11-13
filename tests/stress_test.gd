@@ -5,6 +5,7 @@ extends Node
 ##
 ## Run headless (fast, no window):
 ##   flatpak run org.godotengine.Godot --headless --path . --fixed-fps 60 res://tests/stress_test.tscn
+## Runs every case for every aircraft in AircraftCatalog.
 ## Exit code 0 = pass, 1 = fail.
 
 const SECONDS_PER_CASE := 60.0
@@ -25,6 +26,8 @@ const CASES := [
 
 var _main: Node
 var _plane: Aircraft
+var _aircraft_ids: Array = AircraftCatalog.ids()
+var _aircraft_index := 0
 var _case := -1
 var _frames := 0
 var _frames_per_case := 0
@@ -33,16 +36,24 @@ var _failures: Array[String] = []
 
 
 func _ready() -> void:
+	SaveManager.use_path("user://test_save.cfg")  # never touch the real save
 	_main = load("res://scenes/main/main.tscn").instantiate()
 	add_child(_main)
 	_plane = _main.get_node("Aircraft")
 	_plane.input.override_enabled = true
 	_frames_per_case = int(SECONDS_PER_CASE * Engine.physics_ticks_per_second)
+	_start_aircraft()
 	_next_case()
 
 
+func _start_aircraft() -> void:
+	var id: String = _aircraft_ids[_aircraft_index]
+	_plane.set_stats(AircraftCatalog.get_stats(id))
+	print("--- %s ---" % _plane.stats.display_name)
+
+
 func _physics_process(_delta: float) -> void:
-	if _case < 0 or _case >= CASES.size():
+	if _case < 0 or _aircraft_index >= _aircraft_ids.size():
 		return
 	var s := _plane.safety
 	var pos := _plane.global_position
@@ -50,7 +61,12 @@ func _physics_process(_delta: float) -> void:
 	_stats.min_clear = minf(_stats.min_clear, s.clearance)
 	_stats.max_alt = maxf(_stats.max_alt, pos.y)
 	_stats.max_dist = maxf(_stats.max_dist, flat)
-	_stats.contacts += _plane.get_slide_collision_count()
+	for i in _plane.get_slide_collision_count():
+		_stats.contacts += 1
+		if _stats.first_contact == "":
+			var col := _plane.get_slide_collision(i)
+			_stats.first_contact = "%s at %s (plane alt %.1f, clearance %.1f)" % [
+				col.get_collider().get_class(), col.get_position().round(), pos.y, s.clearance]
 	if not pos.is_finite():
 		_stats.nan = true
 	_frames += 1
@@ -62,8 +78,12 @@ func _physics_process(_delta: float) -> void:
 func _next_case() -> void:
 	_case += 1
 	if _case >= CASES.size():
-		_report()
-		return
+		_aircraft_index += 1
+		if _aircraft_index >= _aircraft_ids.size():
+			_report()
+			return
+		_case = 0
+		_start_aircraft()
 	var c: Array = CASES[_case]
 	_plane.input.override_stick = c[1]
 	_plane.input.override_throttle = c[2]
@@ -71,7 +91,7 @@ func _next_case() -> void:
 	var map: GreyboxMap = _main.get_node("Map")
 	_plane.teleport(map.spawn_position, map.spawn_heading())
 	_frames = 0
-	_stats = {min_clear = INF, max_alt = -INF, max_dist = 0.0, contacts = 0, nan = false}
+	_stats = {min_clear = INF, max_alt = -INF, max_dist = 0.0, contacts = 0, nan = false, first_contact = ""}
 
 
 func _finish_case() -> void:
@@ -93,15 +113,15 @@ func _finish_case() -> void:
 		print("PASS  ", line)
 	else:
 		print("FAIL  ", line, "  <- ", ", ".join(problems))
-		_failures.append(c[0])
+		_failures.append("%s: %s" % [_plane.stats.id, c[0]])
 	if _stats.contacts > 0:
-		print("      note: touched an obstacle collider %d frames (safety steering should prevent this)" % _stats.contacts)
+		print("      note: touched an obstacle collider %d frames, first: %s" % [_stats.contacts, _stats.first_contact])
 
 
 func _report() -> void:
 	print("")
 	if _failures.is_empty():
-		print("ALL %d STRESS CASES PASSED" % CASES.size())
+		print("ALL %d STRESS CASES PASSED" % (CASES.size() * _aircraft_ids.size()))
 		get_tree().quit(0)
 	else:
 		print("%d FAILED: %s" % [_failures.size(), ", ".join(_failures)])

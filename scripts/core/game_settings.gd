@@ -6,6 +6,7 @@ extends Node
 const LAYER_WORLD := 1          # terrain, water, obstacles
 const LAYER_AIRCRAFT := 2
 const LAYER_PUSH_VOLUMES := 4   # soft keep-away zones around tall objects
+const LAYER_COLLECTIBLES := 8   # stars
 
 ## True when running on a Steam Deck (Steam sets SteamDeck=1 in Game Mode).
 var is_steam_deck: bool = OS.get_environment("SteamDeck") == "1"

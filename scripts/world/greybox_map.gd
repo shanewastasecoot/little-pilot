@@ -48,6 +48,10 @@ func _build_environment() -> void:
 	env.fog_light_color = Color("cfeaff")
 	env.fog_density = 0.0005
 	env.fog_sky_affect = 0.3
+	# Gentle glow so only bright emissive things (stars) shine.
+	env.glow_enabled = true
+	env.glow_intensity = 0.6
+	env.glow_hdr_threshold = 1.1
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)

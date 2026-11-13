@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | Milestone 1 (Foundation & Flight) in progress |
+| **Status** | Milestone 2 (Game Loop) in progress |
 
 ## Target Audience
 
@@ -120,7 +120,7 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 |---|---|
 | `./dev.sh run` / `./dev.sh run full` | Play in a window / fullscreen |
 | `./dev.sh editor` | Open the Godot editor |
-| `./dev.sh test` | Headless flight stress test: 12 stick/throttle cases × 60 simulated seconds. Exit code 0 = pass. |
+| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), flight stress test (12 cases × 60 s per plane). Exit code 0 = pass. |
 | `./dev.sh check` | Import the project and report script errors |
 | `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
 
