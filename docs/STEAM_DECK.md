@@ -2,6 +2,16 @@
 
 How to get a Little Pilot build from the development PC onto the Steam Deck.
 
+## Developing on the Steam Deck itself
+
+If Godot is installed on the Deck (Flatpak), you can skip the copy step:
+
+1. In Desktop Mode, run `./dev.sh export` in the repo. This writes `~/LittlePilot-builds/LittlePilot.x86_64`.
+2. **First time only:** in Steam (Desktop Mode), choose **Games → Add a Non-Steam Game**, browse to that file and add it.
+3. Switch to Game Mode and launch it. Re-running `./dev.sh export` updates the same file, so the shortcut keeps working.
+
+The Linux export templates live in `~/.var/app/org.godotengine.Godot/data/godot/export_templates/4.7.2.stable/`. Only `linux_release.x86_64` and `linux_debug.x86_64` are needed.
+
 ## One-time setup (development PC)
 
 1. In Godot: **Editor → Manage Export Templates → Download and Install**.

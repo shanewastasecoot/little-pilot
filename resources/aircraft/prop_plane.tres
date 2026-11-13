@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="AircraftStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/aircraft/aircraft_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "Prop Plane"
+cruise_speed = 22.0
+boost_multiplier = 1.5
+slow_multiplier = 0.65
+speed_response = 1.5
+turn_rate_deg = 55.0
+max_pitch_deg = 28.0
+pitch_rate_deg = 40.0
+input_smoothing = 3.0
+auto_level_strength = 1.2
+max_bank_deg = 40.0
+bank_response = 3.0
+lookahead_time = 1.8
+safe_clearance = 14.0
+min_clearance = 4.0
+max_rescue_pitch_deg = 35.0
+camera_distance = 9.0
+camera_height = 2.5
+camera_fov = 70.0
+boost_fov_bonus = 10.0
