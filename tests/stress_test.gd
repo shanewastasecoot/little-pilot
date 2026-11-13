@@ -22,6 +22,12 @@ const CASES := [
 	["climb right + boost", Vector2(0.7, 0.7), 1.0],
 	["straight + boost", Vector2(0, 0), 1.0],
 	["straight + slow", Vector2(0, 0), -1.0],
+	# Targeted runs at the island's hardest spots: [name, stick, throttle, start, heading°]
+	["dive into peak", Vector2(0, -1), 1.0, Vector3(150, 140, -380), 0.0],
+	["straight into peak", Vector2(0, 0), 1.0, Vector3(150, 90, -420), 0.0],
+	["circle lighthouse", Vector2(-1, 0), 0.0, Vector3(700, 45, 520), -90.0],
+	["across turbines", Vector2(0, -0.3), 1.0, Vector3(470, 60, -40), 0.0],
+	["valley weave", Vector2(0.6, -0.5), 1.0, Vector3(-70, 80, -400), 0.0],
 ]
 
 var _main: Node
@@ -88,8 +94,11 @@ func _next_case() -> void:
 	_plane.input.override_stick = c[1]
 	_plane.input.override_throttle = c[2]
 	_plane.speed = _plane.stats.cruise_speed
-	var map: GreyboxMap = _main.get_node("Map")
-	_plane.teleport(map.spawn_position, map.spawn_heading())
+	var map: GameMap = _main.get_node("Map")
+	if c.size() > 3:
+		_plane.teleport(c[3], deg_to_rad(c[4]))
+	else:
+		_plane.teleport(map.spawn_position, map.spawn_heading())
 	_frames = 0
 	_stats = {min_clear = INF, max_alt = -INF, max_dist = 0.0, contacts = 0, nan = false, first_contact = ""}
 

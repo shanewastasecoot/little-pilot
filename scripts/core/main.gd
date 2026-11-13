@@ -10,7 +10,7 @@ const AUTOPILOT_STICK := Vector2(0.3, 0.0)
 
 var state: State = State.TITLE
 
-@onready var map: GreyboxMap = $Map
+@onready var map: GameMap = $Map
 @onready var aircraft: Aircraft = $Aircraft
 @onready var chase_camera: ChaseCamera = $ChaseCamera
 @onready var stars: StarManager = $StarManager
@@ -26,6 +26,8 @@ func _ready() -> void:
 	chase_camera.snap_to_target()
 	hud.bind(stars)
 	stars.all_collected.connect(_on_all_stars)
+	for l in get_tree().get_nodes_in_group("landmarks"):
+		l.discovered.connect(_on_landmark_discovered)
 
 	title.start_requested.connect(_open_select)
 	plane_select.confirmed.connect(_on_plane_confirmed)
@@ -97,6 +99,10 @@ func _resume() -> void:
 func _quit() -> void:
 	SaveManager.save_now()
 	get_tree().quit()
+
+
+func _on_landmark_discovered(_landmark: Landmark) -> void:
+	hud.celebrate_discovery()
 
 
 func _on_all_stars() -> void:
