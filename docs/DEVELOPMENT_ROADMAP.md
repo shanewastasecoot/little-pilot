@@ -21,6 +21,17 @@ Estimates below are **hours of focused work**, with calendar weeks at ~6 h/week.
 | 6 — Polish | 15–25 h | 3–4 weeks |
 | **Total** | **80–125 h** | **~3.5–5 months** |
 
+### Milestones (current plan)
+
+The six phases below are grouped into **four milestones**. Each milestone is one branch, pushed to GitHub and merged when its checks pass. Every task and Definition of Done in the phases still applies.
+
+| Milestone | Branch | Covers |
+|---|---|---|
+| 1 — Foundation & Flight | `phase-1-foundation-flight` | Phases 1 and 2 |
+| 2 — Game Loop | `phase-2-game-loop` | Phases 3 and 4 (the jet is available from the start) |
+| 3 — Island | `phase-3-island` | Phase 5 |
+| 4 — Polish & 1.0 | `phase-4-polish` | Phase 6 |
+
 ## Guiding Practices (All Phases)
 
 - **Playable on the Steam Deck at the end of every phase.** Every phase ends with a build you can play.

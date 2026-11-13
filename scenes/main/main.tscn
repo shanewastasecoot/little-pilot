@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/core/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/world/test_map.tscn" id="2_map"]
+[ext_resource type="PackedScene" path="res://scenes/aircraft/aircraft.tscn" id="3_aircraft"]
+[ext_resource type="PackedScene" path="res://scenes/aircraft/chase_camera.tscn" id="4_cam"]
+[ext_resource type="PackedScene" path="res://scenes/ui/debug_hud.tscn" id="5_hud"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Map" parent="." instance=ExtResource("2_map")]
+
+[node name="Aircraft" parent="." instance=ExtResource("3_aircraft")]
+
+[node name="ChaseCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("4_cam")]
+target = NodePath("../Aircraft")
+
+[node name="DebugHud" parent="." node_paths=PackedStringArray("aircraft") instance=ExtResource("5_hud")]
+aircraft = NodePath("../Aircraft")

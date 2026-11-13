@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | Pre-production (documentation phase) |
+| **Status** | Milestone 1 (Foundation & Flight) in progress |
 
 ## Target Audience
 
@@ -101,7 +101,7 @@ The game has soft colours, gentle music and no pressure. The child decides where
 
 ### Prerequisites
 - **Git** with **Git LFS** (Git for Windows includes LFS. On Linux, install `git-lfs`.)
-- **Godot 4.x, standard version** (not .NET). Record the exact version here once chosen: `4.x.x`
+- **Godot 4.x, standard version** (not .NET). Pinned version: **Godot 4.7.2 stable**. On the Steam Deck: `flatpak install flathub org.godotengine.Godot`.
 
 ### Clone
 
@@ -113,12 +113,18 @@ git lfs install
 git clone https://github.com/shanewastasecoot/little-pilot.git
 ```
 
-### First-time project creation (Phase 1, done once)
-1. Godot Project Manager: **Create**, select the cloned `little-pilot` folder, choose the **Mobile** renderer, and set **Version Control Metadata** to **None** so Godot doesn't replace the repo's `.gitignore` / `.gitattributes`. Godot warns that the folder isn't empty; that's expected, so continue.
-2. Commit the generated `project.godot` and `icon.svg`.
+### Developer commands
+`dev.sh` wraps the common Godot commands (it uses the Flatpak Godot; set `GODOT=/path/to/godot` to override):
 
-### Run
-Open `project.godot` in Godot and press **F5**.
+| Command | What it does |
+|---|---|
+| `./dev.sh run` / `./dev.sh run full` | Play in a window / fullscreen |
+| `./dev.sh editor` | Open the Godot editor |
+| `./dev.sh test` | Headless flight stress test: 12 stick/throttle cases × 60 simulated seconds. Exit code 0 = pass. |
+| `./dev.sh check` | Import the project and report script errors |
+| `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
+
+Press **F3** in game to toggle the debug overlay (FPS, speed, clearance, safety state). It's on by default in debug runs and off in release builds.
 
 ### Steam Deck
 See [`docs/STEAM_DECK.md`](docs/STEAM_DECK.md).
