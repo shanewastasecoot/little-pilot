@@ -18,6 +18,7 @@ func _ready() -> void:
 	_build_ocean()
 	_place_landmarks()
 	_place_stars()
+	add_child(Clouds.new())
 
 
 func _build_environment() -> void:

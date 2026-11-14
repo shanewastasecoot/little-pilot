@@ -4,8 +4,14 @@ extends Landmark
 ## whoosh when discovered. Push volumes keep the plane out of the blade sweep.
 
 const COUNT := 5
-const TOWER_H := 55.0
-const BLADE_LEN := 20.0
+const MODEL_SCALE := 11.0
+## Hub height and blade length after scaling the model (Colin Hopkins, CC-BY 3.0).
+const TOWER_H := 3.9 * MODEL_SCALE
+const BLADE_LEN := 1.9 * MODEL_SCALE
+## Where the three blades meet, in the model's own units.
+const HUB := Vector3(0.0, 0.76, -0.12)
+## Blade meshes inside the .glb (spun around the hub).
+const BLADE_NODES := ["group1638284413", "group319097306", "group2091045647"]
 
 var _rotors: Array[Node3D] = []
 var _spin := 1.0
@@ -27,23 +33,29 @@ func build() -> void:
 		var ground := IslandShape.height(p.x, p.y)
 		var t := Node3D.new()
 		t.position = Vector3(p.x - mid.x, ground - position.y, p.y - mid.y)
-		t.rotation_degrees.y = 35.0  # rotors face south-west
+		t.rotation_degrees.y = 35.0 + 180.0  # rotors face south-west
 		add_child(t)
-		BuildKit.add(t, BuildKit.cyl(2.2, TOWER_H, 1.4, 10), "f4f4f4", Vector3(0, TOWER_H * 0.5, 0))
-		BuildKit.add(t, BuildKit.box(Vector3(3, 3, 7)), "f4f4f4", Vector3(0, TOWER_H + 1, 0))
-		var rotor := Node3D.new()
-		rotor.position = Vector3(0, TOWER_H + 1, -3.8)
-		t.add_child(rotor)
-		BuildKit.add(rotor, BuildKit.sphere(1.4, 8), "ff5a5f")
-		for k in 3:
-			var arm := Node3D.new()
-			arm.rotation.z = TAU * k / 3.0
-			rotor.add_child(arm)
-			BuildKit.add(arm, BuildKit.box(Vector3(1.6, BLADE_LEN, 0.4)), "ffffff", Vector3(0, BLADE_LEN * 0.5 + 1, 0))
-		rotor.rotation.z = randf() * TAU
-		_rotors.append(rotor)
+		# Model's tower base sits 3.14 units below its origin.
+		var model := AssetLib.place(t, "res://assets/environment/wind_turbine.glb", Vector3(0, 3.14 * MODEL_SCALE, 0), MODEL_SCALE)
+		_rotors.append(_make_rotor(model))
 		BuildKit.collider(t, BuildKit.cyl_shape(2.5, TOWER_H), Vector3(0, TOWER_H * 0.5, 0))
 		BuildKit.push_volume(t, BLADE_LEN + 14.0, TOWER_H + BLADE_LEN + 40.0)
+
+
+## Regroup the blade meshes under a pivot at the hub so they can spin.
+func _make_rotor(model: Node3D) -> Node3D:
+	var pivot := Node3D.new()
+	pivot.position = HUB
+	var holder: Node3D = model.find_child(BLADE_NODES[0], true, false).get_parent()
+	holder.add_child(pivot)
+	for blade_name in BLADE_NODES:
+		var blade: Node3D = model.find_child(blade_name, true, false)
+		var xf := blade.transform
+		blade.get_parent().remove_child(blade)
+		pivot.add_child(blade)
+		blade.transform = Transform3D(Basis.IDENTITY, -HUB) * xf
+	pivot.rotation.z = randf() * TAU
+	return pivot
 
 
 func _process(delta: float) -> void:

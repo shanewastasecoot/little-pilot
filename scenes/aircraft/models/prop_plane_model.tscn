@@ -2,114 +2,42 @@
 
 [ext_resource type="Script" path="res://scripts/aircraft/aircraft_visuals.gd" id="1_vis"]
 [ext_resource type="Script" path="res://scripts/aircraft/boost_trail.gd" id="2_trail"]
-
-[sub_resource type="StandardMaterial3D" id="mat_red"]
-albedo_color = Color(1, 0.35, 0.37, 1)
-roughness = 0.6
-
-[sub_resource type="StandardMaterial3D" id="mat_yellow"]
-albedo_color = Color(1, 0.82, 0.25, 1)
-roughness = 0.6
-
-[sub_resource type="StandardMaterial3D" id="mat_white"]
-albedo_color = Color(1, 1, 1, 1)
-roughness = 0.4
-
-[sub_resource type="StandardMaterial3D" id="mat_glass"]
-albedo_color = Color(0.55, 0.85, 1, 1)
-roughness = 0.1
+[ext_resource type="PackedScene" path="res://assets/aircraft/biplane.glb" id="3_glb"]
 
 [sub_resource type="StandardMaterial3D" id="mat_dark"]
-albedo_color = Color(0.2, 0.2, 0.25, 1)
-
-[sub_resource type="CapsuleMesh" id="fuselage"]
-radius = 0.55
-height = 3.6
-
-[sub_resource type="BoxMesh" id="wing"]
-size = Vector3(5.4, 0.16, 1.1)
-
-[sub_resource type="BoxMesh" id="stabilizer"]
-size = Vector3(2, 0.1, 0.6)
-
-[sub_resource type="BoxMesh" id="fin"]
-size = Vector3(0.1, 0.9, 0.7)
-
-[sub_resource type="SphereMesh" id="cockpit"]
-radius = 0.42
-height = 0.7
-
-[sub_resource type="SphereMesh" id="spinner"]
-radius = 0.25
-height = 0.5
+albedo_color = Color(0.2, 0.22, 0.27, 1)
 
 [sub_resource type="BoxMesh" id="blade"]
-size = Vector3(1.9, 0.18, 0.05)
-
-[sub_resource type="SphereMesh" id="eye"]
-radius = 0.13
-height = 0.26
+size = Vector3(2.2, 0.2, 0.05)
 
 [node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller", "boost_trails")]
 script = ExtResource("1_vis")
-boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 propeller = NodePath("Propeller")
+boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 
-[node name="Fuselage" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
-mesh = SubResource("fuselage")
-surface_material_override/0 = SubResource("mat_red")
-
-[node name="Wing" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, -0.2)
-mesh = SubResource("wing")
-surface_material_override/0 = SubResource("mat_yellow")
-
-[node name="Stabilizer" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 1.5)
-mesh = SubResource("stabilizer")
-surface_material_override/0 = SubResource("mat_yellow")
-
-[node name="Fin" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 1.5)
-mesh = SubResource("fin")
-surface_material_override/0 = SubResource("mat_red")
-
-[node name="Cockpit" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, -0.1)
-mesh = SubResource("cockpit")
-surface_material_override/0 = SubResource("mat_glass")
-
-[node name="EyeL" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.27, 0.22, -1.4)
-mesh = SubResource("eye")
-surface_material_override/0 = SubResource("mat_white")
-
-[node name="EyeR" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.27, 0.22, -1.4)
-mesh = SubResource("eye")
-surface_material_override/0 = SubResource("mat_white")
-
-[node name="Spinner" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.85)
-mesh = SubResource("spinner")
-surface_material_override/0 = SubResource("mat_white")
+[node name="Biplane" parent="." instance=ExtResource("3_glb")]
+transform = Transform3D(4.6, 0, 0, 0, 4.6, 0, 0, 0, 4.6, 0, -0.1, -0.28)
 
 [node name="Propeller" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.95)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -2.12)
 
-[node name="Blade" type="MeshInstance3D" parent="Propeller"]
+[node name="BladeA" type="MeshInstance3D" parent="Propeller"]
+mesh = SubResource("blade")
+surface_material_override/0 = SubResource("mat_dark")
+
+[node name="BladeB" type="MeshInstance3D" parent="Propeller"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
 mesh = SubResource("blade")
 surface_material_override/0 = SubResource("mat_dark")
 
 [node name="TrailL" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, -0.1, 0.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6, 0.4, -0.4)
 script = ExtResource("2_trail")
 rainbow = true
 width = 0.4
 
 [node name="TrailR" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.1, 0.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0.4, -0.4)
 script = ExtResource("2_trail")
 rainbow = true
 width = 0.4

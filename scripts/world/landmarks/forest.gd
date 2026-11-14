@@ -7,6 +7,12 @@ extends Landmark
 
 const TILE := 300.0
 const VIEW_DISTANCE := 1100.0
+## Beyond this, trees switch from the detailed models to cheap cones.
+const DETAIL_DISTANCE := 420.0
+const PINE := "res://assets/environment/pine.glb"
+const ROUND := "res://assets/environment/tree_round.glb"
+## Model scale so each tree is ~13 m tall (matches the old cones).
+const MODEL_SCALE := {PINE: 1.5, ROUND: 2.4}
 
 var tree_count: int = 0
 
@@ -20,7 +26,7 @@ func _init() -> void:
 func build() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 21
-	var tiles: Dictionary = {}  # Vector2i -> Array[Transform3D]
+	var tiles: Dictionary = {}  # [Vector2i, variant] -> Array[Transform3D]
 	var colors: Dictionary = {}
 	var body := StaticBody3D.new()
 	body.collision_layer = GameSettings.LAYER_WORLD
@@ -42,31 +48,43 @@ func build() -> void:
 				var in_forest := IslandShape.p_in_forest(px, pz)
 				var chance := (0.8 if in_forest else 0.0) if dense else (0.0 if in_forest else 0.05)
 				if rng.randf() < chance and _can_grow(px, pz):
-					_plant(body, tiles, colors, rng, px, pz)
+					_plant(body, tiles, colors, rng, px, pz, PINE if dense else ROUND)
 				x += step
 			z += step
-	var mesh := _tree_mesh()
+	var cone := _tree_mesh()
 	for key in tiles:
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_colors = true
-		mm.mesh = mesh
-		mm.instance_count = tiles[key].size()
-		for i in mm.instance_count:
-			mm.set_instance_transform(i, tiles[key][i])
-			mm.set_instance_color(i, colors[key][i])
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.top_level = true
-		mmi.visibility_range_end = VIEW_DISTANCE
-		add_child(mmi)
+		var variant: String = key[1]
+		var detail: Array = AssetLib.mesh_of(variant)
+		var model_xf: Transform3D = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * MODEL_SCALE[variant])) * detail[1]
+		# Near: detailed model. Far: cheap tinted cone. Swapped by distance.
+		_add_multimesh(detail[0], tiles[key], [], model_xf, 0.0, DETAIL_DISTANCE)
+		_add_multimesh(cone, tiles[key], colors[key], Transform3D.IDENTITY, DETAIL_DISTANCE, VIEW_DISTANCE)
 
 
-func _plant(body: StaticBody3D, tiles: Dictionary, colors: Dictionary, rng: RandomNumberGenerator, px: float, pz: float) -> void:
+func _add_multimesh(mesh: Mesh, xforms: Array, cols: Array, local: Transform3D, begin: float, end: float) -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = not cols.is_empty()
+	mm.mesh = mesh
+	mm.instance_count = xforms.size()
+	for i in mm.instance_count:
+		mm.set_instance_transform(i, xforms[i] * local)
+		if mm.use_colors:
+			mm.set_instance_color(i, cols[i])
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.top_level = true
+	mmi.visibility_range_begin = begin
+	mmi.visibility_range_end = end
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if begin == 0.0 else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mmi)
+
+
+func _plant(body: StaticBody3D, tiles: Dictionary, colors: Dictionary, rng: RandomNumberGenerator, px: float, pz: float, variant: String) -> void:
 	var h := IslandShape.height(px, pz)
 	var s := rng.randf_range(0.85, 1.5)
 	var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s), Vector3(px, h - 0.5, pz))
-	var key := Vector2i(floori(px / TILE), floori(pz / TILE))
+	var key := [Vector2i(floori(px / TILE), floori(pz / TILE)), variant]
 	if not tiles.has(key):
 		tiles[key] = []
 		colors[key] = []

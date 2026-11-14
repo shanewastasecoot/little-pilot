@@ -10,6 +10,8 @@ const COAST_RADIUS := 880.0
 # Landmark anchor points (x, z)
 const RUNWAY := Vector2(0, 0)            # runway centre, runs east-west
 const RUNWAY_HALF := Vector2(300, 28)    # half length, half width
+const HANGAR := Vector2(110, -95)        # hangar + apron footprint centre
+const HANGAR_HALF := Vector2(50, 50)
 const FARM := Vector2(-430, 380)
 const FARM_HEIGHT := 9.0
 const FOREST := Vector2(-470, -260)
@@ -68,7 +70,7 @@ static func height(x: float, z: float) -> float:
 	# Rocky lighthouse point
 	h += 22.0 * smoothstep(90.0, 0.0, p.distance_to(LIGHTHOUSE))
 	# Flatten the runway and the farm fields
-	var rw := _box_dist(p - RUNWAY, RUNWAY_HALF + Vector2(40, 40))
+	var rw := minf(_box_dist(p - RUNWAY, RUNWAY_HALF + Vector2(40, 40)), _box_dist(p - HANGAR, HANGAR_HALF))
 	h = lerpf(10.0, h, smoothstep(0.0, 110.0, rw))
 	h = lerpf(FARM_HEIGHT, h, smoothstep(170.0, 260.0, p.distance_to(FARM)))
 

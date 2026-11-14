@@ -1,8 +1,11 @@
 class_name Farm
 extends Landmark
-## Red barn, silo, striped fields and sheep. The sheep hop when discovered.
+## Red barn, silo, striped fields, sheep and cows (Quaternius CC0 models).
+## The animals jump when discovered.
 
-var _sheep: Array[Node3D] = []
+const ENV := "res://assets/environment/"
+
+var _animals: Array[Node3D] = []
 var _t := 0.0
 
 
@@ -13,15 +16,11 @@ func _init() -> void:
 
 
 func build() -> void:
-	# Barn
-	BuildKit.add(self, BuildKit.box(Vector3(22, 12, 30)), "d7263d", Vector3(0, 6, 0))
-	BuildKit.add(self, BuildKit.prism(Vector3(24, 8, 31)), "8c1c2b", Vector3(0, 16, 0))
-	BuildKit.add(self, BuildKit.box(Vector3(8, 9, 0.5)), "ffffff", Vector3(0, 4.5, 15.1))
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(24, 20, 31)), Vector3(0, 10, 0))
-	# Silo
-	BuildKit.add(self, BuildKit.cyl(5, 26, -1, 14), "c9ced6", Vector3(18, 13, -8))
-	BuildKit.add(self, BuildKit.sphere(5, 12), "6f7a8a", Vector3(18, 26, -8))
-	BuildKit.collider(self, BuildKit.cyl_shape(5.5, 32), Vector3(18, 16, -8))
+	# Barn and silo (barn doors face south, towards the runway side)
+	AssetLib.place(self, ENV + "barn.glb", Vector3.ZERO, 3.5)
+	BuildKit.collider(self, BuildKit.box_shape(Vector3(27, 21, 29)), Vector3(0, 10.5, 0))
+	AssetLib.place(self, ENV + "silo.glb", Vector3(20, 0, -8), 3.0)
+	BuildKit.collider(self, BuildKit.cyl_shape(6, 28), Vector3(20, 14, -8))
 	# Fields: striped patches around the barn
 	var palette := [["e9c46a", "d4a843"], ["8ac926", "6fa81e"], ["b5835a", "9a6b45"], ["e9c46a", "d4a843"]]
 	var spots := [Vector2(-80, -60), Vector2(70, -70), Vector2(-75, 70), Vector2(75, 75)]
@@ -33,21 +32,19 @@ func build() -> void:
 	for k in 24:
 		var a := TAU * k / 24.0
 		BuildKit.add(self, BuildKit.box(Vector3(0.5, 2, 0.5)), "8a5a3c", Vector3(-30 + cos(a) * 22, 1, 40 + sin(a) * 14))
-	# Sheep
-	for k in 7:
-		var sheep := Node3D.new()
-		var a := TAU * k / 7.0
-		sheep.position = Vector3(-30 + cos(a) * 12, 0, 40 + sin(a) * 7)
-		sheep.rotation.y = randf() * TAU
-		add_child(sheep)
-		BuildKit.add(sheep, BuildKit.sphere(1.3, 8), "ffffff", Vector3(0, 1.5, 0), Vector3.ZERO, Vector3(1, 0.85, 1.3))
-		BuildKit.add(sheep, BuildKit.sphere(0.6, 6), "333333", Vector3(0, 1.9, -1.5))
-		_sheep.append(sheep)
+	# Animals in the fenced field: sheep and cows, grazing (idle animation)
+	for k in 8:
+		var a := TAU * k / 8.0
+		var cow := k % 3 == 0
+		var animal := AssetLib.place(self, ENV + ("cow.glb" if cow else "sheep.glb"),
+			Vector3(-30 + cos(a) * 13, 0, 40 + sin(a) * 7), 1.1 if cow else 1.3, randf() * 360.0, "Armature|Idle")
+		_animals.append(animal)
 
 
 func react() -> void:
-	for i in _sheep.size():
-		var sheep := _sheep[i]
-		var tw := create_tween().set_loops(4)
-		tw.tween_property(sheep, "position:y", 2.5, 0.18).set_delay(i * 0.05).set_ease(Tween.EASE_OUT)
-		tw.tween_property(sheep, "position:y", 0.0, 0.18).set_ease(Tween.EASE_IN)
+	# Everyone jumps for a few seconds, then goes back to grazing.
+	for animal in _animals:
+		AssetLib.play_loop(animal, "Armature|Jump")
+	await get_tree().create_timer(4.0, false).timeout
+	for animal in _animals:
+		AssetLib.play_loop(animal, "Armature|Idle")

@@ -3,6 +3,8 @@ extends Landmark
 ## Spawn area: runway with markings, control tower, hangar and a windsock
 ## that flaps harder when discovered.
 
+const TOWER_SCALE := 15.0  # ~60 m tall
+
 var _sock: Node3D
 var _flap_speed := 2.0
 var _t := 0.0
@@ -26,19 +28,14 @@ func build() -> void:
 	var tower := Node3D.new()
 	tower.position = Vector3(-120, 0, -70)
 	add_child(tower)
-	BuildKit.add(tower, BuildKit.cyl(4, 22), "f2f2f2", Vector3(0, 11, 0))
-	BuildKit.add(tower, BuildKit.cyl(7, 5, 7, 8), "7fd3ff", Vector3(0, 24.5, 0))
-	BuildKit.add(tower, BuildKit.cyl(8, 2, 3, 8), "ff5a5f", Vector3(0, 28, 0))
-	BuildKit.collider(tower, BuildKit.cyl_shape(7, 30), Vector3(0, 15, 0))
-	BuildKit.push_volume(tower, 26.0, 60.0)
-	# Hangar
-	var hangar := Node3D.new()
-	hangar.position = Vector3(110, 0, -85)
+	# Model (Poly by Google, CC-BY 3.0): ~3.95 units tall, base 2.28 below origin.
+	AssetLib.place(tower, "res://assets/environment/control_tower.glb", Vector3(0, 2.28 * TOWER_SCALE, 0), TOWER_SCALE)
+	BuildKit.collider(tower, BuildKit.cyl_shape(6, 4.0 * TOWER_SCALE), Vector3(0, 2.0 * TOWER_SCALE, 0))
+	BuildKit.push_volume(tower, 28.0, 4.0 * TOWER_SCALE + 30.0)
+	# Hangar (code-built), door facing the runway
+	var hangar := Hangar.new()
+	hangar.position = Vector3(110, 0, -105)
 	add_child(hangar)
-	BuildKit.add(hangar, BuildKit.box(Vector3(46, 12, 32)), "4aa8ff", Vector3(0, 6, 0))
-	BuildKit.add(hangar, BuildKit.cyl(16, 46, -1, 16), "e8eef5", Vector3(0, 12, 0), Vector3(0, 0, 90), Vector3(1, 1, 0.55))
-	BuildKit.add(hangar, BuildKit.box(Vector3(30, 10, 0.5)), "2b3a55", Vector3(0, 5, 16.1))
-	BuildKit.collider(hangar, BuildKit.box_shape(Vector3(46, 22, 32)), Vector3(0, 11, 0))
 	# Windsock
 	var pole := Node3D.new()
 	pole.position = Vector3(-60, 0, 50)
