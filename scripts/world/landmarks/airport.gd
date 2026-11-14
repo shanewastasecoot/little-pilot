@@ -32,25 +32,10 @@ func build() -> void:
 	AssetLib.place(tower, "res://assets/environment/control_tower.glb", Vector3(0, 2.28 * TOWER_SCALE, 0), TOWER_SCALE)
 	BuildKit.collider(tower, BuildKit.cyl_shape(6, 4.0 * TOWER_SCALE), Vector3(0, 2.0 * TOWER_SCALE, 0))
 	BuildKit.push_volume(tower, 28.0, 4.0 * TOWER_SCALE + 30.0)
-	# Hangar
-	var hangar := Node3D.new()
-	hangar.position = Vector3(110, 0, -85)
+	# Hangar (code-built), door facing the runway
+	var hangar := Hangar.new()
+	hangar.position = Vector3(110, 0, -105)
 	add_child(hangar)
-	BuildKit.add(hangar, BuildKit.box(Vector3(46, 12, 32)), "4aa8ff", Vector3(0, 6, 0))
-	BuildKit.add(hangar, BuildKit.cyl(16, 46, -1, 16), "e8eef5", Vector3(0, 12, 0), Vector3(0, 0, 90), Vector3(1, 1, 0.55))
-	BuildKit.add(hangar, BuildKit.box(Vector3(30, 10, 0.5)), "2b3a55", Vector3(0, 5, 16.1))
-	BuildKit.collider(hangar, BuildKit.box_shape(Vector3(46, 22, 32)), Vector3(0, 11, 0))
-	# Planes parked on the apron in front of the hangar.
-	var biplane: Node3D = load("res://scenes/aircraft/models/prop_plane_model.tscn").instantiate()
-	biplane.position = Vector3(-10, 1.9 * 2.2, 30)
-	biplane.rotation_degrees.y = 160
-	biplane.scale = Vector3.ONE * 2.2
-	hangar.add_child(biplane)
-	var jet: Node3D = load("res://scenes/aircraft/models/jet_model.tscn").instantiate()
-	jet.position = Vector3(13, 1.2 * 2.2, 32)
-	jet.rotation_degrees.y = 200
-	jet.scale = Vector3.ONE * 2.2
-	hangar.add_child(jet)
 	# Windsock
 	var pole := Node3D.new()
 	pole.position = Vector3(-60, 0, 50)

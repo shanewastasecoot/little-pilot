@@ -52,6 +52,6 @@ Changes: the biplane gets an added spinning propeller; the jet is recoloured fro
 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 
-- **3D art:** island terrain, runway, hangar, windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
+- **3D art:** island terrain, runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
 - **Sound effects and music:** synthesised at startup by `scripts/core/sfx.gd` and `scripts/core/music.gd`.
 - **Font:** Godot's built-in default font.
