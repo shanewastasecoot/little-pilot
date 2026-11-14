@@ -44,7 +44,8 @@ func build() -> void:
 	rng.seed = 3
 	for i in 9:
 		var a := TAU * i / 9.0
-		BuildKit.add(self, BuildKit.sphere(rng.randf_range(4, 8), 6), "8a8794", Vector3(cos(a) * 16, 0, sin(a) * 16), Vector3(rng.randf() * 90, rng.randf() * 90, 0))
+		var path := "res://assets/environment/%s.glb" % ("rocks" if i % 2 == 0 else "rock")
+		AssetLib.place(self, path, Vector3(cos(a) * 16, -1.0, sin(a) * 16), rng.randf_range(45.0, 70.0), rng.randf() * 360.0)
 
 
 func _process(delta: float) -> void:

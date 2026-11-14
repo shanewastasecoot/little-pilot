@@ -1,7 +1,7 @@
 class_name Boat
 extends Landmark
-## A little tugboat chugging in a big loop off the south coast. Toots when
-## discovered. Its discovery zone travels with it.
+## A little sail boat (Quaternius CC0) cruising in a big loop off the south
+## coast. Toots when discovered. Its discovery zone travels with it.
 
 @export var loop_center: Vector3 = Vector3(250, 0, 1000)
 @export var loop_radius: float = 160.0
@@ -21,11 +21,8 @@ func _init() -> void:
 func build() -> void:
 	_hull = Node3D.new()
 	add_child(_hull)
-	BuildKit.add(_hull, BuildKit.box(Vector3(8, 3, 18)), "ff5a5f", Vector3(0, 1.0, 0))
-	BuildKit.add(_hull, BuildKit.prism(Vector3(8, 6, 3)), "ff5a5f", Vector3(0, 1.0, -10.5), Vector3(-90, 0, 0))
-	BuildKit.add(_hull, BuildKit.box(Vector3(6, 4, 7)), "ffffff", Vector3(0, 4.5, 2))
-	BuildKit.add(_hull, BuildKit.cyl(1.1, 4), "ffd23f", Vector3(0, 8, 4))
-	BuildKit.add(_hull, BuildKit.cyl(1.2, 0.6), "333333", Vector3(0, 10.2, 4))
+	# Model faces -Z; the loop moves it sideways, so turn it to face travel.
+	AssetLib.place(_hull, "res://assets/environment/sail_boat.glb", Vector3.ZERO, 22.0, 90.0)
 
 
 func _process(delta: float) -> void:
@@ -41,4 +38,4 @@ func react() -> void:
 	var puff := PickupBurst.new(14, 4.0, [Color.WHITE, Color("dddddd")])
 	puff.gravity = Vector3(0, 3, 0)
 	_hull.add_child(puff)
-	puff.position = Vector3(0, 11, 4)
+	puff.position = Vector3(0, 16, 0)
