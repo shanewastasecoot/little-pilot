@@ -72,8 +72,8 @@ static func build(parent: Node3D, height_fn: Callable, color_fn: Callable, centr
 
 
 static func _tri(verts: PackedVector3Array, normals: PackedVector3Array, colors: PackedColorArray, a: Vector3, b: Vector3, c: Vector3) -> void:
-	if a.y < -4.0 and b.y < -4.0 and c.y < -4.0:
-		return  # deep under the ocean: never seen
+	if a.y < -24.0 and b.y < -24.0 and c.y < -24.0:
+		return  # deep sea floor: the water is fully opaque by this depth
 	var nrm := (c - a).cross(b - a).normalized()
 	if nrm.y < 0.0:
 		nrm = -nrm

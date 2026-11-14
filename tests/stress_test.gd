@@ -34,6 +34,7 @@ const CASES := [
 	["into the castle", Vector2(0, -0.4), 1.0, Vector3(-700, 120, 2950), 180.0],
 	["dive on ice peak", Vector2(0, -1), 1.0, Vector3(210, 200, -3150), 0.0],
 	["circle the town", Vector2(-0.6, -0.2), 0.0, Vector3(-3400, 60, 200), -90.0],
+	["low over mermaid cove", Vector2(0.5, -0.6), 0.0, Vector3(-120, 25, -2100), 0.0],
 ]
 
 var _main: Node

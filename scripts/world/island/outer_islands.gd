@@ -42,7 +42,7 @@ static func ice_height(x: float, z: float) -> float:
 	var d := p.distance_to(ICE)
 	var h := 10.0 + 40.0 * smoothstep(ICE_RADIUS, 0.0, d) + _n().get_noise_2d(x, z) * 12.0
 	h += 85.0 * pow(maxf(0.0, 1.0 - p.distance_to(ICE + Vector2(-90, -60)) / 170.0), 1.6)
-	return lerpf(-25.0, h, _land(p, ICE, ICE_RADIUS, 100.0))
+	return lerpf(-28.0, h, _land(p, ICE, ICE_RADIUS, 100.0))
 
 
 static func ice_color(_x: float, _z: float, h: float, slope: float) -> Color:
@@ -60,7 +60,7 @@ static func dino_height(x: float, z: float) -> float:
 	var d := p.distance_to(DINO)
 	var h := 12.0 + 30.0 * smoothstep(DINO_RADIUS, 0.0, d) + _n().get_noise_2d(x * 1.3, z * 1.3) * 22.0
 	h += 60.0 * pow(maxf(0.0, 1.0 - p.distance_to(DINO + Vector2(150, -120)) / 150.0), 1.3)
-	return lerpf(-25.0, h, _land(p, DINO, DINO_RADIUS, 200.0))
+	return lerpf(-28.0, h, _land(p, DINO, DINO_RADIUS, 200.0))
 
 
 static func dino_color(_x: float, _z: float, h: float, slope: float) -> Color:
@@ -78,7 +78,7 @@ static func castle_height(x: float, z: float) -> float:
 	var d := p.distance_to(CASTLE)
 	var h := 10.0 + _n().get_noise_2d(x, z) * 8.0
 	h = lerpf(CASTLE_HILL, h, smoothstep(CASTLE_PLATEAU, CASTLE_PLATEAU + 160.0, d))
-	return lerpf(-25.0, h, _land(p, CASTLE, CASTLE_RADIUS, 300.0))
+	return lerpf(-28.0, h, _land(p, CASTLE, CASTLE_RADIUS, 300.0))
 
 
 static func castle_color(_x: float, _z: float, h: float, slope: float) -> Color:
@@ -95,7 +95,7 @@ static func town_height(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	var d := p.distance_to(TOWN)
 	var h := lerpf(TOWN_HEIGHT, 14.0 + _n().get_noise_2d(x, z) * 10.0, smoothstep(220.0, 380.0, d))
-	return lerpf(-25.0, h, _land(p, TOWN, TOWN_RADIUS, 400.0))
+	return lerpf(-28.0, h, _land(p, TOWN, TOWN_RADIUS, 400.0))
 
 
 static func town_color(_x: float, _z: float, h: float, _slope: float) -> Color:

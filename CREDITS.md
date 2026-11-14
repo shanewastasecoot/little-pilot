@@ -61,15 +61,19 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Fantasy house | `assets/environment/house_b.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/BH2XHWUNmF) |
 | Hot-air balloon | `assets/environment/balloon.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/8azSIUgP0ow) |
 | Pirate ship | `assets/environment/pirate_ship.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/mEQj2wZ3GC) |
+| Mermaid | `assets/environment/mermaid.glb` | Kamylle B. Grenier | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/7X8_6iciXvk) |
+| Dolphin | `assets/environment/dolphin.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/3LzFgI3GLO) |
+| Seal | `assets/environment/seal.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/428MKgODp0H) |
+| Crab | `assets/environment/crab.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/1O5Q4pE8X6e) |
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. House roofs and balloons are recoloured at load time for variety. The wind turbine's blades are regrouped around the hub at load time so they can spin.
+Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. Mermaid parts are merged into one mesh and their tails recoloured at load time. House roofs and balloons are recoloured at load time for variety. The wind turbine's blades are regrouped around the hub at load time so they can spin.
 
 ## Generated in code
 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 
-- **3D art:** island terrain, runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
+- **3D art:** island and islet terrain, the ocean shader (`shaders/ocean.gdshader`), runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
 - **Sound effects and music:** synthesised at startup by `scripts/core/sfx.gd` and `scripts/core/music.gd`.
 - **Font:** Godot's built-in default font.

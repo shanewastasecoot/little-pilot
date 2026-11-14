@@ -130,7 +130,7 @@ static func palm_height(x: float, z: float) -> float:
 	var coast := PALM_RADIUS + _coast_noise.get_noise_1d(atan2(p.y, p.x) * 2.0 + 7.0) * 35.0
 	var land := smoothstep(coast + 60.0, coast - 80.0, d)
 	var h := 5.0 + 16.0 * smoothstep(PALM_RADIUS, 0.0, d) + _noise.get_noise_2d(x * 2.0, z * 2.0) * 3.0
-	return lerpf(-25.0, h, land)
+	return lerpf(-28.0, h, land)
 
 
 static func palm_color(_x: float, _z: float, h: float, _slope: float) -> Color:
@@ -150,7 +150,7 @@ static func volcano_height(x: float, z: float) -> float:
 	var t := 1.0 - clampf(d / (VOLCANO_RADIUS * 0.9), 0.0, 1.0)
 	var h := 8.0 + VOLCANO_HEIGHT * pow(t, 1.35) + _noise.get_noise_2d(x * 1.5, z * 1.5) * 6.0
 	h -= 55.0 * smoothstep(CRATER_RADIUS * 1.6, CRATER_RADIUS * 0.5, d)  # crater bowl
-	return lerpf(-25.0, h, land)
+	return lerpf(-28.0, h, land)
 
 
 static func volcano_color(x: float, z: float, h: float, slope: float) -> Color:

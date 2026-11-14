@@ -24,6 +24,7 @@ func _ready() -> void:
 	_build_ocean()
 	_place_landmarks()
 	_place_stars()
+	Islets.build_all(self, get_node("Stars"))
 	add_child(Clouds.new())
 
 
@@ -68,19 +69,7 @@ func _build_environment() -> void:
 
 
 func _build_ocean() -> void:
-	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(14000, 14000)
-	mesh.subdivide_width = 160
-	mesh.subdivide_depth = 160
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://shaders/ocean.gdshader")
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-	# Flat water collider for the safety system.
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(14000, 2, 14000)), Vector3(0, -1, 0))
+	add_child(Ocean.new())
 
 
 func _place_landmarks() -> void:
