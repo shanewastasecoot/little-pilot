@@ -61,7 +61,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Fantasy house | `assets/environment/house_b.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/BH2XHWUNmF) |
 | Hot-air balloon | `assets/environment/balloon.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/8azSIUgP0ow) |
 | Pirate ship | `assets/environment/pirate_ship.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/mEQj2wZ3GC) |
-| Mermaid | `assets/environment/mermaid.glb` | Kamylle B. Grenier | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/7X8_6iciXvk) |
+| Mermaid | `assets/environment/mermaid_hd.glb` | hospis ("mermaid (lowpole)") | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Sketchfab](https://sketchfab.com/3d-models/mermaid-lowpole-45815482b608431a831f26561adcf13a) |
 | Dolphin | `assets/environment/dolphin.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/3LzFgI3GLO) |
 | Seal | `assets/environment/seal.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/428MKgODp0H) |
 | Crab | `assets/environment/crab.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/1O5Q4pE8X6e) |
@@ -79,7 +79,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. Mermaid parts are merged into one mesh and their tails recoloured at load time. House roofs and balloons are recoloured at load time for variety. The wind turbine's blades are regrouped around the hub at load time so they can spin.
+Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs and balloons are recoloured at load time for variety. The wind turbine's blades are regrouped around the hub at load time so they can spin.
 
 ## Generated in code
 

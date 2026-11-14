@@ -38,11 +38,11 @@ func build() -> void:
 		var spot := _beach_spot(a)
 		var m: Mermaid = scene.instantiate()
 		m.tail_color = tails[k]
-		m.scale = Vector3.ONE * 10.0
-		# Sitting on the sand, tail curled into it, looking out to sea.
-		m.position = spot + Vector3(0, 0.96 * 10.0 - 3.5, 0)
+		m.scale = Vector3.ONE * 9.0
+		# Sitting on the sand looking out to sea, tail reaching for the water.
+		m.position = spot + Vector3(0, -0.4, 0)
 		var out := Vector2(spot.x, spot.z).normalized()
-		m.rotation.y = atan2(-out.x, -out.y)
+		m.rotation.y = atan2(out.x, out.y)
 		add_child(m)
 		watcher.add(m)
 		_sitters.append(m)

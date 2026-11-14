@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://b8pocuyda4tcp"
-path="res://.godot/imported/mermaid.glb-15741e664f1cfdd7084b57c1badba618.scn"
+uid="uid://cvjxbls33myk5"
+path="res://.godot/imported/mermaid_hd.glb-96bbac8bc0b150c891b61615e1f4bb0c.scn"
 
 [deps]
 
-source_file="res://assets/environment/mermaid.glb"
-dest_files=["res://.godot/imported/mermaid.glb-15741e664f1cfdd7084b57c1badba618.scn"]
+source_file="res://assets/environment/mermaid_hd.glb"
+dest_files=["res://.godot/imported/mermaid_hd.glb-96bbac8bc0b150c891b61615e1f4bb0c.scn"]
 
 [params]
 

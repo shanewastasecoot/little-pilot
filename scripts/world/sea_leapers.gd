@@ -1,11 +1,12 @@
 class_name SeaLeapers
 extends Node3D
 ## Creatures that swim round a circle and leap out of the water in arcs:
-## dolphins (animated model) or mermaids (merged model, own tail colour).
+## dolphins (animated model) or mermaids (Mermaid scene in its dive pose, own tail colour).
 ## Mostly hidden underwater; each leaps every few seconds.
 
 const LEAP_TIME := 1.6
 const LEAP_HEIGHT := 9.0
+const MERMAID_SCENE := preload("res://scenes/characters/mermaid.tscn")
 
 var radius := 120.0
 var kind := "dolphin"
@@ -31,11 +32,11 @@ func _ready() -> void:
 		if kind == "dolphin":
 			AssetLib.place(holder, "res://assets/environment/dolphin.glb", Vector3.ZERO, 0.8, 180.0)
 		else:
-			var mi := MeshInstance3D.new()
-			mi.mesh = AssetLib.merged_mesh("res://assets/environment/mermaid.glb", 0.24, 0.08, tails[i % tails.size()])
-			mi.scale = Vector3.ONE * 8.0
-			mi.rotation_degrees = Vector3(0, 90, 0)  # face along the swim direction
-			holder.add_child(mi)
+			var mermaid: Mermaid = MERMAID_SCENE.instantiate()
+			mermaid.tail_color = tails[i % tails.size()]
+			mermaid.scale = Vector3.ONE * 5.0
+			mermaid.set_swimming()  # static dive pose, head along +Z
+			holder.add_child(mermaid)
 		m.node = holder
 
 
@@ -54,7 +55,8 @@ func _process(delta: float) -> void:
 		holder.position = Vector3(cos(m.angle) * radius, y, sin(m.angle) * radius)
 		holder.rotation = Vector3(0, -m.angle, 0)
 		holder.rotation.x = 0.0
-		holder.rotate_object_local(Vector3.RIGHT, pitch)
+		# Dolphins face -Z and mermaids +Z, so tilt them opposite ways.
+		holder.rotate_object_local(Vector3.RIGHT, pitch if kind == "dolphin" else -pitch)
 		holder.visible = y > -6.0
 
 
