@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, much bigger world, city, mermaids) in progress |
+| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, runway take-off, much bigger world, city with fireworks, erupting volcano, waving mermaids) in review |
 
 ## Target Audience
 
@@ -44,12 +44,13 @@ The secondary audience is the parent or developer, who should find the project e
 - **Two aircraft:** a red **biplane** and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
 - **A world of islands to explore** (about 9 km across):
   - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and the start of a **city** with skyscrapers and construction cranes
-  - **Palm Island**, **Volcano Island**, and a giant **rainbow** to fly through
+  - **Palm Island**, **Volcano Island** (erupts with fire, smoke and ash), and a giant **rainbow** to fly through
   - **Ice Island** (penguins, igloos), **Dino Island** (animated dinosaurs), **Castle Island**, **Town Island** (hot-air balloons)
-  - 16 **islets** with palms, seals, crabs and four **mermaid coves**; dolphins, a whale, a sail boat and a pirate ship at sea
-- **220 floating stars** in trails that lead from place to place, with a star jar and celebrations.
+  - 16 **islets** with palms, seals, crabs and four **mermaid coves** whose mermaids turn and wave as you fly past; dolphins, a whale, a sail boat and a pirate ship at sea
+- **220 floating stars** in trails that lead from place to place, with a star jar and celebrations. Every 30 stars the city throws a **fireworks party** (an optional arrow and a 30 s countdown point the way).
+- **Runway take-off** at the start of every flight, and a **realistic ocean** (Gerstner waves, depth colour, refraction, shoreline foam).
 - **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
-- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver).
+- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver, city arrow on/off).
 - **Gamepad-first controls** designed for the Steam Deck (Xbox controllers work too).
 
 ## Technology Stack
@@ -125,7 +126,7 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 |---|---|
 | `./dev.sh run` / `./dev.sh run full` | Play in a window / fullscreen |
 | `./dev.sh editor` | Open the Godot editor |
-| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), flight stress test (17 cases × 60 s per plane, incl. mountains, lighthouse and turbines). Exit code 0 = pass. |
+| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), flight stress test (50 cases across both planes, incl. mountains, lighthouse, turbines and the city). Exit code 0 = pass. |
 | `./dev.sh check` | Import the project and report script errors |
 | `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
 
