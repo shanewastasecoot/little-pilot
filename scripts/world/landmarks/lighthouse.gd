@@ -1,7 +1,12 @@
 class_name Lighthouse
 extends Landmark
-## Red-and-white tower on the rocky point with a sweeping light beam.
+## Red-and-white lighthouse (MaverickFX, CC0) on the rocky point with a
+## sweeping light beam.
 ## The beam spins faster when discovered (with a foghorn).
+
+const MODEL_SCALE := 3.75
+## Lantern height for the beam (model lantern ~10.3 units up).
+const LANTERN_Y := 10.3 * MODEL_SCALE
 
 var _beam: Node3D
 var _spin := 0.8
@@ -14,17 +19,13 @@ func _init() -> void:
 
 
 func build() -> void:
-	for i in 5:
-		var r := 5.5 - i * 0.4
-		BuildKit.add(self, BuildKit.cyl(r, 8, r - 0.4, 16), "ff5a5f" if i % 2 == 0 else "ffffff", Vector3(0, 4 + i * 8, 0))
-	BuildKit.add(self, BuildKit.cyl(4.5, 1, 4.5, 16), "333a44", Vector3(0, 40.5, 0))
-	BuildKit.add(self, BuildKit.cyl(3.4, 5, 3.4, 12), "fff27a", Vector3(0, 43.5, 0)).material_override = BuildKit.mat("fff27a", true)
-	BuildKit.add(self, BuildKit.cyl(4.5, 4, 0.3, 12), "ff5a5f", Vector3(0, 48, 0))
+	# Model (MaverickFX, CC0): ~12.8 units tall, off-centre in its file.
+	AssetLib.place(self, "res://assets/environment/lighthouse.glb", Vector3(1.77, 0, 0.25) * MODEL_SCALE, MODEL_SCALE)
 	BuildKit.collider(self, BuildKit.cyl_shape(6, 50), Vector3(0, 25, 0))
 	BuildKit.push_volume(self, 24.0, 90.0)
 	# Beam: two long translucent cones
 	_beam = Node3D.new()
-	_beam.position = Vector3(0, 43.5, 0)
+	_beam.position = Vector3(0, LANTERN_Y, 0)
 	add_child(_beam)
 	var beam_mat := StandardMaterial3D.new()
 	beam_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
