@@ -7,6 +7,7 @@ var _count_label: Label
 var _counter: Control
 var _jar: StarJar
 var _party: Celebration
+var _hint: StickHint
 
 
 func _ready() -> void:
@@ -47,6 +48,16 @@ func _ready() -> void:
 
 	_party = Celebration.new()
 	root.add_child(_party)
+
+	_hint = StickHint.new()
+	root.add_child(_hint)
+
+
+func show_idle_hint(on: bool, instant := false) -> void:
+	if instant and not on:
+		_hint.hide_now()
+	else:
+		_hint.showing = on
 
 
 func bind(stars: StarManager) -> void:

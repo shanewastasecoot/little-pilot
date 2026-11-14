@@ -5,10 +5,15 @@ extends Node3D
 
 enum State { TITLE, SELECT, FLYING, PAUSED }
 
+## Seconds without input before the stick hint appears.
+const IDLE_HINT_DELAY := 10.0
+
 ## Gentle circle flown behind the menus.
 const AUTOPILOT_STICK := Vector2(0.3, 0.0)
 
 var state: State = State.TITLE
+var _idle_time := 0.0
+var _settings: SettingsPanel
 
 @onready var map: GameMap = $Map
 @onready var aircraft: Aircraft = $Aircraft
@@ -35,6 +40,10 @@ func _ready() -> void:
 	pause_menu.resume_requested.connect(_resume)
 	pause_menu.change_plane_requested.connect(_open_select)
 	pause_menu.quit_requested.connect(_quit)
+	_settings = SettingsPanel.new()
+	add_child(_settings)
+	pause_menu.settings_requested.connect(_open_settings)
+	_settings.closed.connect(_show_pause)
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 	_enter(State.TITLE)
 
@@ -50,6 +59,29 @@ func _enter(new_state: State) -> void:
 	aircraft.input.override_stick = Vector2.ZERO if player_flying else AUTOPILOT_STICK
 	aircraft.input.override_throttle = 0.0
 	get_tree().paused = state == State.PAUSED
+	Music.set_mood("flight" if player_flying else "menu")
+	_idle_time = 0.0
+	hud.show_idle_hint(false, true)
+	aircraft.get_node("FlightAudio").level = 1.0 if player_flying else 0.4
+
+
+func _process(delta: float) -> void:
+	_idle_time += delta
+	hud.show_idle_hint(state == State.FLYING and _idle_time > IDLE_HINT_DELAY)
+
+
+func _input(event: InputEvent) -> void:
+	# Any real input resets the idle timer (stick past its dead zone counts).
+	if event is InputEventJoypadMotion:
+		if absf(event.axis_value) > 0.3:
+			_idle_time = 0.0
+	elif event is InputEventKey or event is InputEventJoypadButton or event is InputEventScreenTouch:
+		_idle_time = 0.0
+
+
+func _open_settings() -> void:
+	pause_menu.hide()
+	_settings.show()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -89,6 +121,7 @@ func _on_plane_confirmed(id: String) -> void:
 
 func _show_pause() -> void:
 	plane_select.hide()
+	_settings.hide()
 	_enter(State.PAUSED)
 
 

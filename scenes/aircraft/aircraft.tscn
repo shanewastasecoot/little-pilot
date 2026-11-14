@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/aircraft/flight_input.gd" id="3_input"]
 [ext_resource type="Script" path="res://scripts/aircraft/flight_safety.gd" id="4_safety"]
 [ext_resource type="PackedScene" path="res://scenes/aircraft/models/prop_plane_model.tscn" id="5_model"]
+[ext_resource type="Script" path="res://scripts/aircraft/flight_audio.gd" id="6_audio"]
 
 [sub_resource type="SphereShape3D" id="body_shape"]
 radius = 1.4
@@ -34,3 +35,6 @@ monitorable = false
 shape = SubResource("sensor_shape")
 
 [node name="Model" parent="." instance=ExtResource("5_model")]
+
+[node name="FlightAudio" type="Node" parent="."]
+script = ExtResource("6_audio")

@@ -7,6 +7,7 @@ extends CanvasLayer
 signal resume_requested
 signal change_plane_requested
 signal quit_requested
+signal settings_requested
 
 var _resume: BigButton
 
@@ -39,6 +40,17 @@ func _ready() -> void:
 	quit.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	quit.held.connect(func(): quit_requested.emit())
 	row.add_child(quit)
+	# Parent settings: small grey gear in the corner.
+	var gear := BigButton.new()
+	gear.icon_type = UiIcon.Icon.GEAR
+	gear.base_color = Color("8a94a6")
+	gear.button_size = Vector2(100, 100)
+	gear.position = Vector2(40, 40)  # top-left: clear of the star counter
+	gear.pressed.connect(func(): settings_requested.emit())
+	root.add_child(gear)
+	_resume.focus_neighbor_top = _resume.get_path_to(gear)
+	gear.focus_neighbor_bottom = gear.get_path_to(_resume)
+	gear.focus_neighbor_right = gear.get_path_to(_resume)
 	visibility_changed.connect(_on_visibility_changed)
 
 
