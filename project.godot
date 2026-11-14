@@ -14,9 +14,10 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-GameSettings="*res://scripts/core/game_settings.gd"
 SaveManager="*res://scripts/core/save_manager.gd"
+GameSettings="*res://scripts/core/game_settings.gd"
 Sfx="*res://scripts/core/sfx.gd"
+Music="*res://scripts/core/music.gd"
 
 [debug]
 

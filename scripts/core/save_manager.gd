@@ -4,6 +4,7 @@ extends Node
 ## file never crashes the game: bad values fall back to defaults.
 
 signal loaded
+signal settings_changed
 
 const DEFAULT_PATH := "user://save.cfg"
 const SAVE_DELAY := 1.0  # seconds; batches rapid changes into one write
@@ -11,6 +12,10 @@ const SAVE_DELAY := 1.0  # seconds; batches rapid changes into one write
 var path: String = DEFAULT_PATH
 var selected_aircraft: String = AircraftCatalog.DEFAULT_ID
 var lifetime_stars: int = 0
+# Parent settings (0..1 volumes)
+var music_volume: float = 0.7
+var sfx_volume: float = 1.0
+var battery_saver: bool = false
 
 var _save_timer: Timer
 
@@ -55,7 +60,17 @@ func load_game() -> void:
 	var stars = cfg.get_value("progress", "lifetime_stars", 0)
 	if stars is int and stars >= 0:
 		lifetime_stars = stars
+	music_volume = _volume(cfg.get_value("settings", "music_volume", music_volume), music_volume)
+	sfx_volume = _volume(cfg.get_value("settings", "sfx_volume", sfx_volume), sfx_volume)
+	var saver = cfg.get_value("settings", "battery_saver", battery_saver)
+	if saver is bool:
+		battery_saver = saver
 	loaded.emit()
+	settings_changed.emit()
+
+
+func _volume(value, fallback: float) -> float:
+	return clampf(float(value), 0.0, 1.0) if (value is float or value is int) else fallback
 
 
 ## Save soon. Call freely; writes are batched.
@@ -69,6 +84,9 @@ func save_now() -> void:
 	cfg.set_value("meta", "version", 1)
 	cfg.set_value("player", "selected_aircraft", selected_aircraft)
 	cfg.set_value("progress", "lifetime_stars", lifetime_stars)
+	cfg.set_value("settings", "music_volume", music_volume)
+	cfg.set_value("settings", "sfx_volume", sfx_volume)
+	cfg.set_value("settings", "battery_saver", battery_saver)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -89,6 +107,27 @@ func add_lifetime_star() -> void:
 	request_save()
 
 
+func set_music_volume(v: float) -> void:
+	music_volume = clampf(v, 0.0, 1.0)
+	settings_changed.emit()
+	request_save()
+
+
+func set_sfx_volume(v: float) -> void:
+	sfx_volume = clampf(v, 0.0, 1.0)
+	settings_changed.emit()
+	request_save()
+
+
+func set_battery_saver(on: bool) -> void:
+	battery_saver = on
+	settings_changed.emit()
+	request_save()
+
+
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
+	music_volume = 0.7
+	sfx_volume = 1.0
+	battery_saver = false

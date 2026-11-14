@@ -20,3 +20,12 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 - **CC0**: no attribution required, but list it here anyway so we know where it came from.
 - **CC-BY**: attribution required. Copy the author's requested credit text into this file.
 - **Do not use** assets marked "non-commercial", "no derivatives", or with no clear licence.
+
+
+## Generated in code
+
+Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
+
+- **3D art:** planes, island terrain, landmarks, trees and stars are built from Godot primitives and generated meshes.
+- **Sound effects and music:** synthesised at startup by `scripts/core/sfx.gd` and `scripts/core/music.gd`.
+- **Font:** Godot's built-in default font.

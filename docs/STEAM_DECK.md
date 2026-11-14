@@ -39,6 +39,37 @@ The Linux export templates live in `~/.var/app/org.godotengine.Godot/data/godot/
 
 > Updating only means replacing the file. The Steam shortcut keeps working as long as the path stays the same.
 
+## Custom library artwork (optional)
+
+Run this once in Desktop Mode (it needs a window, not `--headless`):
+
+```bash
+flatpak run org.godotengine.Godot --path ~/little-pilot res://tools/steam_art.tscn
+```
+
+It renders images from the game into `~/LittlePilot-builds/steam-art/`. Then, in Steam (Desktop Mode), right-click **Little Pilot** in the library:
+
+| Steam slot | File | How |
+|---|---|---|
+| Portrait cover | `grid_portrait.png` (600×900) | **Manage → Set custom artwork** on the cover |
+| Wide capsule | `grid_wide.png` (920×430) | Shown in "Recent games"; set it from the library home view |
+| Hero banner | `hero.png` (1920×620) | Open the game page, right-click the banner → **Set custom background** |
+| Logo | `logo.png` (transparent) | Game page, right-click the banner → **Set custom logo** |
+| Icon | `icon.png` | **Properties → Shortcut**, click the icon box |
+
+## Parent settings
+
+Pause (☰ / Start), then the grey **gear** in the top-left corner:
+
+- **Music** and **Sounds**: five bars each, left/right to change, zero bars mutes.
+- **Battery saver** (battery icon, green = on): caps the game at 30 FPS for longer play on battery.
+
+Settings save automatically.
+
+## Sleep and resume
+
+Pressing the power button to sleep mid-flight is safe. When the Deck wakes up the game carries on (music doesn't burst, nothing jumps). Pressing the Steam button or opening the overlay pauses the game automatically.
+
 ## Controller
 
 - Steam Input gives the game a standard Xbox-style gamepad. No custom layout is needed.
@@ -58,4 +89,5 @@ The Linux export templates live in `~/.var/app/org.godotengine.Godot/data/godot/
 | Nothing happens on launch | The file isn't executable (see step 3.1), or the export wasn't Linux x86_64 |
 | Black screen | Try the **Compatibility** renderer in an export to test. Report the Godot version. |
 | No controller input | Make sure the game is launched through Steam (Game Mode), not from the desktop file manager |
-| Save data location | `~/.local/share/godot/app_userdata/Little Pilot/` |
+| Save data location | `~/.local/share/godot/app_userdata/Little Pilot/save.cfg` (delete it to reset; the game recreates it) |
+| No sound | Check the parent settings (gear in the pause menu): the bars might be at zero |
