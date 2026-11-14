@@ -17,6 +17,10 @@ func _ready() -> void:
 	TerrainBuilder.build(self, IslandShape.height, IslandShape.color, Vector2.ZERO, IslandShape.SIZE, 160)
 	TerrainBuilder.build(self, IslandShape.palm_height, IslandShape.palm_color, IslandShape.PALM_ISLAND, 760.0, 54, "PalmTerrain")
 	TerrainBuilder.build(self, IslandShape.volcano_height, IslandShape.volcano_color, IslandShape.VOLCANO, 1000.0, 72, "VolcanoTerrain")
+	TerrainBuilder.build(self, OuterIslands.ice_height, OuterIslands.ice_color, OuterIslands.ICE, 1100.0, 70, "IceTerrain")
+	TerrainBuilder.build(self, OuterIslands.dino_height, OuterIslands.dino_color, OuterIslands.DINO, 1200.0, 76, "DinoTerrain")
+	TerrainBuilder.build(self, OuterIslands.castle_height, OuterIslands.castle_color, OuterIslands.CASTLE, 1000.0, 66, "CastleTerrain")
+	TerrainBuilder.build(self, OuterIslands.town_height, OuterIslands.town_color, OuterIslands.TOWN, 1100.0, 70, "TownTerrain")
 	_build_ocean()
 	_place_landmarks()
 	_place_stars()
@@ -56,8 +60,8 @@ func _build_environment() -> void:
 	add_child(sun)
 
 	var bounds := WorldBounds.new()
-	bounds.radius = 2350.0
-	bounds.edge_band = 260.0
+	bounds.radius = 4700.0
+	bounds.edge_band = 300.0
 	bounds.ceiling = 380.0
 	bounds.ceiling_band = 40.0
 	add_child(bounds)
@@ -65,9 +69,9 @@ func _build_environment() -> void:
 
 func _build_ocean() -> void:
 	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(8000, 8000)
-	mesh.subdivide_width = 110
-	mesh.subdivide_depth = 110
+	mesh.size = Vector2(14000, 14000)
+	mesh.subdivide_width = 160
+	mesh.subdivide_depth = 160
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/ocean.gdshader")
 	var mi := MeshInstance3D.new()
@@ -76,7 +80,7 @@ func _build_ocean() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 	# Flat water collider for the safety system.
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(8000, 2, 8000)), Vector3(0, -1, 0))
+	BuildKit.collider(self, BuildKit.box_shape(Vector3(14000, 2, 14000)), Vector3(0, -1, 0))
 
 
 func _place_landmarks() -> void:
@@ -101,9 +105,19 @@ func _place_landmarks() -> void:
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)
+	_place_outer(IceIsland.new(), OuterIslands.ICE)
+	_place_outer(DinoIsland.new(), OuterIslands.DINO)
+	_place_outer(CastleIsland.new(), OuterIslands.CASTLE)
+	_place_outer(TownIsland.new(), OuterIslands.TOWN)
+	add_child(PirateShip.new())
 	var whale := Whale.new()
 	whale.position = Vector3(-1080, 0, 250)
 	add_child(whale)
+
+
+func _place_outer(l: Landmark, at: Vector2) -> void:
+	l.position = Vector3(at.x, 0, at.y)
+	add_child(l)
 
 
 func _add_landmark(l: Landmark, at: Vector2) -> void:
@@ -166,8 +180,26 @@ func _place_stars() -> void:
 		spiral_v.append(Vector3(pt.x, IslandShape.volcano_height(pt.x, pt.y) + 32.0, pt.y))
 	_trail(stars, 7, spiral_v)
 	_trail(stars, 1, [Vector3(IslandShape.VOLCANO.x, IslandShape.VOLCANO_HEIGHT + 60.0, IslandShape.VOLCANO.y)])
+	# Outer islands: a trail of stepping stones out to each, and a ring round it.
+	_stepping_stones(stars, Vector2(150, -980), OuterIslands.ICE, OuterIslands.ICE_RADIUS, OuterIslands.ice_height)
+	_stepping_stones(stars, IslandShape.PALM_ISLAND + Vector2(150, 220), OuterIslands.DINO, OuterIslands.DINO_RADIUS, OuterIslands.dino_height)
+	_stepping_stones(stars, Vector2(-300, 1000), OuterIslands.CASTLE, OuterIslands.CASTLE_RADIUS, OuterIslands.castle_height)
+	_stepping_stones(stars, Vector2(-1000, 300), OuterIslands.TOWN, OuterIslands.TOWN_RADIUS, OuterIslands.town_height)
 	# A few near the spawn to start with.
 	_trail(stars, 3, [_air(Vector2(-200, 90), 28), _air(Vector2(-100, 100), 30), _air(Vector2(0, 90), 32)])
+
+
+## Stars from `start` (a coast) across the sea to an island, then a ring round it.
+func _stepping_stones(parent: Node3D, start: Vector2, centre: Vector2, radius: float, height_fn: Callable) -> void:
+	var landing := centre + (start - centre).normalized() * (radius + 40.0)
+	var gap := start.distance_to(landing)
+	_trail(parent, maxi(int(gap / 230.0), 4), [Vector3(start.x, 35, start.y), Vector3(landing.x, 35, landing.y)])
+	var ring: Array[Vector3] = []
+	for i in 9:
+		var a := TAU * i / 8.0
+		var p := centre + Vector2(cos(a), sin(a)) * radius * 0.6
+		ring.append(Vector3(p.x, maxf(height_fn.call(p.x, p.y), 0.0) + 34.0, p.y))
+	_trail(parent, 8, ring)
 
 
 func _trail(parent: Node3D, count: int, points: Array) -> void:

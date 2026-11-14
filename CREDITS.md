@@ -48,9 +48,23 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Beach shack | `assets/environment/shack.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/dlMcSexDWI) |
 | Sand castle | `assets/environment/sand_castle.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/5iuHHfVoaza) |
 
+| Snowy pine | `assets/environment/snow_pine.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/17vQv2X5rh) |
+| Igloo | `assets/environment/igloo.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/6k656rJhVzY) |
+| Iceberg | `assets/environment/iceberg.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/9U2KjmvOJvY) |
+| Penguin | `assets/environment/penguin.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/fBXvsC6pe_V) |
+| T-Rex | `assets/environment/trex.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/UYtneO5FpF) |
+| Triceratops | `assets/environment/triceratops.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/IGvrUqGrRM) |
+| Stegosaurus | `assets/environment/stegosaurus.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/eFcNbOlpvl) |
+| Apatosaurus | `assets/environment/apatosaurus.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/fvo0x8Zk3z) |
+| Castle | `assets/environment/castle.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/aG0AF5d-zbY) |
+| House | `assets/environment/house_a.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/RSwoYSLblu) |
+| Fantasy house | `assets/environment/house_b.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/BH2XHWUNmF) |
+| Hot-air balloon | `assets/environment/balloon.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/8azSIUgP0ow) |
+| Pirate ship | `assets/environment/pirate_ship.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/mEQj2wZ3GC) |
+
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. The wind turbine's blades are regrouped around the hub at load time so they can spin.
+Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. House roofs and balloons are recoloured at load time for variety. The wind turbine's blades are regrouped around the hub at load time so they can spin.
 
 ## Generated in code
 
