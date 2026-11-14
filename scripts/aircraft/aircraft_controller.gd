@@ -63,7 +63,10 @@ func _physics_process(delta: float) -> void:
 	# Speed: boost or slow, but always moving.
 	var throttle := input.throttle
 	var mult := 1.0 + (throttle * (stats.boost_multiplier - 1.0) if throttle > 0.0 else throttle * (1.0 - stats.slow_multiplier))
-	speed = lerpf(speed, stats.cruise_speed * mult, 1.0 - exp(-stats.speed_response * delta))
+	var target_speed := stats.cruise_speed * mult * safety.speed_factor
+	# Brake for walls faster than we normally change speed.
+	var response := stats.speed_response * (3.0 if target_speed < speed and safety.speed_factor < 1.0 else 1.0)
+	speed = lerpf(speed, target_speed, 1.0 - exp(-response * delta))
 	boost_amount = clampf((speed - stats.cruise_speed) / (stats.cruise_speed * (stats.boost_multiplier - 1.0)), 0.0, 1.0)
 
 	velocity = _forward() * speed

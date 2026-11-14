@@ -7,7 +7,7 @@ extends RefCounted
 ## r_max from the centre and kept only where min_h <= ground <= max_h.
 static func scatter(parent: Node3D, path: String, count: int, centre: Vector2, r_min: float, r_max: float,
 		height_fn: Callable, scale_min: float, scale_max: float, min_h := 4.0, max_h := 1000.0, seed_value := 1,
-		view_distance := 2200.0) -> Array[Vector3]:
+		view_distance := 2200.0, filter_fn := Callable()) -> Array[Vector3]:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var data: Array = AssetLib.mesh_of(path)
@@ -21,6 +21,8 @@ static func scatter(parent: Node3D, path: String, count: int, centre: Vector2, r
 		var p := centre + Vector2(cos(a), sin(a)) * r
 		var h: float = height_fn.call(p.x, p.y)
 		if h < min_h or h > max_h:
+			continue
+		if filter_fn.is_valid() and not filter_fn.call(p.x, p.y):
 			continue
 		var s := rng.randf_range(scale_min, scale_max)
 		var local := Vector3(p.x - centre.x, h - 0.3, p.y - centre.y)

@@ -14,9 +14,9 @@ func _init() -> void:
 
 func _ready() -> void:
 	_build_environment()
-	TerrainBuilder.build(self, IslandShape.height, IslandShape.color, Vector2.ZERO, IslandShape.SIZE, 160)
-	TerrainBuilder.build(self, IslandShape.palm_height, IslandShape.palm_color, IslandShape.PALM_ISLAND, 760.0, 54, "PalmTerrain")
-	TerrainBuilder.build(self, IslandShape.volcano_height, IslandShape.volcano_color, IslandShape.VOLCANO, 1000.0, 72, "VolcanoTerrain")
+	TerrainBuilder.build(self, IslandShape.height, IslandShape.color, Vector2.ZERO, IslandShape.SIZE, 267)
+	TerrainBuilder.build(self, IslandShape.palm_height, IslandShape.palm_color, IslandShape.PALM_ISLAND, 760.0, 64, "PalmTerrain")
+	TerrainBuilder.build(self, IslandShape.volcano_height, IslandShape.volcano_color, IslandShape.VOLCANO, 1000.0, 84, "VolcanoTerrain")
 	TerrainBuilder.build(self, OuterIslands.ice_height, OuterIslands.ice_color, OuterIslands.ICE, 1100.0, 70, "IceTerrain")
 	TerrainBuilder.build(self, OuterIslands.dino_height, OuterIslands.dino_color, OuterIslands.DINO, 1200.0, 76, "DinoTerrain")
 	TerrainBuilder.build(self, OuterIslands.castle_height, OuterIslands.castle_color, OuterIslands.CASTLE, 1000.0, 66, "CastleTerrain")
@@ -25,6 +25,7 @@ func _ready() -> void:
 	_place_landmarks()
 	_place_stars()
 	Islets.build_all(self, get_node("Stars"))
+	_place_details()
 	add_child(Clouds.new())
 
 
@@ -91,6 +92,7 @@ func _place_landmarks() -> void:
 	var crater_floor := IslandShape.volcano_height(IslandShape.VOLCANO.x, IslandShape.VOLCANO.y)
 	volcano.position = Vector3(IslandShape.VOLCANO.x, crater_floor, IslandShape.VOLCANO.y)
 	add_child(volcano)
+	_add_landmark(CityDistrict.new(), IslandShape.CITY)
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)
@@ -100,8 +102,37 @@ func _place_landmarks() -> void:
 	_place_outer(TownIsland.new(), OuterIslands.TOWN)
 	add_child(PirateShip.new())
 	var whale := Whale.new()
-	whale.position = Vector3(-1080, 0, 250)
+	whale.position = Vector3(-1460, 0, 300)
 	add_child(whale)
+
+
+## Small details that make the land less empty: boulders on the mountain
+## slopes and bushes dotted over the meadows (cheap MultiMeshes with a
+## short view distance).
+func _place_details() -> void:
+	var env := "res://assets/environment/"
+	var h := IslandShape.height
+	var root := Node3D.new()
+	root.name = "Details"
+	add_child(root)
+	# Scatter expects its parent at the scatter centre.
+	var mountains := Node3D.new()
+	mountains.position = Vector3(0, 0, -800)
+	root.add_child(mountains)
+	IslandDecor.scatter(mountains, env + "rocks.glb", 90, Vector2(0, -800), 0.0, 520.0, h, 35.0, 75.0, 45.0, 210.0, 71, 1300.0)
+	IslandDecor.scatter(mountains, env + "rock.glb", 70, Vector2(0, -800), 0.0, 560.0, h, 30.0, 65.0, 40.0, 190.0, 72, 1300.0)
+	IslandDecor.scatter(root, env + "tree_round.glb", 260, Vector2.ZERO, 150.0, 1050.0, h, 0.9, 1.4, 9.0, 70.0, 73, 900.0, _open_meadow)
+
+
+func _open_meadow(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	if IslandShape.on_runway(x, z) or absf(z) < 120.0 and absf(x) < 380.0:
+		return false
+	if p.distance_to(IslandShape.CITY) < IslandShape.CITY_RADIUS + 40.0 or p.distance_to(IslandShape.FARM) < 200.0:
+		return false
+	if p.distance_to(IslandShape.HANGAR) < 90.0 or IslandShape.p_in_forest(x, z):
+		return false
+	return true
 
 
 func _place_outer(l: Landmark, at: Vector2) -> void:
@@ -149,9 +180,9 @@ func _place_stars() -> void:
 		var p := IslandShape.RIDGE_A.lerp(IslandShape.RIDGE_B, (i + 1.0) / WindFarm.COUNT)
 		_trail(stars, 1, [Vector3(p.x, _ground(p) + WindFarm.TOWER_H, p.y)])
 	# Ocean: low stars skimming the water along the south coast.
-	_trail(stars, 6, [Vector3(-500, 16, 960), Vector3(-150, 16, 1010), Vector3(150, 16, 980)])
+	_trail(stars, 6, [Vector3(-650, 16, 1330), Vector3(-200, 16, 1380), Vector3(250, 16, 1350)])
 	# Expansion: stepping stones over the sea, through the rainbow, to Palm Island.
-	_trail(stars, 8, [Vector3(990, 28, 230), Vector3(1230, 50, 300), Vector3(1420, 30, 320)])
+	_trail(stars, 8, [Vector3(1320, 28, 270), Vector3(1560, 50, 340), Vector3(1780, 30, 365)])
 	# A ring round Palm Island.
 	var ring: Array[Vector3] = []
 	for i in 9:
@@ -160,7 +191,7 @@ func _place_stars() -> void:
 		ring.append(Vector3(pt.x, IslandShape.palm_height(pt.x, pt.y) + 30.0, pt.y))
 	_trail(stars, 8, ring)
 	# Out across the sea to Volcano Island, then a spiral up the cone.
-	_trail(stars, 6, [Vector3(-760, 40, -620), Vector3(-950, 40, -760), Vector3(-1150, 45, -880)])
+	_trail(stars, 6, [Vector3(-1000, 40, -780), Vector3(-1220, 40, -920), Vector3(-1420, 45, -1040)])
 	var spiral_v: Array[Vector3] = []
 	for i in 7:
 		var a := 2.2 + i * 1.0
@@ -170,10 +201,20 @@ func _place_stars() -> void:
 	_trail(stars, 7, spiral_v)
 	_trail(stars, 1, [Vector3(IslandShape.VOLCANO.x, IslandShape.VOLCANO_HEIGHT + 60.0, IslandShape.VOLCANO.y)])
 	# Outer islands: a trail of stepping stones out to each, and a ring round it.
-	_stepping_stones(stars, Vector2(150, -980), OuterIslands.ICE, OuterIslands.ICE_RADIUS, OuterIslands.ice_height)
+	_stepping_stones(stars, Vector2(190, -1290), OuterIslands.ICE, OuterIslands.ICE_RADIUS, OuterIslands.ice_height)
 	_stepping_stones(stars, IslandShape.PALM_ISLAND + Vector2(150, 220), OuterIslands.DINO, OuterIslands.DINO_RADIUS, OuterIslands.dino_height)
-	_stepping_stones(stars, Vector2(-300, 1000), OuterIslands.CASTLE, OuterIslands.CASTLE_RADIUS, OuterIslands.castle_height)
-	_stepping_stones(stars, Vector2(-1000, 300), OuterIslands.TOWN, OuterIslands.TOWN_RADIUS, OuterIslands.town_height)
+	_stepping_stones(stars, Vector2(-390, 1300), OuterIslands.CASTLE, OuterIslands.CASTLE_RADIUS, OuterIslands.castle_height)
+	_stepping_stones(stars, Vector2(-1300, 390), OuterIslands.TOWN, OuterIslands.TOWN_RADIUS, OuterIslands.town_height)
+	# City: a ring of stars round the new district.
+	var city_ring: Array[Vector3] = []
+	for i in 9:
+		var a := TAU * i / 8.0
+		var p := IslandShape.CITY + Vector2(cos(a), sin(a)) * 290.0
+		city_ring.append(Vector3(p.x, maxf(_ground(p), 0.0) + 55.0, p.y))
+	_trail(stars, 8, city_ring)
+	# "Main Street": a line of stars weaving between the towers.
+	var c := IslandShape.CITY
+	_trail(stars, 6, [Vector3(c.x + 40, 85, c.y - 190), Vector3(c.x + 40, 75, c.y), Vector3(c.x + 40, 85, c.y + 190)])
 	# A few near the spawn to start with.
 	_trail(stars, 3, [_air(Vector2(-200, 90), 28), _air(Vector2(-100, 100), 30), _air(Vector2(0, 90), 32)])
 

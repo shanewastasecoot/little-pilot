@@ -37,8 +37,8 @@ func build() -> void:
 	for pass_i in 2:
 		var dense := pass_i == 0
 		var step := 13.0 if dense else 26.0
-		var lo := (f - Vector2(300, 300)) if dense else Vector2.ONE * -IslandShape.SIZE * 0.5
-		var hi := (f + Vector2(300, 300)) if dense else Vector2.ONE * IslandShape.SIZE * 0.5
+		var lo := (f - Vector2(380, 380)) if dense else Vector2.ONE * -IslandShape.SIZE * 0.5
+		var hi := (f + Vector2(380, 380)) if dense else Vector2.ONE * IslandShape.SIZE * 0.5
 		var z := lo.y
 		while z < hi.y:
 			var x := lo.x
@@ -104,6 +104,8 @@ func _can_grow(x: float, z: float) -> bool:
 	if h < 8.0 or h > 130.0 or IslandShape.on_runway(x, z):
 		return false
 	if Vector2(x, z).distance_to(IslandShape.FARM) < 150.0:
+		return false
+	if Vector2(x, z).distance_to(IslandShape.CITY) < IslandShape.CITY_RADIUS + 20.0:
 		return false
 	if Vector2(x, z).distance_to(IslandShape.RUNWAY) < 380.0 and absf(z) < 130.0:
 		return false

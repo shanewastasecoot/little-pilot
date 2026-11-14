@@ -65,6 +65,17 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Dolphin | `assets/environment/dolphin.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/3LzFgI3GLO) |
 | Seal | `assets/environment/seal.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/428MKgODp0H) |
 | Crab | `assets/environment/crab.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/1O5Q4pE8X6e) |
+| Glass skyscraper | `assets/environment/sky_glass.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/PsPe0MzK0E) |
+| Glass skyscraper 2 | `assets/environment/sky_glass_b.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/JTsKOSB23Y) |
+| Apartment building | `assets/environment/bld_b.glb` | Kay Lousberg | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/otRsYa6pan) |
+| Corner building | `assets/environment/bld_c.glb` | Kay Lousberg | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/T3oyvK6VEU) |
+| Construction structure | `assets/environment/structure.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/PB5Cd3dL24) |
+| Construction barrier | `assets/environment/barrier.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/4mrO9ueiQr) |
+| Street light | `assets/environment/street_light.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/nFwrlcLvM5) |
+| Traffic light | `assets/environment/traffic_light.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/apWcPbwhlq) |
+| Classic skyscraper | `assets/environment/sky_classic.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/obYD8hWLTZ) |
+| Grey skyscraper | `assets/environment/sky_grey.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/XST1j6kYsL) |
+| Glass skyscraper 3 | `assets/environment/sky_glass_c.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/BwEXdOoUSO) |
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
@@ -74,6 +85,6 @@ Changes: the biplane gets an added spinning propeller; the jet is recoloured fro
 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 
-- **3D art:** island and islet terrain, the ocean shader (`shaders/ocean.gdshader`), runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
+- **3D art:** island and islet terrain, the ocean shader (`shaders/ocean.gdshader`), runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), tower cranes, city streets and fountain, windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
 - **Sound effects and music:** synthesised at startup by `scripts/core/sfx.gd` and `scripts/core/music.gd`.
 - **Font:** Godot's built-in default font.
