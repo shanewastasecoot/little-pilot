@@ -6,11 +6,12 @@ extends RefCounted
 ##   rocky     rocks + basking seals
 ##   sandbar   low sand + crabs
 ##   mermaid   rocky cove with mermaids (a discoverable landmark)
+##   lagoon    the big Mermaid Lagoon atoll (radius = its ring)
 
 const LIST := [
 	# centre, radius, peak, kind, dolphins?
 	[Vector2(420, -1700), 90.0, 14.0, "palm", true],
-	[Vector2(-120, -2300), 115.0, 10.0, "mermaid", false],
+	[Vector2(-120, -2300), 270.0, 10.0, "lagoon", false],
 	[Vector2(520, -2620), 70.0, 16.0, "rocky", false],
 	[Vector2(-150, 1720), 100.0, 14.0, "palm", true],
 	[Vector2(-880, 2220), 120.0, 10.0, "mermaid", false],
@@ -55,6 +56,9 @@ static func build_all(parent: Node3D, stars: Node3D) -> void:
 		var r: float = e[1]
 		var peak: float = e[2]
 		var kind: String = e[3]
+		if kind == "lagoon":
+			_build_lagoon(parent, stars, c, i)
+			continue
 		var hf := height.bind(c, r, peak)
 		TerrainBuilder.build(parent, hf, color.bind(kind), c, r * 2.0 + 220.0, 24, "Islet%d" % i)
 		var node: Node3D
@@ -75,6 +79,21 @@ static func build_all(parent: Node3D, stars: Node3D) -> void:
 			node.add_child(pod)
 		# A little arc of stars over every islet.
 		_star_arc(stars, c, r, kind == "mermaid")
+
+
+## The big atoll: its own terrain shape, with the channel facing the main
+## island so the arch is the first thing you see flying out from home.
+static func _build_lagoon(parent: Node3D, stars: Node3D, c: Vector2, i: int) -> void:
+	var chan := (-c).angle()
+	var hf := MermaidLagoon.height.bind(c, chan)
+	TerrainBuilder.build(parent, hf, MermaidLagoon.color, c, (MermaidLagoon.RING_RADIUS + 130.0) * 2.0, 80, "Islet%d" % i)
+	var node := MermaidLagoon.new()
+	node.centre = c
+	node.channel_angle = chan
+	node.position = Vector3(c.x, 0, c.y)
+	parent.add_child(node)
+	# A ring of stars over the lagoon itself (the ring's hills are tall).
+	_star_arc(stars, c, MermaidLagoon.RING_RADIUS * 0.5, true)
 
 
 static func _decorate(node: Node3D, kind: String, c: Vector2, r: float, hf: Callable, seed_value: int) -> void:

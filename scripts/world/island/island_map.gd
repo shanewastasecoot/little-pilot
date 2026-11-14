@@ -230,12 +230,12 @@ func _place_stars() -> void:
 	var city_ring: Array[Vector3] = []
 	for i in 9:
 		var a := TAU * i / 8.0
-		var p := IslandShape.CITY + Vector2(cos(a), sin(a)) * 290.0
+		var p := IslandShape.CITY + Vector2(cos(a), sin(a)) * 370.0
 		city_ring.append(Vector3(p.x, maxf(_ground(p), 0.0) + 55.0, p.y))
 	_trail(stars, 8, city_ring)
 	# "Main Street": a line of stars weaving between the towers.
 	var c := IslandShape.CITY
-	_trail(stars, 6, [Vector3(c.x + 40, 85, c.y - 190), Vector3(c.x + 40, 75, c.y), Vector3(c.x + 40, 85, c.y + 190)])
+	_trail(stars, 8, [Vector3(c.x + 40, 85, c.y - 270), Vector3(c.x + 40, 75, c.y), Vector3(c.x + 40, 85, c.y + 270)])
 	# A few near the spawn to start with.
 	_trail(stars, 3, [_air(Vector2(-200, 90), 28), _air(Vector2(-100, 100), 30), _air(Vector2(0, 90), 32)])
 

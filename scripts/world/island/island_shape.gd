@@ -13,7 +13,7 @@ const RUNWAY_HALF := Vector2(300, 28)    # half length, half width
 const HANGAR := Vector2(110, -95)        # hangar + apron footprint centre
 ## The new city (south-east of the runway).
 const CITY := Vector2(380, 600)
-const CITY_RADIUS := 250.0
+const CITY_RADIUS := 330.0
 const CITY_HEIGHT := 10.0
 const HANGAR_HALF := Vector2(50, 50)
 const FARM := Vector2(-560, 494)

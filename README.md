@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, runway take-off, much bigger world, city with fireworks, erupting volcano, waving mermaids) in review |
+| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, runway take-off, much bigger world, city with fireworks, erupting volcano, Mermaid Lagoon, new planes and characters) in review |
 
 ## Target Audience
 
@@ -41,12 +41,13 @@ The secondary audience is the parent or developer, who should find the project e
 ## Core Gameplay Features
 
 - **Uncrashable arcade flight.** The plane always moves forward, levels itself, and steers or slows away from the ground, water, buildings and the edge of the world on its own.
-- **Two aircraft:** a red **biplane** and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
+- **Two aircraft:** a cartoon **toy biplane** (with a pilot and spinning propeller) and a zippier **cartoon jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
 - **A world of islands to explore** (about 9 km across):
-  - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and the start of a **city** with skyscrapers and construction cranes
+  - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and a **city** (5×5 blocks) with skyscrapers, construction cranes, a park and a big turning **Ferris wheel**
   - **Palm Island**, **Volcano Island** (erupts with fire, smoke and ash), and a giant **rainbow** to fly through
   - **Ice Island** (penguins, igloos), **Dino Island** (animated dinosaurs), **Castle Island**, **Town Island** (hot-air balloons)
-  - 16 **islets** with palms, seals, crabs and four **mermaid coves** whose mermaids turn and wave as you fly past; dolphins, a whale, a sail boat and a pirate ship at sea
+  - **Mermaid Lagoon**: a big ring-shaped atoll with a rock arch to fly through, coral under a turquoise lagoon, and a giant clam with a pearl
+  - 15 **islets** with palms, seals, crabs and three more **mermaid coves**; the mermaids turn and wave as you fly past; dolphins, a whale, a sail boat and a pirate ship at sea
 - **220 floating stars** in trails that lead from place to place, with a star jar and celebrations. Every 30 stars the city throws a **fireworks party** (an optional arrow and a 30 s countdown point the way).
 - **Runway take-off** at the start of every flight, and a **realistic ocean** (Gerstner waves, depth colour, refraction, shoreline foam).
 - **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
