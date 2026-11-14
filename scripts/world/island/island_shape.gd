@@ -25,6 +25,16 @@ const PEAKS := [                          # x, z, height, radius
 	Vector4(470, -560, 170, 190),
 ]
 
+# Extra islands (map expansion)
+const PALM_ISLAND := Vector2(1680, 320)
+const PALM_RADIUS := 270.0
+const VOLCANO := Vector2(-1520, -1020)
+const VOLCANO_RADIUS := 380.0
+const VOLCANO_HEIGHT := 235.0
+const CRATER_RADIUS := 48.0
+## Giant rainbow arch over the sea, on the way to Palm Island.
+const RAINBOW := Vector2(1230, 300)
+
 static var _noise: FastNoiseLite
 static var _coast_noise: FastNoiseLite
 
@@ -108,3 +118,49 @@ static func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
 static func _box_dist(p: Vector2, half: Vector2) -> float:
 	var q := p.abs() - half
 	return Vector2(maxf(q.x, 0.0), maxf(q.y, 0.0)).length() + minf(maxf(q.x, q.y), 0.0)
+
+
+
+# --- Palm Island: low, sandy, grassy middle ----------------------------------
+
+static func palm_height(x: float, z: float) -> float:
+	_ensure_noise()
+	var p := Vector2(x, z) - PALM_ISLAND
+	var d := p.length()
+	var coast := PALM_RADIUS + _coast_noise.get_noise_1d(atan2(p.y, p.x) * 2.0 + 7.0) * 35.0
+	var land := smoothstep(coast + 60.0, coast - 80.0, d)
+	var h := 5.0 + 16.0 * smoothstep(PALM_RADIUS, 0.0, d) + _noise.get_noise_2d(x * 2.0, z * 2.0) * 3.0
+	return lerpf(-25.0, h, land)
+
+
+static func palm_color(_x: float, _z: float, h: float, _slope: float) -> Color:
+	if h < 11.0:
+		return Color("f6df8f")
+	return Color("8fdc5c").lerp(Color("a6e36a"), clampf((h - 11.0) / 10.0, 0.0, 1.0))
+
+
+# --- Volcano Island: tall cone with a crater ---------------------------------
+
+static func volcano_height(x: float, z: float) -> float:
+	_ensure_noise()
+	var p := Vector2(x, z) - VOLCANO
+	var d := p.length()
+	var coast := VOLCANO_RADIUS + _coast_noise.get_noise_1d(atan2(p.y, p.x) * 2.0 + 21.0) * 45.0
+	var land := smoothstep(coast + 70.0, coast - 90.0, d)
+	var t := 1.0 - clampf(d / (VOLCANO_RADIUS * 0.9), 0.0, 1.0)
+	var h := 8.0 + VOLCANO_HEIGHT * pow(t, 1.35) + _noise.get_noise_2d(x * 1.5, z * 1.5) * 6.0
+	h -= 55.0 * smoothstep(CRATER_RADIUS * 1.6, CRATER_RADIUS * 0.5, d)  # crater bowl
+	return lerpf(-25.0, h, land)
+
+
+static func volcano_color(x: float, z: float, h: float, slope: float) -> Color:
+	var d := Vector2(x, z).distance_to(VOLCANO)
+	if h < 6.5:
+		return Color("d9c58a")                       # dark sand
+	if d < CRATER_RADIUS * 1.3:
+		return Color("5a2e2a")                       # scorched crater
+	if h > 150.0:
+		return Color("4b4552")                       # dark rock
+	if h > 60.0 or slope > 0.6:
+		return Color("6e6773")                       # rock
+	return Color("5fb84a")                           # lush lower slopes

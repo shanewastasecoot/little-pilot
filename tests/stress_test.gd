@@ -28,6 +28,12 @@ const CASES := [
 	["circle lighthouse", Vector2(-1, 0), 0.0, Vector3(700, 45, 520), -90.0],
 	["across turbines", Vector2(0, -0.3), 1.0, Vector3(470, 60, -40), 0.0],
 	["valley weave", Vector2(0.6, -0.5), 1.0, Vector3(-70, 80, -400), 0.0],
+	["dive into volcano", Vector2(0, -1), 1.0, Vector3(-1200, 160, -800), 50.0],
+	["through the rainbow", Vector2(0, -0.2), 1.0, Vector3(950, 45, 300), -90.0],
+	["circle palm island", Vector2(0.8, 0), 0.0, Vector3(1680, 40, 120), -90.0],
+	["into the castle", Vector2(0, -0.4), 1.0, Vector3(-700, 120, 2950), 180.0],
+	["dive on ice peak", Vector2(0, -1), 1.0, Vector3(210, 200, -3150), 0.0],
+	["circle the town", Vector2(-0.6, -0.2), 0.0, Vector3(-3400, 60, 200), -90.0],
 ]
 
 var _main: Node

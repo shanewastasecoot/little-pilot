@@ -22,6 +22,17 @@ func _ready() -> void:
 	_check("plane survives reload", SaveManager.selected_aircraft == "jet")
 	_check("stars survive reload", SaveManager.lifetime_stars == 7)
 
+	# 2a. Paint per plane
+	SaveManager.set_paint("prop", 5)
+	SaveManager.set_paint("jet", -1)  # wraps to the last colour
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("prop paint survives reload", SaveManager.get_paint("prop", 0) == 5)
+	_check("paint index wraps", SaveManager.get_paint("jet", 1) == Paint.COLORS.size() - 1)
+	_write('[player]\npaints={"prop": 99, "rocket": 2, "jet": "red"}\n')
+	SaveManager.use_path(PATH)
+	_check("bad paints fall back to defaults", SaveManager.get_paint("prop", 0) == 0 and SaveManager.get_paint("jet", 1) == 1 and not SaveManager.paints.has("rocket"))
+
 	# 2b. Settings round trip
 	SaveManager.set_music_volume(0.4)
 	SaveManager.set_sfx_volume(0.0)

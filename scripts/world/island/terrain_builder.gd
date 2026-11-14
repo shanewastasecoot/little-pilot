@@ -1,30 +1,36 @@
 class_name TerrainBuilder
 extends RefCounted
-## Turns IslandShape into a flat-shaded, vertex-coloured low-poly mesh plus
-## matching trimesh collision. Triangles fully under the sea are skipped
+## Turns an island shape into a flat-shaded, vertex-coloured low-poly mesh
+## plus matching trimesh collision. Triangles fully under the sea are skipped
 ## (the ocean covers them and the water collider handles safety).
+##
+## height_fn(x, z) -> float and color_fn(x, z, h, slope) -> Color describe the
+## island; centre/size/cells choose the square area and resolution.
 
-const CELLS := 160  # per side -> 15 m cells over 2400 m
+static var _color_fn: Callable
 
 
-static func build(parent: Node3D) -> void:
+static func build(parent: Node3D, height_fn: Callable, color_fn: Callable, centre: Vector2, size: float, cells: int, node_name := "Terrain") -> void:
 	var t0 := Time.get_ticks_msec()
+	_color_fn = color_fn
+	var CELLS := cells
 	var n := CELLS + 1
-	var step := IslandShape.SIZE / CELLS
-	var half := IslandShape.SIZE * 0.5
+	var step := size / CELLS
+	var ox := centre.x - size * 0.5
+	var oz := centre.y - size * 0.5
 	var heights := PackedFloat32Array()
 	heights.resize(n * n)
 	for j in n:
 		for i in n:
-			heights[j * n + i] = IslandShape.height(-half + i * step, -half + j * step)
+			heights[j * n + i] = height_fn.call(ox + i * step, oz + j * step)
 
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var colors := PackedColorArray()
 	for j in CELLS:
 		for i in CELLS:
-			var x0 := -half + i * step
-			var z0 := -half + j * step
+			var x0 := ox + i * step
+			var z0 := oz + j * step
 			var a := Vector3(x0, heights[j * n + i], z0)
 			var b := Vector3(x0 + step, heights[j * n + i + 1], z0)
 			var c := Vector3(x0, heights[(j + 1) * n + i], z0 + step)
@@ -51,7 +57,7 @@ static func build(parent: Node3D) -> void:
 	mesh.surface_set_material(0, mat)
 
 	var body := StaticBody3D.new()
-	body.name = "Terrain"
+	body.name = node_name
 	body.collision_layer = GameSettings.LAYER_WORLD
 	parent.add_child(body)
 	var mi := MeshInstance3D.new()
@@ -72,7 +78,7 @@ static func _tri(verts: PackedVector3Array, normals: PackedVector3Array, colors:
 	if nrm.y < 0.0:
 		nrm = -nrm
 	var centre := (a + b + c) / 3.0
-	var col := IslandShape.color(centre.x, centre.z, centre.y, 1.0 - nrm.y)
+	var col: Color = _color_fn.call(centre.x, centre.z, centre.y, 1.0 - nrm.y)
 	# Tiny per-face brightness jitter: reads as hand-made low-poly.
 	var jitter := 1.0 + (fmod(absf(centre.x * 12.9898 + centre.z * 78.233), 1.0) - 0.5) * 0.06
 	col = Color(col.r * jitter, col.g * jitter, col.b * jitter)

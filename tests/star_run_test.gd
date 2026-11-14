@@ -5,7 +5,7 @@ extends Node
 ## is saved. Run:
 ##   flatpak run org.godotengine.Godot --headless --path . --fixed-fps 60 res://tests/star_run_test.tscn
 
-const TIME_LIMIT := 900.0  # simulated seconds
+const TIME_LIMIT := 5000.0  # simulated seconds
 
 var _main: Node
 var _plane: Aircraft
@@ -82,7 +82,7 @@ func _finish() -> void:
 	var collected_all := _all_fired
 	print("Stars: %d total, collected %d in %.0f s simulated" % [_stars.total, _stars.total if _all_fired else _stars.count, _time])
 	for check in [
-		["at least 40 stars on the map", _stars.total >= 40],
+		["at least 140 stars on the map", _stars.total >= 140],
 		["every star reached", collected_all],
 		["10-star milestone fired", 10 in _milestones],
 		["all-collected celebration fired", _all_fired],

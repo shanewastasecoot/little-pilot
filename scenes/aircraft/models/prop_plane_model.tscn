@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/aircraft/aircraft_visuals.gd" id="1_vis"]
 [ext_resource type="Script" path="res://scripts/aircraft/boost_trail.gd" id="2_trail"]
 [ext_resource type="PackedScene" path="res://assets/aircraft/biplane.glb" id="3_glb"]
+[ext_resource type="Script" path="res://scripts/aircraft/model_recolor.gd" id="4_recolor"]
 
 [sub_resource type="StandardMaterial3D" id="mat_dark"]
 albedo_color = Color(0.2, 0.22, 0.27, 1)
@@ -10,8 +11,9 @@ albedo_color = Color(0.2, 0.22, 0.27, 1)
 [sub_resource type="BoxMesh" id="blade"]
 size = Vector3(2.2, 0.2, 0.05)
 
-[node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller", "boost_trails")]
+[node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller", "boost_trails", "recolor")]
 script = ExtResource("1_vis")
+recolor = NodePath("Recolor")
 propeller = NodePath("Propeller")
 boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 
@@ -41,3 +43,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0.4, -0.4)
 script = ExtResource("2_trail")
 rainbow = true
 width = 0.4
+
+[node name="Recolor" type="Node" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("4_recolor")
+target = NodePath("../Biplane/Node")
+to_color = Color(1, 0.3, 0.3, 1)

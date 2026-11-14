@@ -31,6 +31,9 @@ func _ready() -> void:
 		_button(device, JOY_BUTTON_B, "honk")
 		_button(device, JOY_BUTTON_Y, "camera")
 		_button(device, JOY_BUTTON_START, "pause")
+		_button(device, JOY_BUTTON_X, "trick")
+		_button(device, JOY_BUTTON_DPAD_RIGHT, "paint_next")
+		_button(device, JOY_BUTTON_DPAD_LEFT, "paint_prev")
 		# Menus
 		_button(device, JOY_BUTTON_A, "ui_accept")
 		_button(device, JOY_BUTTON_B, "ui_cancel")
@@ -43,7 +46,7 @@ func _ready() -> void:
 		# Some drivers report released triggers as -1: must not boost
 		_axis(device, JOY_AXIS_TRIGGER_RIGHT, -1.0, "boost", false)
 		# Unused buttons must do nothing harmful
-		for b in [JOY_BUTTON_BACK, JOY_BUTTON_X, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
+		for b in [JOY_BUTTON_BACK, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
 			_button_none(device, b, ["pause", "honk", "camera", "ui_cancel"])
 	print("\nCONTROLLER TEST %s" % ("PASSED" if _fails == 0 else "FAILED (%d)" % _fails))
 	get_tree().quit(1 if _fails else 0)

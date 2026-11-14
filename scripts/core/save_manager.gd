@@ -12,6 +12,8 @@ const SAVE_DELAY := 1.0  # seconds; batches rapid changes into one write
 var path: String = DEFAULT_PATH
 var selected_aircraft: String = AircraftCatalog.DEFAULT_ID
 var lifetime_stars: int = 0
+## Paint index per aircraft id.
+var paints: Dictionary = {}
 # Parent settings (0..1 volumes)
 var music_volume: float = 0.7
 var sfx_volume: float = 1.0
@@ -60,6 +62,12 @@ func load_game() -> void:
 	var stars = cfg.get_value("progress", "lifetime_stars", 0)
 	if stars is int and stars >= 0:
 		lifetime_stars = stars
+	var saved_paints = cfg.get_value("player", "paints", {})
+	if saved_paints is Dictionary:
+		for id in saved_paints:
+			var idx = saved_paints[id]
+			if id is String and AircraftCatalog.has(id) and idx is int and idx >= 0 and idx < Paint.COLORS.size():
+				paints[id] = idx
 	music_volume = _volume(cfg.get_value("settings", "music_volume", music_volume), music_volume)
 	sfx_volume = _volume(cfg.get_value("settings", "sfx_volume", sfx_volume), sfx_volume)
 	var saver = cfg.get_value("settings", "battery_saver", battery_saver)
@@ -83,6 +91,7 @@ func save_now() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("meta", "version", 1)
 	cfg.set_value("player", "selected_aircraft", selected_aircraft)
+	cfg.set_value("player", "paints", paints)
 	cfg.set_value("progress", "lifetime_stars", lifetime_stars)
 	cfg.set_value("settings", "music_volume", music_volume)
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
@@ -107,6 +116,15 @@ func add_lifetime_star() -> void:
 	request_save()
 
 
+func get_paint(id: String, fallback: int) -> int:
+	return paints.get(id, fallback)
+
+
+func set_paint(id: String, idx: int) -> void:
+	paints[id] = posmod(idx, Paint.COLORS.size())
+	request_save()
+
+
 func set_music_volume(v: float) -> void:
 	music_volume = clampf(v, 0.0, 1.0)
 	settings_changed.emit()
@@ -128,6 +146,7 @@ func set_battery_saver(on: bool) -> void:
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
+	paints = {}
 	music_volume = 0.7
 	sfx_volume = 1.0
 	battery_saver = false
