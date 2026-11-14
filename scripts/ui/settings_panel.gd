@@ -1,7 +1,8 @@
 class_name SettingsPanel
 extends CanvasLayer
 ## Parent settings, opened from the pause menu (gear button):
-## music volume, sound volume and a battery saver (30 FPS cap).
+## music volume, sound volume, a battery saver (30 FPS cap) and whether the
+## city-fireworks arrow is shown.
 ## B / Esc or the back arrow closes it. Changes save automatically.
 
 signal closed
@@ -9,6 +10,7 @@ signal closed
 var _music: VolumeBar
 var _sounds: VolumeBar
 var _battery: BigButton
+var _arrow: BigButton
 
 
 func _ready() -> void:
@@ -58,6 +60,12 @@ func _ready() -> void:
 	_battery.toggle_mode = true
 	_battery.toggled.connect(_on_battery)
 	row.add_child(_battery)
+	_arrow = BigButton.new()
+	_arrow.icon_type = UiIcon.Icon.POINTER
+	_arrow.button_size = Vector2(130, 130)
+	_arrow.toggle_mode = true
+	_arrow.toggled.connect(_on_arrow)
+	row.add_child(_arrow)
 
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
@@ -69,6 +77,7 @@ func _on_visibility_changed() -> void:
 	_music.set_value(SaveManager.music_volume)
 	_sounds.set_value(SaveManager.sfx_volume)
 	_battery.set_pressed_no_signal(SaveManager.battery_saver)
+	_arrow.set_pressed_no_signal(SaveManager.city_arrow)
 	_tint_battery()
 	_music.grab_focus.call_deferred()
 
@@ -78,12 +87,19 @@ func _on_battery(on: bool) -> void:
 	_tint_battery()
 
 
+func _on_arrow(on: bool) -> void:
+	SaveManager.set_city_arrow(on)
+	_tint_battery()
+
+
+## Toggle buttons are green when on, grey when off.
 func _tint_battery() -> void:
-	# Green when saving battery, grey when off.
-	var c := Color("4cc06a") if SaveManager.battery_saver else Color("8a94a6")
-	_battery.add_theme_stylebox_override("normal", _battery._style(c, Color(0, 0, 0, 0)))
-	_battery.add_theme_stylebox_override("hover", _battery._style(c.lightened(0.1), Color(0, 0, 0, 0)))
-	_battery.add_theme_stylebox_override("pressed", _battery._style(c, Color(0, 0, 0, 0)))
+	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow]]:
+		var b: BigButton = pair[0]
+		var c := Color("4cc06a") if pair[1] else Color("8a94a6")
+		b.add_theme_stylebox_override("normal", b._style(c, Color(0, 0, 0, 0)))
+		b.add_theme_stylebox_override("hover", b._style(c.lightened(0.1), Color(0, 0, 0, 0)))
+		b.add_theme_stylebox_override("pressed", b._style(c, Color(0, 0, 0, 0)))
 
 
 func _unhandled_input(event: InputEvent) -> void:

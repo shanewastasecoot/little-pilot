@@ -106,6 +106,10 @@ static func color(x: float, z: float, h: float, slope: float) -> Color:
 	if h < 6.5 + wobble * 1.5 and Vector2(x, z).length() > coast_radius(x, z) - 250.0:
 		return Color("f2d98a")                       # sand (coast only)
 	var grass := Color("7ccf5a").lerp(Color("9edc5f"), clampf((h - 10.0) / 60.0 + wobble * 0.3, 0.0, 1.0))
+	# Big soft patches of yellow-green and deeper green across the meadows.
+	var patch := _noise.get_noise_2d(x * 0.45 + 900.0, z * 0.45)
+	grass = grass.lerp(Color("b3df62"), smoothstep(0.15, 0.45, patch) * 0.55)
+	grass = grass.lerp(Color("5fbf4b"), smoothstep(-0.15, -0.45, patch) * 0.5)
 	if p_in_forest(x, z):
 		grass = Color("4fa83e")
 	var rock := Color("9a96a3").lerp(Color("8a8694"), clampf(wobble + 0.5, 0.0, 1.0))

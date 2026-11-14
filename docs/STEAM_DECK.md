@@ -63,6 +63,7 @@ Pause (☰ / Start), then the grey **gear** in the top-left corner:
 
 - **Music** and **Sounds**: five bars each, left/right to change, zero bars mutes.
 - **Battery saver** (battery icon, green = on): caps the game at 30 FPS for longer play on battery.
+- **City arrow** (arrow icon, green = on): every 30 stars the city puts on a fireworks show after a 30-second countdown; this shows an arrow pointing the way. Turn it off to keep just the countdown.
 
 Settings save automatically.
 

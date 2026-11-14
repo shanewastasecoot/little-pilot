@@ -7,9 +7,15 @@ const STAR_CLEARANCE := 24.0  # metres above ground for "low" stars
 
 
 func _init() -> void:
-	# West end of the runway, facing east down it.
+	# West end of the runway, facing east down it (in the air, for tests and
+	# respawns; the game itself starts parked on the runway).
 	spawn_position = Vector3(-260, 32, 0)
 	spawn_heading_deg = -90.0
+
+
+## Where the plane waits on the runway before take-off (runway surface).
+func runway_start() -> Vector3:
+	return Vector3(-IslandShape.RUNWAY_HALF.x + 30.0, IslandShape.height(0, 0) + 0.4, 0)
 
 
 func _ready() -> void:
@@ -31,8 +37,10 @@ func _ready() -> void:
 
 func _build_environment() -> void:
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color("3d9cff")
+	sky_mat.sky_top_color = Color("2f8cf5")
 	sky_mat.sky_horizon_color = Color("bfe6ff")
+	sky_mat.sky_curve = 0.12
+	sky_mat.sun_angle_max = 20.0
 	sky_mat.ground_horizon_color = Color("bfe6ff")
 	sky_mat.ground_bottom_color = Color("2f7fc0")
 	var sky := Sky.new()
@@ -41,8 +49,12 @@ func _build_environment() -> void:
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.7
+	env.ambient_light_energy = 0.55
+	# Bright and vivid (linear), with a touch of contrast so shading reads.
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+	env.adjustment_enabled = true
+	env.adjustment_saturation = 1.08
+	env.adjustment_contrast = 1.08
 	env.fog_enabled = true
 	env.fog_light_color = Color("cfeaff")
 	env.fog_density = 0.00032
@@ -55,10 +67,17 @@ func _build_environment() -> void:
 	add_child(we)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50, -30, 0)
-	sun.light_energy = 1.1
+	sun.rotation_degrees = Vector3(-46, -30, 0)
+	sun.light_energy = 1.3
+	sun.light_color = Color(1.0, 0.96, 0.88)  # warm afternoon sun
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 150.0
+	sun.shadow_blur = 1.5
+	# Two cascades: crisp shadows near the plane, buildings and trees
+	# still grounded further out.
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
+	sun.directional_shadow_split_1 = 0.25
+	sun.directional_shadow_max_distance = 420.0
+	sun.directional_shadow_blend_splits = true
 	add_child(sun)
 
 	var bounds := WorldBounds.new()
@@ -122,6 +141,8 @@ func _place_details() -> void:
 	IslandDecor.scatter(mountains, env + "rocks.glb", 90, Vector2(0, -800), 0.0, 520.0, h, 35.0, 75.0, 45.0, 210.0, 71, 1300.0)
 	IslandDecor.scatter(mountains, env + "rock.glb", 70, Vector2(0, -800), 0.0, 560.0, h, 30.0, 65.0, 40.0, 190.0, 72, 1300.0)
 	IslandDecor.scatter(root, env + "tree_round.glb", 260, Vector2.ZERO, 150.0, 1050.0, h, 0.9, 1.4, 9.0, 70.0, 73, 900.0, _open_meadow)
+	# Bushes are too small to need shadows from the air (saves shadow passes).
+	(root.get_child(root.get_child_count() - 1) as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 func _open_meadow(x: float, z: float) -> bool:

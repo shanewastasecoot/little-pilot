@@ -12,6 +12,8 @@ extends Resource
 @export var menu_color: Color = Color("ff5a5f")
 ## Starting paint (index into Paint.COLORS) until the child picks another.
 @export var default_paint: int = 0
+## Height of the plane's centre above the ground when parked (wheels down).
+@export var ground_offset: float = 1.0
 ## Pitch of the honk sound (1.0 = normal).
 @export var honk_pitch: float = 1.0
 

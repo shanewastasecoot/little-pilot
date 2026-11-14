@@ -13,6 +13,8 @@ extends Node3D
 ## Seconds for one barrel roll.
 const ROLL_TIME := 0.85
 
+var _blur: MeshInstance3D
+var _blur_mat: StandardMaterial3D
 var _bank: float = 0.0
 var _honk_tween: Tween
 var _roll: float = -1.0   # 0..1 while rolling, -1 when not
@@ -43,6 +45,31 @@ func update_visuals(turn: float, speed: float, stats: AircraftStats, delta: floa
 	position = offset
 	if propeller:
 		propeller.rotate_z(speed * 1.5 * delta)
+		_update_blur(speed)
+
+
+## A soft translucent disc that fades in as the propeller speeds up, so it
+## reads as a spinning prop instead of two flickering sticks.
+func _update_blur(speed: float) -> void:
+	if _blur == null:
+		_blur_mat = StandardMaterial3D.new()
+		_blur_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_blur_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_blur_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		var disc := CylinderMesh.new()
+		disc.top_radius = 1.15
+		disc.bottom_radius = 1.15
+		disc.height = 0.02
+		disc.radial_segments = 32
+		disc.rings = 1
+		_blur = MeshInstance3D.new()
+		_blur.mesh = disc
+		_blur.material_override = _blur_mat
+		_blur.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_blur.rotation_degrees.x = 90.0
+		_blur.position = propeller.position
+		add_child(_blur)
+	_blur_mat.albedo_color = Color(1.0, 1.0, 1.0, smoothstep(12.0, 45.0, speed) * 0.14)
 
 
 ## Start a barrel roll (purely visual: the flight path is unchanged, so

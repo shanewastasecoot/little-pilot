@@ -62,6 +62,8 @@ static func build_all(parent: Node3D, stars: Node3D) -> void:
 			node = MermaidCove.new()
 			node.set("radius", r)
 			node.set("ground_y", hf.call(c.x, c.y))
+			node.set("ground_fn", hf)
+			node.set("centre", c)
 		else:
 			node = Node3D.new()
 		node.position = Vector3(c.x, 0, c.y)
@@ -69,7 +71,7 @@ static func build_all(parent: Node3D, stars: Node3D) -> void:
 		_decorate(node, kind, c, r, hf, i)
 		if e[4]:
 			var pod := SeaLeapers.new()
-			pod.setup("dolphin", r + 60.0, 3, i)
+			pod.setup("dolphin", r * 1.2 + 95.0, 3, i)
 			node.add_child(pod)
 		# A little arc of stars over every islet.
 		_star_arc(stars, c, r, kind == "mermaid")

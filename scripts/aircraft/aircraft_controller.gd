@@ -11,6 +11,20 @@ signal stats_changed(stats: AircraftStats)
 
 @export var stats: AircraftStats
 
+signal takeoff_finished
+
+enum Mode { FLYING, PARKED, TAKEOFF }
+
+## Takeoff tuning: ground roll acceleration (m/s^2), lift-off speed as a
+## fraction of cruise, climb angle and the height where the child takes over.
+const ROLL_ACCEL := 6.0
+const LIFTOFF_FRACTION := 0.8
+const CLIMB_DEG := 11.0
+const HANDOVER_HEIGHT := 18.0
+
+var mode: Mode = Mode.FLYING
+var _ground_y := 0.0
+
 ## 0..1, how far into boost we are. The camera uses it for FOV.
 var boost_amount: float = 0.0
 var speed: float = 0.0
@@ -40,6 +54,14 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if mode == Mode.PARKED:
+		speed = 0.0
+		boost_amount = 0.0
+		visuals.update_visuals(0.0, 6.0, stats, delta)  # propeller idles
+		return
+	if mode == Mode.TAKEOFF:
+		_takeoff_step(delta)
+		return
 	safety.evaluate(global_position, velocity, turn)
 
 	# Turning: safety bias overrides the stick in proportion to its strength.
@@ -82,9 +104,13 @@ func set_stats(new_stats: AircraftStats) -> void:
 	if new_stats == null or new_stats == stats:
 		return
 	var speed_ratio := speed / stats.cruise_speed
+	var old_offset := stats.ground_offset
 	_apply_stats(new_stats)
 	speed = stats.cruise_speed * speed_ratio
 	velocity = _forward() * speed
+	if mode == Mode.PARKED:
+		global_position.y += stats.ground_offset - old_offset
+		reset_physics_interpolation()
 
 
 func _apply_stats(new_stats: AircraftStats) -> void:
@@ -119,8 +145,46 @@ func _on_honk() -> void:
 	Sfx.play("honk", stats.honk_pitch)
 
 
+## Sit on the ground (runway) at `pos`, facing `yaw`, engine idling.
+func park(pos: Vector3, yaw: float) -> void:
+	_ground_y = pos.y
+	speed = 0.0
+	teleport(pos + Vector3.UP * stats.ground_offset, yaw)
+	mode = Mode.PARKED
+
+
+## Roll down the runway, lift off and climb; control is handed over at
+## HANDOVER_HEIGHT (takeoff_finished). Scripted, so it's always safe.
+func start_takeoff() -> void:
+	if mode != Mode.PARKED:
+		return
+	mode = Mode.TAKEOFF
+	Sfx.play("whoosh", 0.7)
+
+
+func _takeoff_step(delta: float) -> void:
+	var lift_speed := stats.cruise_speed * LIFTOFF_FRACTION
+	var airborne := speed >= lift_speed
+	# Accelerate along the runway, a bit faster once airborne.
+	speed = minf(speed + ROLL_ACCEL * (1.4 if airborne else 1.0) * delta, stats.cruise_speed)
+	var target_pitch := deg_to_rad(CLIMB_DEG) if airborne else 0.0
+	pitch = move_toward(pitch, target_pitch, deg_to_rad(12.0) * delta)
+	rotation = Vector3(pitch, heading, 0.0)
+	var pos := global_position + _forward() * speed * delta
+	pos.y = maxf(pos.y, _ground_y + stats.ground_offset)  # wheels stay on the runway
+	global_position = pos
+	velocity = _forward() * speed
+	boost_amount = 0.0
+	visuals.update_visuals(0.0, speed + 8.0, stats, delta)
+	if pos.y - _ground_y > HANDOVER_HEIGHT:
+		mode = Mode.FLYING
+		takeoff_finished.emit()
+
+
 ## Instantly place the plane (spawning, respawning, plane swap).
+## Also puts the plane in normal flying mode.
 func teleport(pos: Vector3, yaw: float) -> void:
+	mode = Mode.FLYING
 	global_position = pos
 	heading = yaw
 	pitch = 0.0

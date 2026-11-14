@@ -2,7 +2,7 @@
 
 A relaxing 3D flying sandbox for young children, built with Godot 4.
 
-Little Pilot lets a small child fly a cheerful little plane around a bright, friendly island. Nothing can go wrong: the plane can't crash or stall, there are no timers, and the game never ends badly. The child flies wherever they like, finds landmarks, and collects floating stars.
+Little Pilot lets a small child fly a cheerful little plane around a bright, friendly world of islands. Nothing can go wrong: the plane can't crash or stall, there are no timers, and the game never ends badly. The child flies wherever they like, finds landmarks, and collects floating stars.
 
 ---
 
@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, bigger map) in progress |
+| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, much bigger world, city, mermaids) in progress |
 
 ## Target Audience
 
@@ -33,19 +33,24 @@ The secondary audience is the parent or developer, who should find the project e
 
 | Platform | Status | Notes |
 |---|---|---|
-| **Steam Deck** | ✅ Primary target | Native Linux x86_64 build, added as a non-Steam game. Target 1280×800 at 60 FPS. |
+| **Steam Deck** | ✅ Primary target | Native Linux x86_64 build, added as a non-Steam game. 1280×800, kept at 90+ FPS (the OLED panel's refresh rate). |
 | **Linux (desktop)** | ✅ Supported | Same build as the Steam Deck. Used for day-to-day development. |
 | **Windows** | 🔜 Future | Godot exports it with little extra work. Needs controller testing. |
 | **iPad** | 🔜 Future | Needs touch controls, a Mac with Xcode, and an Apple Developer account for installs that last longer than 7 days. |
 
 ## Core Gameplay Features
 
-- **Uncrashable arcade flight.** The plane always moves forward, levels itself, and turns away from the ground, water and edge of the world on its own.
-- **Two aircraft:** a gentle **Prop Plane** and a zippier **Fighter Jet**.
-- **Free exploration** of a single handcrafted island: mountains, forests, farms, a lighthouse, wind turbines, an airport and the ocean.
-- **Floating stars** to collect, each with a sparkle, a chime and a visible counter.
-- **Landmark discovery.** Flying near a landmark plays a happy reaction.
-- **Gamepad-first controls** designed for the Steam Deck.
+- **Uncrashable arcade flight.** The plane always moves forward, levels itself, and steers or slows away from the ground, water, buildings and the edge of the world on its own.
+- **Two aircraft:** a red **biplane** and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
+- **A world of islands to explore** (about 9 km across):
+  - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and the start of a **city** with skyscrapers and construction cranes
+  - **Palm Island**, **Volcano Island**, and a giant **rainbow** to fly through
+  - **Ice Island** (penguins, igloos), **Dino Island** (animated dinosaurs), **Castle Island**, **Town Island** (hot-air balloons)
+  - 16 **islets** with palms, seals, crabs and four **mermaid coves**; dolphins, a whale, a sail boat and a pirate ship at sea
+- **220 floating stars** in trails that lead from place to place, with a star jar and celebrations.
+- **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
+- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver).
+- **Gamepad-first controls** designed for the Steam Deck (Xbox controllers work too).
 
 ## Technology Stack
 

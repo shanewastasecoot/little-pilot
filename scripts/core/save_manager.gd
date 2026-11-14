@@ -18,6 +18,8 @@ var paints: Dictionary = {}
 var music_volume: float = 0.7
 var sfx_volume: float = 1.0
 var battery_saver: bool = false
+## Show the arrow that points to the city before its fireworks.
+var city_arrow: bool = true
 
 var _save_timer: Timer
 
@@ -73,6 +75,9 @@ func load_game() -> void:
 	var saver = cfg.get_value("settings", "battery_saver", battery_saver)
 	if saver is bool:
 		battery_saver = saver
+	var arrow = cfg.get_value("settings", "city_arrow", city_arrow)
+	if arrow is bool:
+		city_arrow = arrow
 	loaded.emit()
 	settings_changed.emit()
 
@@ -96,6 +101,7 @@ func save_now() -> void:
 	cfg.set_value("settings", "music_volume", music_volume)
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
 	cfg.set_value("settings", "battery_saver", battery_saver)
+	cfg.set_value("settings", "city_arrow", city_arrow)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -143,6 +149,12 @@ func set_battery_saver(on: bool) -> void:
 	request_save()
 
 
+func set_city_arrow(on: bool) -> void:
+	city_arrow = on
+	settings_changed.emit()
+	request_save()
+
+
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
@@ -150,3 +162,4 @@ func _reset_to_defaults() -> void:
 	music_volume = 0.7
 	sfx_volume = 1.0
 	battery_saver = false
+	city_arrow = true
