@@ -62,15 +62,22 @@ static var _merged_cache: Dictionary = {}
 ## All meshes in a .glb merged into ONE surface with material colours baked
 ## into vertex colours: one draw call per copy instead of one per part.
 ## Optionally shifts one hue range (e.g. a mermaid's tail) to `to_color`.
-static func merged_mesh(path: String, from_hue := -1.0, hue_range := 0.06, to_color := Color.WHITE) -> ArrayMesh:
-	var key := "%s|%.2f|%s" % [path, from_hue, to_color.to_html()]
+## parts: only merge parts whose node name is in this list (empty = all);
+## skip: leave these parts out. offset is added to every vertex (use it to
+## put a pivot, e.g. a shoulder, at the mesh origin).
+static func merged_mesh(path: String, from_hue := -1.0, hue_range := 0.06, to_color := Color.WHITE,
+		parts: PackedStringArray = [], skip: PackedStringArray = [], offset := Vector3.ZERO) -> ArrayMesh:
+	var key := "%s|%.2f|%s|%s|%s|%s" % [path, from_hue, to_color.to_html(), ",".join(parts), ",".join(skip), offset]
 	if _merged_cache.has(key):
 		return _merged_cache[key]
 	var root: Node = load(path).instantiate()
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for mi: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
-		var xf := Transform3D.IDENTITY
+		var part := String(mi.name)
+		if (not parts.is_empty() and not parts.has(part)) or skip.has(part):
+			continue
+		var xf := Transform3D(Basis.IDENTITY, offset)
 		var cur: Node = mi
 		while cur != root:
 			xf = (cur as Node3D).transform * xf
