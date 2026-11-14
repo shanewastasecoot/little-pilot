@@ -5,12 +5,16 @@ extends Node3D
 
 ## Optional child spun according to speed.
 @export var propeller: Node3D
+## Ribbons shown while boosting (usually one per wingtip).
+@export var boost_trails: Array[BoostTrail] = []
 
 var _bank: float = 0.0
 var _honk_tween: Tween
 
 
-func update_visuals(turn: float, speed: float, stats: AircraftStats, delta: float) -> void:
+func update_visuals(turn: float, speed: float, stats: AircraftStats, delta: float, boost: float = 0.0) -> void:
+	for trail in boost_trails:
+		trail.strength = boost
 	var target := -turn * deg_to_rad(stats.max_bank_deg)
 	_bank = lerpf(_bank, target, 1.0 - exp(-stats.bank_response * delta))
 	rotation.z = _bank

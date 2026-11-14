@@ -55,6 +55,11 @@ func bind(stars: StarManager) -> void:
 	stars.all_collected.connect(func(): _party.play(true))
 
 
+## Small party when a new landmark is found (doesn't interrupt flying).
+func celebrate_discovery() -> void:
+	_party.play(false)
+
+
 func _on_star_collected(count: int, total: int) -> void:
 	_count_label.text = str(count)
 	_jar.target_fill = float(count) / maxf(total, 1)

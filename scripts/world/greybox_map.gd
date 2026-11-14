@@ -1,5 +1,5 @@
 class_name GreyboxMap
-extends Node3D
+extends GameMap
 ## Builds the Phase 1 test map from Godot primitives: an island, water,
 ## hills, tall pillars and a sky. Replaced by the real island in Phase 3.
 
@@ -7,9 +7,6 @@ extends Node3D
 @export var island_radius: float = 380.0
 @export var hill_count: int = 14
 @export var pillar_count: int = 10
-@export var spawn_position: Vector3 = Vector3(0, 30, 200)
-## Degrees; 0 faces -Z (towards the island centre from the default spawn).
-@export var spawn_heading_deg: float = 0.0
 
 const ISLAND_TOP := 2.0
 
@@ -24,10 +21,6 @@ func _ready() -> void:
 	_build_hills()
 	_build_valley()
 	_build_pillars()
-
-
-func spawn_heading() -> float:
-	return deg_to_rad(spawn_heading_deg)
 
 
 func _build_environment() -> void:

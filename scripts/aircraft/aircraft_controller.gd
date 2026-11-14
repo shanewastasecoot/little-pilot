@@ -26,6 +26,7 @@ var visuals: AircraftVisuals
 func _ready() -> void:
 	if stats == null:
 		stats = AircraftStats.new()
+	add_to_group("aircraft")
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
 	collision_layer = GameSettings.LAYER_AIRCRAFT
 	collision_mask = GameSettings.LAYER_WORLD
@@ -68,7 +69,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	safety.enforce()
 
-	visuals.update_visuals(turn, speed, stats, delta)
+	visuals.update_visuals(turn, speed, stats, delta, boost_amount)
 
 
 ## Switch to another aircraft mid-flight. Position, heading and the

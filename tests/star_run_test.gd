@@ -82,7 +82,7 @@ func _finish() -> void:
 	var collected_all := _all_fired
 	print("Stars: %d total, collected %d in %.0f s simulated" % [_stars.total, _stars.total if _all_fired else _stars.count, _time])
 	for check in [
-		["22 stars on the map", _stars.total == 22],
+		["at least 40 stars on the map", _stars.total >= 40],
 		["every star reached", collected_all],
 		["10-star milestone fired", 10 in _milestones],
 		["all-collected celebration fired", _all_fired],

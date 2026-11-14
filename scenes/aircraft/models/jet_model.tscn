@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/aircraft/aircraft_visuals.gd" id="1_vis"]
+[ext_resource type="Script" path="res://scripts/aircraft/boost_trail.gd" id="2_trail"]
 
 [sub_resource type="StandardMaterial3D" id="mat_blue"]
 albedo_color = Color(0.25, 0.55, 1, 1)
@@ -49,8 +50,9 @@ height = 0.26
 radius = 0.38
 height = 0.5
 
-[node name="JetModel" type="Node3D"]
+[node name="JetModel" type="Node3D" node_paths=PackedStringArray("boost_trails")]
 script = ExtResource("1_vis")
+boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 
 [node name="Fuselage" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
@@ -96,3 +98,15 @@ surface_material_override/0 = SubResource("mat_white")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.3)
 mesh = SubResource("exhaust")
 surface_material_override/0 = SubResource("mat_flame")
+
+[node name="TrailL" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, -0.1, 1.6)
+script = ExtResource("2_trail")
+width = 0.35
+lifetime = 0.7
+
+[node name="TrailR" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, -0.1, 1.6)
+script = ExtResource("2_trail")
+width = 0.35
+lifetime = 0.7

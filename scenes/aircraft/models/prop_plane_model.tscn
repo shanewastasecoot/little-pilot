@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/aircraft/aircraft_visuals.gd" id="1_vis"]
+[ext_resource type="Script" path="res://scripts/aircraft/boost_trail.gd" id="2_trail"]
 
 [sub_resource type="StandardMaterial3D" id="mat_red"]
 albedo_color = Color(1, 0.35, 0.37, 1)
@@ -49,8 +50,9 @@ size = Vector3(1.9, 0.18, 0.05)
 radius = 0.13
 height = 0.26
 
-[node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller")]
+[node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller", "boost_trails")]
 script = ExtResource("1_vis")
+boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 propeller = NodePath("Propeller")
 
 [node name="Fuselage" type="MeshInstance3D" parent="."]
@@ -99,3 +101,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.95)
 [node name="Blade" type="MeshInstance3D" parent="Propeller"]
 mesh = SubResource("blade")
 surface_material_override/0 = SubResource("mat_dark")
+
+[node name="TrailL" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, -0.1, 0.1)
+script = ExtResource("2_trail")
+rainbow = true
+width = 0.4
+
+[node name="TrailR" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.1, 0.1)
+script = ExtResource("2_trail")
+rainbow = true
+width = 0.4
