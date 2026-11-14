@@ -53,54 +53,75 @@ func play(sound: String, pitch: float = 1.0, volume_db: float = 0.0) -> void:
 
 
 ## Seamless looping streams for continuous sounds (engines, wind).
-## Built on demand and cached.
+## Built on demand and cached. All loops are 1-2 s long; tones use whole-
+## number frequencies and noise is cross-faded at the loop point, so there
+## is no click when they repeat.
 func get_loop(loop_name: String) -> AudioStreamWAV:
 	var key := "loop_" + loop_name
 	if not _streams.has(key):
 		match loop_name:
-			"prop_engine": _streams[key] = _engine_loop(80.0, true)
-			"jet_engine": _streams[key] = _engine_loop(55.0, false)
-			"wind": _streams[key] = _noise_loop(0.06, 2.0)
+			"prop_engine": _streams[key] = _prop_loop(44.0, 22.0, 0.35)
+			"prop_boost": _streams[key] = _prop_loop(66.0, 33.0, 0.6)
+			"jet_engine": _streams[key] = _jet_loop(0.18, 40.0, 0.06)
+			"jet_boost": _streams[key] = _jet_loop(0.035, 30.0, 0.0)
+			"wind": _streams[key] = _to_wav(_normalize(_seamless_noise(2 * RATE, 0.06, 7), 0.5), true)
 	return _streams[key]
 
 
-## Buzzy propeller (putt-putt) or smooth turbine hum. One second long, with
-## a whole number of cycles so the loop point is seamless.
-func _engine_loop(freq: float, prop: bool) -> AudioStreamWAV:
+## Piston engine: soft harmonic rumble at the firing rate, pulsed by the
+## propeller blades ("wub-wub"), with a little air noise on top.
+func _prop_loop(fire_hz: float, blade_hz: float, noise_amount: float) -> AudioStreamWAV:
 	var count := RATE
+	var noise := _seamless_noise(count, 0.12, 3)
 	var buf := PackedFloat32Array()
 	buf.resize(count)
-	var noise := _noise_buffer(count, 0.15)
 	for i in count:
-		var ph := TAU * freq * i / RATE
-		var s: float
-		if prop:
-			s = 0.5 * sin(ph) + 0.3 * sin(ph * 2.0) + 0.2 * sin(ph * 3.0) + 0.12 * sin(ph * 5.0)
-			s *= 0.75 + 0.25 * sin(TAU * 20.0 * i / RATE)  # blade "putt"
-		else:
-			s = 0.35 * sin(ph) + 0.15 * sin(ph * 2.0) + noise[i] * 1.6
-		buf[i] = s * 0.5
-	return _to_wav(buf, true)
+		var t := float(i) / RATE
+		var s := 0.0
+		for h in 4:
+			s += [1.0, 0.55, 0.3, 0.15][h] * sin(TAU * fire_hz * (h + 1) * t + h * 0.7)
+		s *= 0.6 + 0.4 * (0.5 + 0.5 * sin(TAU * blade_hz * t))
+		buf[i] = s * 0.4 + noise[i] * noise_amount * 4.0
+	return _to_wav(_normalize(buf, 0.8), true)
 
 
-## Soft filtered noise (wind). `smooth` is a one-pole low-pass factor.
-func _noise_loop(smooth: float, seconds: float) -> AudioStreamWAV:
-	var buf := _noise_buffer(int(seconds * RATE), smooth)
-	for i in buf.size():
-		buf[i] *= 3.0
-	return _to_wav(buf, true)
-
-
-func _noise_buffer(count: int, smooth: float) -> PackedFloat32Array:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 99
+## Turbine: airy whoosh (filtered noise) over a low rumble and a faint whine.
+## smooth: lower = darker, rumblier noise (afterburner).
+func _jet_loop(smooth: float, rumble_hz: float, whine: float) -> AudioStreamWAV:
+	var count := RATE
+	var noise := _seamless_noise(count, smooth, 5)
 	var buf := PackedFloat32Array()
 	buf.resize(count)
+	for i in count:
+		var t := float(i) / RATE
+		buf[i] = noise[i] * 3.0 + 0.3 * sin(TAU * rumble_hz * t) + whine * sin(TAU * 880.0 * t)
+	return _to_wav(_normalize(buf, 0.8), true)
+
+
+## Low-passed noise whose end cross-fades into its start (loops cleanly).
+func _seamless_noise(count: int, smooth: float, seed: int) -> PackedFloat32Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var fade := RATE / 10
+	var raw := PackedFloat32Array()
+	raw.resize(count + fade)
 	var v := 0.0
-	for pass_i in 2:  # second pass makes the end flow into the start
-		for i in count:
-			v = lerpf(v, rng.randf_range(-1.0, 1.0), smooth)
-			buf[i] = v
+	for i in raw.size():
+		v = lerpf(v, rng.randf_range(-1.0, 1.0), smooth)
+		raw[i] = v
+	var buf := raw.slice(0, count)
+	for i in fade:
+		var k := float(i) / fade
+		buf[i] = lerpf(raw[count + i], raw[i], k)
+	return buf
+
+
+func _normalize(buf: PackedFloat32Array, peak: float) -> PackedFloat32Array:
+	var m := 0.0001
+	for x in buf:
+		m = maxf(m, absf(x))
+	for i in buf.size():
+		buf[i] *= peak / m
 	return buf
 
 
