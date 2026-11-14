@@ -39,12 +39,12 @@ Each asset has two checkboxes:
 
 ## 1. Aircraft Models
 
-- **Prop Plane** · Status: ⬜ Not started · Phase 2
-  - [ ] Placeholder Asset: CSG boxes and cylinders (body, wings, tail, propeller)
-  - [ ] Final Asset: low-poly `.glb` with a separate propeller node for spinning
-- **Fighter Jet** · Status: ⬜ Not started · Phase 3
-  - [ ] Placeholder Asset: CSG shapes in a different colour from the prop plane
-  - [ ] Final Asset: low-poly, rounded, toy-like jet `.glb` (no weapons)
+- **Prop Plane** · Status: ✅ Final · Phase 2
+  - [x] Placeholder Asset: CSG boxes and cylinders (body, wings, tail, propeller)
+  - [x] Final Asset: red biplane `.glb` (Jake Blakeley, CC-BY 3.0) + code-built spinning propeller
+- **Fighter Jet** · Status: ✅ Final · Phase 3
+  - [x] Placeholder Asset: CSG shapes in a different colour from the prop plane
+  - [x] Final Asset: trainer jet `.glb` (Poly by Google, CC-BY 3.0), recoloured blue, no weapons
 - **Propeller spin effect** · Status: ⬜ Not started · Phase 5
   - [ ] Placeholder Asset: rotating mesh
   - [ ] Final Asset: blurred disc texture shown at speed
