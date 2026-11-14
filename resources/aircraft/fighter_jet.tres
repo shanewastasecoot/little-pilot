@@ -9,6 +9,7 @@ id = "jet"
 display_name = "Fighter Jet"
 model_scene = ExtResource("2_model")
 menu_color = Color(0.25, 0.55, 1, 1)
+default_paint = 1
 honk_pitch = 1.35
 cruise_speed = 35.0
 boost_multiplier = 1.5

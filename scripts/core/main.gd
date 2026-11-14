@@ -85,6 +85,14 @@ func _open_settings() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if state == State.FLYING and event.is_action_pressed("paint_next"):
+		aircraft.cycle_paint(1)
+		get_viewport().set_input_as_handled()
+		return
+	if state == State.FLYING and event.is_action_pressed("paint_prev"):
+		aircraft.cycle_paint(-1)
+		get_viewport().set_input_as_handled()
+		return
 	if state == State.FLYING and event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		Sfx.play("ui_move")

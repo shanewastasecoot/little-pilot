@@ -14,7 +14,9 @@ func _init() -> void:
 
 func _ready() -> void:
 	_build_environment()
-	TerrainBuilder.build(self)
+	TerrainBuilder.build(self, IslandShape.height, IslandShape.color, Vector2.ZERO, IslandShape.SIZE, 160)
+	TerrainBuilder.build(self, IslandShape.palm_height, IslandShape.palm_color, IslandShape.PALM_ISLAND, 760.0, 54, "PalmTerrain")
+	TerrainBuilder.build(self, IslandShape.volcano_height, IslandShape.volcano_color, IslandShape.VOLCANO, 1000.0, 72, "VolcanoTerrain")
 	_build_ocean()
 	_place_landmarks()
 	_place_stars()
@@ -37,7 +39,7 @@ func _build_environment() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	env.fog_enabled = true
 	env.fog_light_color = Color("cfeaff")
-	env.fog_density = 0.00045
+	env.fog_density = 0.00032
 	env.fog_sky_affect = 0.15
 	env.glow_enabled = true
 	env.glow_intensity = 0.6
@@ -54,8 +56,8 @@ func _build_environment() -> void:
 	add_child(sun)
 
 	var bounds := WorldBounds.new()
-	bounds.radius = 1450.0
-	bounds.edge_band = 220.0
+	bounds.radius = 2350.0
+	bounds.edge_band = 260.0
 	bounds.ceiling = 380.0
 	bounds.ceiling_band = 40.0
 	add_child(bounds)
@@ -63,9 +65,9 @@ func _build_environment() -> void:
 
 func _build_ocean() -> void:
 	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(5000, 5000)
-	mesh.subdivide_width = 80
-	mesh.subdivide_depth = 80
+	mesh.size = Vector2(8000, 8000)
+	mesh.subdivide_width = 110
+	mesh.subdivide_depth = 110
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/ocean.gdshader")
 	var mi := MeshInstance3D.new()
@@ -74,7 +76,7 @@ func _build_ocean() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 	# Flat water collider for the safety system.
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(5000, 2, 5000)), Vector3(0, -1, 0))
+	BuildKit.collider(self, BuildKit.box_shape(Vector3(8000, 2, 8000)), Vector3(0, -1, 0))
 
 
 func _place_landmarks() -> void:
@@ -89,6 +91,16 @@ func _place_landmarks() -> void:
 	add_child(m)
 	var boat := Boat.new()
 	add_child(boat)
+	var palm := PalmIsland.new()
+	palm.position = Vector3(IslandShape.PALM_ISLAND.x, 0, IslandShape.PALM_ISLAND.y)
+	add_child(palm)
+	var volcano := VolcanoIsland.new()
+	var crater_floor := IslandShape.volcano_height(IslandShape.VOLCANO.x, IslandShape.VOLCANO.y)
+	volcano.position = Vector3(IslandShape.VOLCANO.x, crater_floor, IslandShape.VOLCANO.y)
+	add_child(volcano)
+	var rainbow := RainbowArch.new()
+	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
+	add_child(rainbow)
 	var whale := Whale.new()
 	whale.position = Vector3(-1080, 0, 250)
 	add_child(whale)
@@ -135,6 +147,25 @@ func _place_stars() -> void:
 		_trail(stars, 1, [Vector3(p.x, _ground(p) + WindFarm.TOWER_H, p.y)])
 	# Ocean: low stars skimming the water along the south coast.
 	_trail(stars, 6, [Vector3(-500, 16, 960), Vector3(-150, 16, 1010), Vector3(150, 16, 980)])
+	# Expansion: stepping stones over the sea, through the rainbow, to Palm Island.
+	_trail(stars, 8, [Vector3(990, 28, 230), Vector3(1230, 50, 300), Vector3(1420, 30, 320)])
+	# A ring round Palm Island.
+	var ring: Array[Vector3] = []
+	for i in 9:
+		var a := TAU * i / 8.0
+		var pt := IslandShape.PALM_ISLAND + Vector2(cos(a), sin(a)) * 170.0
+		ring.append(Vector3(pt.x, IslandShape.palm_height(pt.x, pt.y) + 30.0, pt.y))
+	_trail(stars, 8, ring)
+	# Out across the sea to Volcano Island, then a spiral up the cone.
+	_trail(stars, 6, [Vector3(-760, 40, -620), Vector3(-950, 40, -760), Vector3(-1150, 45, -880)])
+	var spiral_v: Array[Vector3] = []
+	for i in 7:
+		var a := 2.2 + i * 1.0
+		var r := 300.0 - i * 28.0
+		var pt := IslandShape.VOLCANO + Vector2(cos(a), sin(a)) * r
+		spiral_v.append(Vector3(pt.x, IslandShape.volcano_height(pt.x, pt.y) + 32.0, pt.y))
+	_trail(stars, 7, spiral_v)
+	_trail(stars, 1, [Vector3(IslandShape.VOLCANO.x, IslandShape.VOLCANO_HEIGHT + 60.0, IslandShape.VOLCANO.y)])
 	# A few near the spawn to start with.
 	_trail(stars, 3, [_air(Vector2(-200, 90), 28), _air(Vector2(-100, 100), 30), _air(Vector2(0, 90), 32)])
 

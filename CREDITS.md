@@ -44,6 +44,10 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Wind turbine | `assets/environment/wind_turbine.glb` | Colin Hopkins | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/3JKnKecvdMI) |
 | Control tower ("Radio tower") | `assets/environment/control_tower.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/44JZ7nNNy_x) |
 
+| Palm tree | `assets/environment/palm.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/P0tgwyXBgr) |
+| Beach shack | `assets/environment/shack.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/dlMcSexDWI) |
+| Sand castle | `assets/environment/sand_castle.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/5iuHHfVoaza) |
+
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
 Changes: the biplane gets an added spinning propeller; the jet is recoloured from red to blue at load time (`scripts/aircraft/model_recolor.gd`). Both are rescaled and reoriented in their model scenes. The wind turbine's blades are regrouped around the hub at load time so they can spin.

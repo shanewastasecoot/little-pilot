@@ -4,8 +4,8 @@ extends Node3D
 ## the island. No collision: flying through them is part of the fun.
 ## Two MultiMeshes (one per cloud shape), moved every frame.
 
-@export var count: int = 36
-@export var radius: float = 1450.0
+@export var count: int = 56
+@export var radius: float = 2300.0
 @export var min_height: float = 170.0
 @export var max_height: float = 330.0
 @export var wind: Vector3 = Vector3(3.0, 0, 1.2)  # m/s

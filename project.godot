@@ -93,6 +93,18 @@ ui_cancel={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194305), Object(InputEventJoypadButton,"device":-1,"button_index":1)]
 }
+trick={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"device":-1,"button_index":2), Object(InputEventKey,"device":-1,"physical_keycode":82)]
+}
+paint_next={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"device":-1,"button_index":14), Object(InputEventKey,"device":-1,"physical_keycode":69)]
+}
+paint_prev={
+"deadzone": 0.5,
+"events": [Object(InputEventJoypadButton,"device":-1,"button_index":13), Object(InputEventKey,"device":-1,"physical_keycode":81)]
+}
 debug_overlay={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"device":-1,"physical_keycode":4194334)]

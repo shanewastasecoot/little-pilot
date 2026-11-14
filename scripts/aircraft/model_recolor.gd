@@ -14,6 +14,12 @@ static var _cache: Dictionary = {}
 
 
 func _ready() -> void:
+	apply(to_color)
+
+
+## Recolour to `color` (cached per colour, so switching is instant).
+func apply(color: Color) -> void:
+	to_color = color
 	if target == null or target.mesh == null:
 		return
 	for i in target.mesh.get_surface_count():
@@ -51,4 +57,7 @@ func _matches(c: Color) -> bool:
 
 ## Keep the original brightness (shading in the palette), take the new hue.
 func _shift(c: Color) -> Color:
-	return Color.from_hsv(to_color.h, to_color.s * clampf(c.s / 0.75, 0.6, 1.2), c.v * to_color.v / 0.95, c.a)
+	# Keep the model's shading (value relative to its brightest red), take
+	# the paint's hue, saturation and brightness.
+	var shade := clampf(c.v / 0.96, 0.4, 1.1)
+	return Color.from_hsv(to_color.h, to_color.s, clampf(to_color.v * shade, 0.0, 1.0), c.a)

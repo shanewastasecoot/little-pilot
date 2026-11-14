@@ -33,6 +33,7 @@ func _ready() -> void:
 	heading = rotation.y
 	visuals = $Model
 	input.honk_pressed.connect(_on_honk)
+	input.trick_pressed.connect(func(): visuals.barrel_roll())
 	_apply_stats(stats)
 	speed = stats.cruise_speed
 	velocity = _forward() * speed
@@ -69,7 +70,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	safety.enforce()
 
-	visuals.update_visuals(turn, speed, stats, delta, boost_amount)
+	visuals.update_visuals(turn, speed, stats, delta, boost_amount, input.trick_held)
 
 
 ## Switch to another aircraft mid-flight. Position, heading and the
@@ -95,7 +96,19 @@ func _apply_stats(new_stats: AircraftStats) -> void:
 		model.name = "Model"
 		add_child(model)
 		visuals = model
+	visuals.set_paint(Paint.color(SaveManager.get_paint(stats.id, stats.default_paint)))
 	stats_changed.emit(stats)
+
+
+## Next/previous paint colour (D-pad). Saved per plane.
+func cycle_paint(direction: int) -> void:
+	var idx := SaveManager.get_paint(stats.id, stats.default_paint) + direction
+	SaveManager.set_paint(stats.id, idx)
+	var c := Paint.color(idx)
+	visuals.set_paint(c)
+	Sfx.play("pop", 1.0 + posmod(idx, Paint.COLORS.size()) * 0.08)
+	var sparkle := PickupBurst.new(20, 7.0, [c, Color.WHITE])
+	add_child(sparkle)
 
 
 func _on_honk() -> void:

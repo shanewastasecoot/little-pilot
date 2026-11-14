@@ -1,8 +1,9 @@
 class_name PlaneSelect
 extends CanvasLayer
 ## Choose a plane without reading: big spinning 3D models side by side.
-## Left/right (stick, D-pad, arrows or tapping a plane) picks, A/Play confirms,
-## B goes back when opened from the pause menu.
+## Left/right (stick, D-pad, arrows or tapping a plane) picks, up/down
+## changes the selected plane's paint, A/Play confirms, B goes back when
+## opened from the pause menu.
 
 signal confirmed(id: String)
 signal back_requested
@@ -80,6 +81,8 @@ func open(current_id: String, can_go_back: bool) -> void:
 	selected = maxi(_ids.find(current_id), 0)
 	show()
 	_hop(selected)
+	for i in _ids.size():
+		_apply_paint(i)
 
 
 func _build_stage(vp: SubViewport) -> void:
@@ -146,6 +149,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_select(selected - 1)
 	elif event.is_action_pressed("ui_right"):
 		_select(selected + 1)
+	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
+		var stats := AircraftCatalog.get_stats(_ids[selected])
+		var idx := SaveManager.get_paint(stats.id, stats.default_paint) + (1 if event.is_action_pressed("ui_up") else -1)
+		SaveManager.set_paint(stats.id, idx)
+		_apply_paint(selected)
+		Sfx.play("pop", 1.0 + posmod(idx, Paint.COLORS.size()) * 0.08)
+		_hop(selected)
 	elif event.is_action_pressed("ui_accept"):
 		_confirm_selection()
 	elif event.is_action_pressed("ui_cancel") and allow_back:
@@ -170,6 +180,13 @@ func _select(i: int) -> void:
 	selected = i
 	Sfx.play("ui_move", 1.0 + i * 0.25)
 	_hop(i)
+
+
+func _apply_paint(i: int) -> void:
+	var stats := AircraftCatalog.get_stats(_ids[i])
+	var model := _pedestals[i].get_child(0) as AircraftVisuals
+	if model:
+		model.set_paint(Paint.color(SaveManager.get_paint(stats.id, stats.default_paint)))
 
 
 func _hop(i: int) -> void:

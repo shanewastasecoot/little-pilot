@@ -15,8 +15,9 @@ emission_energy_multiplier = 2.5
 radius = 0.28
 height = 0.4
 
-[node name="JetModel" type="Node3D" node_paths=PackedStringArray("boost_trails")]
+[node name="JetModel" type="Node3D" node_paths=PackedStringArray("boost_trails", "recolor")]
 script = ExtResource("1_vis")
+recolor = NodePath("Recolor")
 boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 
 [node name="Jet" parent="." instance=ExtResource("3_glb")]
