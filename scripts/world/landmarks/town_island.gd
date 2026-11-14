@@ -6,7 +6,6 @@ extends Landmark
 
 const C := OuterIslands.TOWN
 const ROOFS := ["ff5a5f", "4aa8ff", "ffd23f", "9b5de5", "4cc06a", "ff8c42"]
-const BALLOONS := ["ff5a5f", "ffd23f", "4cc06a", "4aa8ff", "9b5de5", "ff7eb9"]
 
 var _balloons: Array[Node3D] = []
 var _t := 0.0
@@ -50,19 +49,40 @@ func build() -> void:
 					house.add_child(rc)
 				k += 1
 	IslandDecor.scatter(self, "res://assets/environment/tree_round.glb", 30, C, 200.0, 380.0, OuterIslands.town_height, 2.2, 3.0, 8.0, 60.0, 41)
-	# Hot-air balloons drifting above the town.
-	for b in BALLOONS.size():
-		var balloon := AssetLib.place(self, "res://assets/environment/balloon.glb", Vector3.ZERO, 0.06)
-		balloon.rotation_degrees.x = -90.0  # model is stored lying down
-		var rc := ModelRecolor.new()
-		rc.target = balloon.find_children("*", "MeshInstance3D", true, false)[0]
-		rc.to_color = Color(BALLOONS[b])
-		balloon.add_child(rc)
+	# Hot-air balloons drifting above the town: the pack's three designs
+	# (stripes, zigzag, chevrons), two of each.
+	for b in 6:
 		var holder := Node3D.new()
 		add_child(holder)
-		balloon.reparent(holder, false)
+		var balloon := _balloon(b % 3)
+		holder.add_child(balloon)
+		balloon.rotation.y = b * 1.3
 		_balloons.append(holder)
 	_place_balloons()
+
+
+## One balloon from the three-balloon pack, centred on its envelope's base
+## and scaled to about 26 m tall.
+func _balloon(design: int) -> Node3D:
+	var pack: Node3D = load("res://assets/environment/balloons.glb").instantiate()
+	var group := pack.find_child("V1_HotAirBalloon_%d" % (design + 1), true, false) as Node3D
+	var root := Node3D.new()
+	root.scale = Vector3.ONE * 1.4
+	# Keep the pack's unit scaling (it lives on the parents) but drop the
+	# spacing between the three balloons.
+	var xf := Transform3D.IDENTITY
+	var cur: Node = group.get_parent()
+	while cur != pack:
+		xf = (cur as Node3D).transform * xf
+		cur = cur.get_parent()
+	group.get_parent().remove_child(group)
+	group.position = Vector3.ZERO
+	var inner := Node3D.new()
+	inner.transform = xf
+	inner.add_child(group)
+	root.add_child(inner)
+	pack.free()
+	return root
 
 
 func _place_balloons() -> void:

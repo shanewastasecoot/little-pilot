@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://e6pdo0flv2sp"
-path="res://.godot/imported/jet_trainer_1397 Jet.png-364819e068258996cb5c7ec10407c51a.ctex"
+uid="uid://cj6cp5i4bgrft"
+path="res://.godot/imported/whale_0.png-e62131e9bbb359341c73e3bfaa72e388.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "f9be86e65a69e252345cac7447370ed5"
+"md5": "f2bdbb25cfffa4c305502da3fbb4975a"
 }
 
 [deps]
 
-source_file="res://assets/aircraft/jet_trainer_1397 Jet.png"
-dest_files=["res://.godot/imported/jet_trainer_1397 Jet.png-364819e068258996cb5c7ec10407c51a.ctex"]
+source_file="res://assets/environment/whale_0.png"
+dest_files=["res://.godot/imported/whale_0.png-e62131e9bbb359341c73e3bfaa72e388.ctex"]
 
 [params]
 

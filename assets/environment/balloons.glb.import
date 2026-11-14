@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://vmqcy7pktuns"
-path="res://.godot/imported/balloon.glb-35ce7af9bee8cd1f290d82c0c73754e2.scn"
+uid="uid://wxkfe6aasx2d"
+path="res://.godot/imported/balloons.glb-c14ab86d96aa2843fff27717cdbf4e23.scn"
 
 [deps]
 
-source_file="res://assets/environment/balloon.glb"
-dest_files=["res://.godot/imported/balloon.glb-35ce7af9bee8cd1f290d82c0c73754e2.scn"]
+source_file="res://assets/environment/balloons.glb"
+dest_files=["res://.godot/imported/balloons.glb-c14ab86d96aa2843fff27717cdbf4e23.scn"]
 
 [params]
 

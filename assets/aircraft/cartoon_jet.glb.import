@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ds2kgxxv6yg4u"
-path="res://.godot/imported/jet_trainer.glb-95438786f0c50af0341f67038259cd3b.scn"
+uid="uid://25d1g74fw3vn"
+path="res://.godot/imported/cartoon_jet.glb-45bfecffb0152f99b6816267c55fceed.scn"
 
 [deps]
 
-source_file="res://assets/aircraft/jet_trainer.glb"
-dest_files=["res://.godot/imported/jet_trainer.glb-95438786f0c50af0341f67038259cd3b.scn"]
+source_file="res://assets/aircraft/cartoon_jet.glb"
+dest_files=["res://.godot/imported/cartoon_jet.glb-45bfecffb0152f99b6816267c55fceed.scn"]
 
 [params]
 

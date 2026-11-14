@@ -1,0 +1,62 @@
+class_name PropSplitter
+extends Node3D
+## For models whose propeller is baked into the body mesh: at load time,
+## moves every triangle in front of `cut` (along `forward`, in the source
+## mesh's own space) into a child mesh of this node, so the propeller can
+## spin on its own. Put this node at the propeller hub, with its Z axis
+## along the spin axis (AircraftVisuals spins it with rotate_z).
+
+@export var source: MeshInstance3D
+## Forward direction and cut distance in the source mesh's local space.
+@export var forward := Vector3(0, -1, 0)
+@export var cut := 49.0
+
+static var _cache: Dictionary = {}
+
+
+func _ready() -> void:
+	if source == null or source.mesh == null:
+		return
+	var key := "%s|%s|%.2f" % [source.mesh.resource_path, forward, cut]
+	if not _cache.has(key):
+		_cache[key] = _split(source.mesh)
+	var parts: Array = _cache[key]
+	source.mesh = parts[0]
+	var prop := MeshInstance3D.new()
+	prop.name = "Blades"
+	prop.mesh = parts[1]
+	add_child(prop)
+	# Keep the blades exactly where they were in the model.
+	prop.global_transform = source.global_transform
+
+
+func _split(mesh: Mesh) -> Array:
+	var body := ArrayMesh.new()
+	var blades := ArrayMesh.new()
+	for s in mesh.get_surface_count():
+		var a := mesh.surface_get_arrays(s)
+		var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(v.size()))
+		var keep := PackedInt32Array()
+		var move := PackedInt32Array()
+		for t in idx.size() / 3:
+			var front := true
+			for j in 3:
+				if v[idx[t * 3 + j]].dot(forward) < cut:
+					front = false
+					break
+			# (Packed arrays copy on assignment, so append to each directly.)
+			if front:
+				move.append_array([idx[t * 3], idx[t * 3 + 1], idx[t * 3 + 2]])
+			else:
+				keep.append_array([idx[t * 3], idx[t * 3 + 1], idx[t * 3 + 2]])
+		for pair in [[body, keep], [blades, move]]:
+			if pair[1].is_empty():
+				continue
+			var b := a.duplicate()
+			b[Mesh.ARRAY_INDEX] = pair[1]
+			for c in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]:
+				b[c] = null  # would need format flags; unused
+			pair[0].add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, b)
+			pair[0].surface_set_material(pair[0].get_surface_count() - 1, mesh.surface_get_material(s))
+	return [body, blades]

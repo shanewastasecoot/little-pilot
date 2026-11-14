@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bmqhabhelce4u"
-path="res://.godot/imported/biplane.glb-02da7917bd6534beb693d725c5dc7c4d.scn"
+uid="uid://4xvjlofxodkc"
+path="res://.godot/imported/toy_biplane.glb-5fce94ea2bf4c8d7ba4b4111999c0bb8.scn"
 
 [deps]
 
-source_file="res://assets/aircraft/biplane.glb"
-dest_files=["res://.godot/imported/biplane.glb-02da7917bd6534beb693d725c5dc7c4d.scn"]
+source_file="res://assets/aircraft/toy_biplane.glb"
+dest_files=["res://.godot/imported/toy_biplane.glb-5fce94ea2bf4c8d7ba4b4111999c0bb8.scn"]
 
 [params]
 
