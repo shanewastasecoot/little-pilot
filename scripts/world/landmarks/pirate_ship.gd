@@ -30,13 +30,12 @@ func _process(delta: float) -> void:
 	_t += delta
 	_angle += loop_speed * delta
 	_update()
+	Waves.ride(_hull, 30.0, 14.0, 0.0, delta, 0.8)  # heavy ship: rides a bit calmer
 
 
 func _update() -> void:
 	position = Vector3(cos(_angle), 0, sin(_angle)) * loop_radius
 	rotation.y = -_angle  # tangent to the loop
-	_hull.rotation.x = sin(_t * 0.9) * 0.04
-	_hull.position.y = sin(_t * 0.7) * 0.5
 
 
 func react() -> void:

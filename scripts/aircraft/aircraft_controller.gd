@@ -59,6 +59,8 @@ var turn: float = 0.0     # final turn command after safety blending
 @onready var input: FlightInput = $FlightInput
 @onready var safety: FlightSafety = $FlightSafety
 var visuals: AircraftVisuals
+const BODY_RADIUS := 1.4
+const SENSOR_RADIUS := 1.6
 
 
 func _ready() -> void:
@@ -73,6 +75,7 @@ func _ready() -> void:
 	input.honk_pressed.connect(_on_honk)
 	input.trick_pressed.connect(func(): visuals.barrel_roll())
 	_apply_stats(stats)
+	add_child(WaterSpray.new())
 	safety.assist = not crashes
 	speed = stats.cruise_speed
 	velocity = _forward() * speed
@@ -125,7 +128,7 @@ func _physics_process(delta: float) -> void:
 
 	velocity = _forward() * speed
 	move_and_slide()
-	if crashes and _grace <= 0.0 and (get_slide_collision_count() > 0 or global_position.y < WATER_LEVEL):
+	if crashes and _grace <= 0.0 and (get_slide_collision_count() > 0 or global_position.y < _water_y()):
 		_crash()
 		return
 	safety.enforce()
@@ -160,6 +163,14 @@ func _apply_stats(new_stats: AircraftStats) -> void:
 		model.name = "Model"
 		add_child(model)
 		visuals = model
+	visuals.base_scale = stats.model_scale
+	# Bigger plane, bigger bumper (shapes are per instance so menus are unaffected).
+	var body := SphereShape3D.new()
+	body.radius = BODY_RADIUS * stats.model_scale
+	$CollisionShape3D.shape = body
+	var sense := SphereShape3D.new()
+	sense.radius = SENSOR_RADIUS * stats.model_scale
+	$Sensor/CollisionShape3D.shape = sense
 	visuals.set_paint(Paint.color(SaveManager.get_paint(stats.id, stats.default_paint)))
 	stats_changed.emit(stats)
 
@@ -229,12 +240,18 @@ func lift_off() -> void:
 
 
 func _crash() -> void:
-	var into_water := global_position.y < WATER_LEVEL + 1.5
+	var into_water := global_position.y < _water_y() + 1.5
 	mode = Mode.CRASHED
 	_crash_spin = Vector3(randf_range(-4, 4), randf_range(-6, 6), randf_range(6, 10) * (1.0 if randf() < 0.5 else -1.0))
 	velocity = Vector3.ZERO
 	boost_amount = 0.0
 	crashed.emit(global_position, into_water)
+
+
+## Below this height the plane is in the sea (waves included).
+func _water_y() -> float:
+	var p := global_position
+	return Waves.height(p.x, p.z) + WATER_LEVEL * stats.model_scale
 
 
 ## A cartoon tumble on the spot while the game fades back to the runway.

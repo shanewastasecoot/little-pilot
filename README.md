@@ -40,7 +40,7 @@ The secondary audience is the parent or developer, who should find the project e
 
 ## Core Gameplay Features
 
-- **Uncrashable arcade flight.** The plane always moves forward, levels itself, and steers or slows away from the ground, water, buildings and the edge of the world on its own.
+- **Gentle arcade flight.** The plane always moves forward and levels itself. Take off yourself from a long runway; bump into something and it's a soft bonk or splash and back to the runway. Parents can switch crashing off for the uncrashable mode, where the plane steers away from the ground, water and buildings on its own.
 - **Two aircraft:** a cartoon **toy biplane** (with a pilot and spinning propeller) and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
 - **A world of islands to explore** (about 9 km across):
   - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and a **city** (5×5 blocks) with skyscrapers, construction cranes, a park and a big turning **Ferris wheel**
@@ -49,9 +49,9 @@ The secondary audience is the parent or developer, who should find the project e
   - **Mermaid Lagoon**: a big ring-shaped atoll with a rock arch to fly through, coral under a turquoise lagoon, and a giant clam with a pearl
   - 15 **islets** with palms, seals, crabs and three more **mermaid coves**; the mermaids turn and wave as you fly past; dolphins, a whale, a sail boat and a pirate ship at sea
 - **220 floating stars** in trails that lead from place to place, with a star jar and celebrations. Every 30 stars the city throws a **fireworks party** (an optional arrow and a 30 s countdown point the way).
-- **Runway take-off** at the start of every flight, and a **realistic ocean** (Gerstner waves, depth colour, refraction, shoreline foam).
+- **A living ocean:** six layered Gerstner waves (swells plus chop) that boats, the pirate ship and the whale really ride, sea spray when you skim the water, depth colour, refraction, glowing crests, lapping shore foam and whitecaps.
 - **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
-- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver, city arrow on/off).
+- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver, city arrow on/off, crashes on/off).
 - **Gamepad-first controls** designed for the Steam Deck (Xbox controllers work too).
 
 ## Technology Stack

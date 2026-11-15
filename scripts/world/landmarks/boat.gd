@@ -30,8 +30,7 @@ func _process(delta: float) -> void:
 	_angle += loop_speed * delta
 	position = loop_center + Vector3(cos(_angle), 0, sin(_angle)) * loop_radius
 	rotation.y = -_angle + PI  # face along the loop
-	_hull.rotation.z = sin(_t * 1.3) * 0.05
-	_hull.position.y = sin(_t * 1.1) * 0.3
+	Waves.ride(_hull, 16.0, 9.0, 0.0, delta)
 
 
 func react() -> void:

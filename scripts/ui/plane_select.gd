@@ -15,6 +15,10 @@ var _ids: Array = AircraftCatalog.ids()
 var _pedestals: Array[Node3D] = []
 var _rings: Array[MeshInstance3D] = []
 var _t := 0.0
+## Paint changes once per push of the stick/D-pad (see _unhandled_input).
+const PAINT_REPEAT_MS := 250
+var _paint_held := false
+var _last_paint_ms := -1000
 var _confirm: BigButton
 
 
@@ -125,6 +129,8 @@ func _build_stage(vp: SubViewport) -> void:
 
 
 func _process(delta: float) -> void:
+	if _paint_held and not (Input.is_action_pressed("ui_up") or Input.is_action_pressed("ui_down")):
+		_paint_held = false
 	if not visible:
 		return
 	_t += delta
@@ -150,6 +156,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("ui_right"):
 		_select(selected + 1)
 	elif event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down"):
+		# The stick sends a stream of "pressed" events while held, which
+		# flicked through every colour: one step per push, at most ~4/s.
+		var now := Time.get_ticks_msec()
+		if event.is_echo() or _paint_held or now - _last_paint_ms < PAINT_REPEAT_MS:
+			get_viewport().set_input_as_handled()
+			return
+		_paint_held = true  # released again in _process
+		_last_paint_ms = now
 		var stats := AircraftCatalog.get_stats(_ids[selected])
 		var idx := SaveManager.get_paint(stats.id, stats.default_paint) + (1 if event.is_action_pressed("ui_up") else -1)
 		SaveManager.set_paint(stats.id, idx)
