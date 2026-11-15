@@ -47,11 +47,13 @@ The secondary audience is the parent or developer, who should find the project e
   - **Palm Island**, **Volcano Island** (erupts with fire, smoke and ash), and a giant **rainbow** to fly through
   - **Ice Island** (penguins, igloos), **Dino Island** (animated dinosaurs), **Castle Island**, **Town Island** (hot-air balloons)
   - **Mermaid Lagoon**: a big ring-shaped atoll with a rock arch to fly through, coral under a turquoise lagoon, and a giant clam with a pearl
+  - **Dragon Peak** on a new northern headland (the main island is bigger now): a dark, ember-streaked mountain with the **dragon's cave** at its foot, full of glowing gold
   - 15 **islets** with palms, seals, crabs and three more **mermaid coves**; the mermaids turn and wave as you fly past; dolphins, a whale, a sail boat and a pirate ship at sea
 - **220 floating stars** in trails that lead from place to place, with a star jar and celebrations. Every 30 stars the city throws a **fireworks party** (an optional arrow and a 30 s countdown point the way).
+- **The dragon:** a big fire-breathing dragon sleeps in its cave, then wakes with a roar and patrols the islands. It sees in a cone (hills and mountains hide you), hears you nearby (louder when you boost or honk), gets suspicious before it gives chase, predicts where you're going, searches where it lost you and gives up after a while. It never enters the airport, so the runway is always safe. Its fire and its body blow the plane up (with Crashes off it just chases and roars). The screen edges glow and an arrow points at it while it hunts you. Parents can switch it off or pick Easy, Medium or Hard.
 - **A living ocean:** six layered Gerstner waves (swells plus chop) that boats, the pirate ship and the whale really ride, sea spray when you skim the water, depth colour, refraction, glowing crests, lapping shore foam and whitecaps.
 - **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
-- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver, city arrow on/off, crashes on/off).
+- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver, city arrow on/off, crashes on/off, dragon on/off and difficulty).
 - **Gamepad-first controls** designed for the Steam Deck (Xbox controllers work too).
 
 ## Technology Stack

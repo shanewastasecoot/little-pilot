@@ -60,6 +60,8 @@ var turn: float = 0.0     # final turn command after safety blending
 @onready var safety: FlightSafety = $FlightSafety
 var visuals: AircraftVisuals
 const BODY_RADIUS := 1.4
+## The last crash was an explosion (dragon), not a bump.
+var exploded := false
 const SENSOR_RADIUS := 1.6
 
 
@@ -248,6 +250,20 @@ func _crash() -> void:
 	crashed.emit(global_position, into_water)
 
 
+## Blown up (by the dragon): the plane vanishes in a fireball. main.gd
+## plays the explosion (see `exploded`) and respawns it like a crash.
+func explode() -> void:
+	if mode == Mode.CRASHED:
+		return
+	exploded = true
+	visuals.visible = false
+	mode = Mode.CRASHED
+	_crash_spin = Vector3.ZERO
+	velocity = Vector3.ZERO
+	boost_amount = 0.0
+	crashed.emit(global_position, false)
+
+
 ## Below this height the plane is in the sea (waves included).
 func _water_y() -> float:
 	var p := global_position
@@ -266,8 +282,10 @@ func _crashed_step(delta: float) -> void:
 func teleport(pos: Vector3, yaw: float) -> void:
 	mode = Mode.FLYING
 	_grace = CRASH_GRACE
+	exploded = false
 	if visuals:
 		visuals.rotation = Vector3.ZERO
+		visuals.visible = true
 	global_position = pos
 	heading = yaw
 	pitch = 0.0

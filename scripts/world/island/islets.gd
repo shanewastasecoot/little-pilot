@@ -10,7 +10,7 @@ extends RefCounted
 
 const LIST := [
 	# centre, radius, peak, kind, dolphins?
-	[Vector2(420, -1700), 90.0, 14.0, "palm", true],
+	[Vector2(1000, -2180), 90.0, 14.0, "palm", true],
 	[Vector2(-120, -2300), 270.0, 10.0, "lagoon", false],
 	[Vector2(520, -2620), 70.0, 16.0, "rocky", false],
 	[Vector2(-150, 1720), 100.0, 14.0, "palm", true],

@@ -24,8 +24,8 @@ func _ready() -> void:
 	damping_max = 2.0
 	emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	emission_sphere_radius = 1.2
-	scale_amount_min = 1.2
-	scale_amount_max = 2.6
+	scale_amount_min = 1.0
+	scale_amount_max = 2.2
 	var curve := Curve.new()
 	curve.add_point(Vector2(0, 0.5))
 	curve.add_point(Vector2(0.3, 1))
@@ -43,6 +43,7 @@ func _ready() -> void:
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	mat.vertex_color_use_as_albedo = true
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.billboard_keep_scale = true
 	quad.material = mat
 	mesh = quad
 	_ray.collision_mask = GameSettings.LAYER_WORLD

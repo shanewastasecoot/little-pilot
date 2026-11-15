@@ -23,6 +23,11 @@ var city_arrow: bool = true
 ## The plane can crash (bonk, then back to the runway). Off = the old
 ## can't-crash mode where it steers itself away from everything.
 var crashes: bool = true
+## The dragon lives on the island (Dragon Peak) and how tough it is:
+## 0 easy, 1 medium, 2 hard.
+var dragon: bool = true
+var dragon_level: int = 0
+const DRAGON_LEVELS := 3
 
 var _save_timer: Timer
 
@@ -84,6 +89,12 @@ func load_game() -> void:
 	var crash = cfg.get_value("settings", "crashes", crashes)
 	if crash is bool:
 		crashes = crash
+	var drg = cfg.get_value("settings", "dragon", dragon)
+	if drg is bool:
+		dragon = drg
+	var lvl = cfg.get_value("settings", "dragon_level", dragon_level)
+	if lvl is int and lvl >= 0 and lvl < DRAGON_LEVELS:
+		dragon_level = lvl
 	loaded.emit()
 	settings_changed.emit()
 
@@ -109,6 +120,8 @@ func save_now() -> void:
 	cfg.set_value("settings", "battery_saver", battery_saver)
 	cfg.set_value("settings", "city_arrow", city_arrow)
 	cfg.set_value("settings", "crashes", crashes)
+	cfg.set_value("settings", "dragon", dragon)
+	cfg.set_value("settings", "dragon_level", dragon_level)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -168,6 +181,18 @@ func set_crashes(on: bool) -> void:
 	request_save()
 
 
+func set_dragon(on: bool) -> void:
+	dragon = on
+	settings_changed.emit()
+	request_save()
+
+
+func set_dragon_level(lvl: int) -> void:
+	dragon_level = posmod(lvl, DRAGON_LEVELS)
+	settings_changed.emit()
+	request_save()
+
+
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
@@ -177,3 +202,5 @@ func _reset_to_defaults() -> void:
 	battery_saver = false
 	city_arrow = true
 	crashes = true
+	dragon = true
+	dragon_level = 0

@@ -40,6 +40,13 @@ func _init(count: int = 24, speed: float = 9.0, colors: Array[Color] = [Color("f
 	finished.connect(queue_free)
 
 
+## Make scale_amount_min/max actually size the particles (billboards drop
+## the particle scale unless told to keep it). For big effects.
+func keep_scale() -> PickupBurst:
+	((mesh as QuadMesh).material as StandardMaterial3D).billboard_keep_scale = true
+	return self
+
+
 static var _dot: GradientTexture2D
 
 
