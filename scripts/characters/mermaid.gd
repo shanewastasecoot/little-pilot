@@ -5,10 +5,15 @@ extends Node3D
 ## the pose tables below and shared by every mermaid; an AnimationTree state
 ## machine blends between them:
 ##   idle  - sitting, gentle breathing, head tilt and tail swish
-##   wave  - raises her right arm and waves, turning to face `look_target`
-## Call set_waving(true/false) (MermaidWatcher does this for you), or set the
-## `waving` property from an AnimationPlayer. set_swimming() switches to a
-## static diving pose for mermaids that leap out of the sea.
+##   lean  - leans back on her hands and looks up at the sky
+##   hair  - brushes her hair with one hand
+##   wave  - raises her right arm and waves
+## Each mermaid drifts between the idle moods on her own random timer. When
+## the plane passes, greet() makes her wave for a moment (after a small
+## random delay), half-turning towards it, then she settles back into her
+## own thing. `waving` can also be set directly (e.g. from an
+## AnimationPlayer). set_swimming() switches to a static diving pose for
+## mermaids that leap out of the sea.
 ##
 ## Units: the scene is about 3 units long (head to tail tip) with the origin
 ## on the ground under her hips, so `scale` sets her size and `position` is
@@ -49,6 +54,16 @@ const IDLE_KEYS := [
 	[0.0, {"Spine1": Vector3(0.0, 0.0, 0.03), "Head": Vector3(0.0, 0.1, 0.08), "LeftLeg": Vector3(0.0, 0.0, 0.0), "LeftFoot": Vector3(0.0, 0.0, 0.0)}],
 	[1.5, {"Spine1": Vector3(0.03, 0.0, -0.03), "Head": Vector3(0.05, -0.1, -0.06), "LeftLeg": Vector3(0.0, 0.0, 0.12), "LeftFoot": Vector3(0.35, 0.0, 0.0)}],
 	[3.0, {"Spine1": Vector3(0.0, 0.0, 0.03), "Head": Vector3(0.0, 0.1, 0.08), "LeftLeg": Vector3(0.0, 0.0, 0.0), "LeftFoot": Vector3(0.0, 0.0, 0.0)}],
+]
+const LEAN_KEYS := [
+	[0.0, {"Spine": Vector3(-0.2, 0.0, 0.0), "Spine1": Vector3(-0.1, 0.0, 0.0), "LeftArm": Vector3(0.55, 0.0, -0.15), "RightArm": Vector3(0.55, 0.0, 0.15), "Head": Vector3(-0.3, 0.15, 0.0), "LeftFoot": Vector3(0.0, 0.0, 0.0)}],
+	[2.5, {"Spine": Vector3(-0.24, 0.0, 0.0), "Spine1": Vector3(-0.12, 0.0, 0.0), "LeftArm": Vector3(0.58, 0.0, -0.15), "RightArm": Vector3(0.58, 0.0, 0.15), "Head": Vector3(-0.38, -0.12, 0.04), "LeftFoot": Vector3(0.45, 0.0, 0.0)}],
+	[5.0, {"Spine": Vector3(-0.2, 0.0, 0.0), "Spine1": Vector3(-0.1, 0.0, 0.0), "LeftArm": Vector3(0.55, 0.0, -0.15), "RightArm": Vector3(0.55, 0.0, 0.15), "Head": Vector3(-0.3, 0.15, 0.0), "LeftFoot": Vector3(0.0, 0.0, 0.0)}],
+]
+const HAIR_KEYS := [
+	[0.0, {"LeftArm": Vector3(-1.1, 0.0, -0.85), "LeftForeArm": Vector3(0.0, -0.4, 1.7), "LeftHand": Vector3(0.3, 0.0, 0.0), "Head": Vector3(0.05, 0.0, -0.18), "Spine1": Vector3(0.0, 0.0, -0.06)}],
+	[0.9, {"LeftArm": Vector3(-1.0, 0.0, -0.75), "LeftForeArm": Vector3(0.0, -0.4, 1.45), "LeftHand": Vector3(0.1, 0.0, 0.0), "Head": Vector3(0.08, 0.05, -0.22), "Spine1": Vector3(0.0, 0.0, -0.08)}],
+	[1.8, {"LeftArm": Vector3(-1.1, 0.0, -0.85), "LeftForeArm": Vector3(0.0, -0.4, 1.7), "LeftHand": Vector3(0.3, 0.0, 0.0), "Head": Vector3(0.05, 0.0, -0.18), "Spine1": Vector3(0.0, 0.0, -0.06)}],
 ]
 const WAVE_KEYS := [
 	[0.0, {"RightArm": Vector3(-1.25, 0.0, 0.75), "RightForeArm": Vector3(0.0, 0.3, -0.25), "RightHand": Vector3(0.0, 0.0, 0.2), "Head": Vector3(0.0, 0.0, 0.1), "Spine1": Vector3(0.0, 0.0, 0.05)}],
@@ -105,6 +120,12 @@ static var _materials := {}
 
 var _home_yaw := 0.0
 var _playback: AnimationNodeStateMachinePlayback
+var _mood := "idle"
+var _mood_timer := 0.0
+var _greet_delay := -1.0
+var _wave_timer := 0.0
+var _greet_cooldown := 0.0
+var _rng := RandomNumberGenerator.new()
 var _skeleton: Skeleton3D
 var _swimming := false
 
@@ -138,9 +159,12 @@ func _ready() -> void:
 	_home_yaw = rotation.y
 	_playback = anim_tree.get("parameters/playback")
 	anim_tree.active = true
-	# Stagger so a row of mermaids doesn't sway in lockstep.
-	anim_tree.advance(randf() * 3.0)
+	_rng.randomize()
+	# Everyone starts in her own mood, at her own point in the clip.
+	_mood = ["idle", "idle", "lean", "hair"][_rng.randi() % 4]
+	_mood_timer = _rng.randf_range(2.0, 9.0)
 	_apply_state()
+	anim_tree.advance(_rng.randf() * 3.0)
 	if _swimming:
 		set_swimming()
 
@@ -148,6 +172,17 @@ func _ready() -> void:
 func set_waving(on: bool) -> void:
 	if on != waving:
 		waving = on
+
+
+## Wave hello for a moment (the plane flew by). Not everyone answers every
+## time, and nobody waves again straight away.
+func greet(chance := 0.8) -> void:
+	if _swimming or waving or _greet_delay >= 0.0 or _greet_cooldown > 0.0:
+		return
+	if _rng.randf() > chance:
+		_greet_cooldown = 6.0
+		return
+	_greet_delay = _rng.randf_range(0.0, 0.8)
 
 
 ## Pause all animation work when far away (MermaidWatcher calls this).
@@ -172,15 +207,36 @@ func set_swimming() -> void:
 
 func _apply_state() -> void:
 	if _playback:
-		_playback.travel("wave" if waving else "idle")
+		_playback.travel("wave" if waving else _mood)
 
 
 func _process(delta: float) -> void:
+	_greet_cooldown -= delta
+	if _greet_delay >= 0.0:
+		_greet_delay -= delta
+		if _greet_delay < 0.0:
+			_wave_timer = _rng.randf_range(1.6, 2.6)
+			waving = true
+	elif waving and _wave_timer > 0.0:
+		_wave_timer -= delta
+		if _wave_timer <= 0.0:
+			waving = false
+			_greet_cooldown = _rng.randf_range(7.0, 12.0)
+	# Drift between idle moods on her own clock.
+	_mood_timer -= delta
+	if _mood_timer <= 0.0:
+		var moods := ["idle", "idle", "lean", "hair"]
+		_mood = moods[_rng.randi() % moods.size()]
+		_mood_timer = _rng.randf_range(5.0, 12.0) if _mood == "idle" else _rng.randf_range(3.0, 7.0)
+		_apply_state()
+	# While waving, half-turn towards the plane (never spin right round),
+	# then ease back to looking where she was.
 	var target_yaw := _home_yaw
 	if waving and look_target:
 		var to := look_target.global_position - global_position
-		target_yaw = atan2(to.x, to.z)  # the model faces +Z
-	rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-turn_speed * delta))
+		var face := atan2(to.x, to.z)  # the model faces +Z
+		target_yaw = _home_yaw + clampf(wrapf(face - _home_yaw, -PI, PI), -0.7, 0.7) * 0.6
+	rotation.y = lerp_angle(rotation.y, target_yaw, 1.0 - exp(-turn_speed * 0.5 * delta))
 
 
 func _apply_pose(base: Dictionary, extra: Dictionary) -> void:
@@ -210,6 +266,8 @@ static func _pose_quat(sk: Skeleton3D, i: int, offset: Vector3) -> Quaternion:
 static func _build_library(sk: Skeleton3D) -> AnimationLibrary:
 	var lib := AnimationLibrary.new()
 	lib.add_animation("idle", _clip(sk, IDLE_KEYS))
+	lib.add_animation("lean", _clip(sk, LEAN_KEYS))
+	lib.add_animation("hair", _clip(sk, HAIR_KEYS))
 	lib.add_animation("wave", _clip(sk, WAVE_KEYS))
 	return lib
 

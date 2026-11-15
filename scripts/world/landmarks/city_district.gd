@@ -212,19 +212,28 @@ func _ferris_wheel(cell: Vector2) -> void:
 	_wheel = Node3D.new()
 	_wheel.position.y = hub_y
 	frame.add_child(_wheel)
+	# Rims and spokes merged into one mesh (they turn together).
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rim := TorusMesh.new()
 	rim.inner_radius = WHEEL_R - 0.8
 	rim.outer_radius = WHEEL_R + 0.8
 	rim.rings = 48
 	rim.ring_segments = 6
 	for z in [-3.0, 3.0]:
-		BuildKit.add(_wheel, rim, "ff5a8a", Vector3(0, 0, z), Vector3(90, 0, 0))
-	var colors := ["ff5a5f", "ffd23f", "4cc06a", "4aa8ff", "9b5de5", "ff8c42"]
+		st.append_from(rim, 0, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0, 0, z)))
+	var spoke_mesh := BuildKit.box(Vector3(0.5, WHEEL_R, 0.5))
 	for k in 12:
 		var a := TAU * k / 12.0
 		for z in [-3.0, 3.0]:
-			var spoke := BuildKit.add(_wheel, BuildKit.box(Vector3(0.5, WHEEL_R, 0.5)), "f2f2f7", Vector3(cos(a), sin(a), 0) * WHEEL_R * 0.5 + Vector3(0, 0, z))
-			spoke.rotation.z = a - PI * 0.5
+			st.append_from(spoke_mesh, 0, Transform3D(Basis(Vector3.BACK, a - PI * 0.5), Vector3(cos(a), sin(a), 0) * WHEEL_R * 0.5 + Vector3(0, 0, z)))
+	var frame_mesh := MeshInstance3D.new()
+	frame_mesh.mesh = st.commit()
+	frame_mesh.material_override = BuildKit.mat("ff5a8a")
+	_wheel.add_child(frame_mesh)
+	var colors := ["ff5a5f", "ffd23f", "4cc06a", "4aa8ff", "9b5de5", "ff8c42"]
+	for k in 12:
+		var a := TAU * k / 12.0
 		var car := Node3D.new()
 		car.position = Vector3(cos(a), sin(a), 0) * WHEEL_R
 		_wheel.add_child(car)

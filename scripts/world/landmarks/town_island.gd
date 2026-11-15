@@ -76,6 +76,8 @@ func _balloon(design: int) -> Node3D:
 		xf = (cur as Node3D).transform * xf
 		cur = cur.get_parent()
 	group.get_parent().remove_child(group)
+	for n in [group] + group.find_children("*", "", true, false):
+		n.owner = null  # leaving the imported scene
 	group.position = Vector3.ZERO
 	var inner := Node3D.new()
 	inner.transform = xf

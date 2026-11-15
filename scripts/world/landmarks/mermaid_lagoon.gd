@@ -384,7 +384,7 @@ func _process(delta: float) -> void:
 func react() -> void:
 	_swimmers.leap_all()
 	for m in _sitters:
-		m.set_waving(true)
+		m.greet(0.9)
 	var sparkle := PickupBurst.new(80, 22.0, [Color("ffffff"), Color("ffe6f0"), Color("bff3ff"), Color("ff7eb9")])
 	_pearl.add_child(sparkle)
 	var tw := create_tween()

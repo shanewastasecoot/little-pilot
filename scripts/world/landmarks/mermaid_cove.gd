@@ -69,7 +69,7 @@ func _beach_spot(a: float) -> Vector3:
 func react() -> void:
 	_swimmers.leap_all()
 	for m in _sitters:
-		m.set_waving(true)
+		m.greet(0.9)
 	var bubbles := PickupBurst.new(60, 16.0, [Color("bff3ff"), Color("ffffff"), Color("ff7eb9")])
 	bubbles.position = Vector3(0, 25, 0)
 	add_child(bubbles)

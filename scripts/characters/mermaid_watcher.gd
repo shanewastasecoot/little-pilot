@@ -3,7 +3,7 @@ extends Node
 ## Makes a group of mermaids wave at the player's plane as it flies past.
 ## One cheap distance check for the whole group every CHECK_INTERVAL
 ## (no physics areas, no per-mermaid polling):
-##   plane within wave_radius  -> those mermaids wave and turn to it
+##   plane comes within wave_radius -> those mermaids may wave hello briefly
 ##   plane beyond sleep_radius -> the whole group stops animating
 
 const CHECK_INTERVAL := 0.15
@@ -42,4 +42,7 @@ func _process(delta: float) -> void:
 	var r2 := wave_radius * wave_radius
 	for m in mermaids:
 		m.look_target = _plane
-		m.set_waving(m.global_position.distance_squared_to(p) < r2)
+		var near := m.global_position.distance_squared_to(p) < r2
+		if near and not m.get_meta("plane_near", false):
+			m.greet()
+		m.set_meta("plane_near", near)
