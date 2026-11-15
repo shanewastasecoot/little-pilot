@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwy2kok472iok"
-path="res://.godot/imported/cartoon_jet_0.png-ed69e35e43a5dae8651122fa1844528e.ctex"
+uid="uid://e6pdo0flv2sp"
+path="res://.godot/imported/jet_trainer_1397 Jet.png-364819e068258996cb5c7ec10407c51a.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "160f093600b1704f235a347a93ca0874"
+"md5": "f9be86e65a69e252345cac7447370ed5"
 }
 
 [deps]
 
-source_file="res://assets/aircraft/cartoon_jet_0.png"
-dest_files=["res://.godot/imported/cartoon_jet_0.png-ed69e35e43a5dae8651122fa1844528e.ctex"]
+source_file="res://assets/aircraft/jet_trainer_1397 Jet.png"
+dest_files=["res://.godot/imported/jet_trainer_1397 Jet.png-364819e068258996cb5c7ec10407c51a.ctex"]
 
 [params]
 

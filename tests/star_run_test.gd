@@ -21,6 +21,7 @@ var _parties := 0
 func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_stars.cfg"))
 	SaveManager.use_path("user://test_stars.cfg")
+	SaveManager.crashes = false  # the autopilot relies on the safety assist
 	_main = load("res://scenes/main/main.tscn").instantiate()
 	add_child(_main)
 	_plane = _main.get_node("Aircraft")

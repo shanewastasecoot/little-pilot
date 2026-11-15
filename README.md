@@ -41,7 +41,7 @@ The secondary audience is the parent or developer, who should find the project e
 ## Core Gameplay Features
 
 - **Uncrashable arcade flight.** The plane always moves forward, levels itself, and steers or slows away from the ground, water, buildings and the edge of the world on its own.
-- **Two aircraft:** a cartoon **toy biplane** (with a pilot and spinning propeller) and a zippier **cartoon jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
+- **Two aircraft:** a cartoon **toy biplane** (with a pilot and spinning propeller) and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
 - **A world of islands to explore** (about 9 km across):
   - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and a **city** (5×5 blocks) with skyscrapers, construction cranes, a park and a big turning **Ferris wheel**
   - **Palm Island**, **Volcano Island** (erupts with fire, smoke and ash), and a giant **rainbow** to fly through

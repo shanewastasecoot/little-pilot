@@ -31,6 +31,9 @@ var ceiling_band: float = 25.0
 ## Plane radius plus breathing room used when sweeping the predicted path.
 const SWEEP_RADIUS := 4.0
 
+## Steer clear of ground, water and buildings (the can't-crash mode). Off
+## when crashes are allowed: only the world edge and ceiling still apply.
+var assist := true
 var stats: AircraftStats
 var _body: CharacterBody3D
 var _sweep_shape := SphereShape3D.new()
@@ -66,11 +69,15 @@ func evaluate(pos: Vector3, velocity: Vector3, current_turn: float = 0.0) -> voi
 	turn_override_weight = 0.0
 	speed_factor = 1.0
 
-	var path := _predict_path(pos, velocity, _yaw_rate(current_turn))
-	_avoid_ground(pos, path)
-	_avoid_obstacles_ahead(pos, velocity, path, current_turn, lookahead)
+	if assist:
+		var path := _predict_path(pos, velocity, _yaw_rate(current_turn))
+		_avoid_ground(pos, path)
+		_avoid_obstacles_ahead(pos, velocity, path, current_turn, lookahead)
+		_steer_from_push_volumes(pos, flat_forward, right)
+	else:
+		var here := _ground_height_at(pos, 1.0)
+		clearance = pos.y - here if here != -INF else INF
 	_avoid_ceiling(pos)
-	_steer_from_push_volumes(pos, flat_forward, right)
 	_steer_from_boundary(pos, flat_forward, right)
 
 	turn_bias = clampf(turn_bias, -1.0, 1.0)
@@ -80,10 +87,11 @@ func evaluate(pos: Vector3, velocity: Vector3, current_turn: float = 0.0) -> voi
 
 func enforce() -> void:
 	var pos := _body.global_position
-	# Hard floor above ground and water.
-	var ground := _ground_height_at(pos, 30.0)
-	if ground != -INF and pos.y < ground + stats.min_clearance:
-		pos.y = ground + stats.min_clearance
+	# Hard floor above ground and water (can't-crash mode only).
+	if assist:
+		var ground := _ground_height_at(pos, 30.0)
+		if ground != -INF and pos.y < ground + stats.min_clearance:
+			pos.y = ground + stats.min_clearance
 	# Hard ceiling.
 	pos.y = minf(pos.y, ceiling_height)
 	# Hard world edge.

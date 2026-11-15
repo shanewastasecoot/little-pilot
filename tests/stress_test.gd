@@ -51,6 +51,7 @@ var _failures: Array[String] = []
 
 func _ready() -> void:
 	SaveManager.use_path("user://test_save.cfg")  # never touch the real save
+	SaveManager.crashes = false  # this test checks the can't-crash mode
 	_main = load("res://scenes/main/main.tscn").instantiate()
 	add_child(_main)
 	_plane = _main.get_node("Aircraft")
