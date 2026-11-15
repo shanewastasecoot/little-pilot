@@ -21,8 +21,8 @@ func _init() -> void:
 func build() -> void:
 	_hull = Node3D.new()
 	add_child(_hull)
-	# Model faces -Z; the loop moves it sideways, so turn it to face travel.
-	AssetLib.place(_hull, "res://assets/environment/sail_boat.glb", Vector3.ZERO, 22.0, 90.0)
+	# Model faces -Z, the same way as this node's direction of travel.
+	AssetLib.place(_hull, "res://assets/environment/sail_boat.glb", Vector3.ZERO, 22.0, 0.0)
 
 
 func _process(delta: float) -> void:

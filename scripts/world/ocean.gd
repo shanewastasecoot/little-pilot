@@ -2,12 +2,14 @@ class_name Ocean
 extends Node3D
 ## The sea. A wave mesh that follows the camera (the shader warps its even
 ## grid so it's ~1.7 m quads underneath and ~60 m at the horizon), a flat
-## collider at sea level for the safety system, generated ripple normal maps
-## and foam. Drives the shared wave clock in Waves.
+## collider at sea level for the safety system, a baked wind-wave normal map
+## and generated foam. Drives the shared wave clock in Waves.
 
 const SIZE := 9000.0
 const SUBDIV := 320
 const WARP_LINEAR := 0.06
+## Seamless wind-wave normal map baked from an ocean spectrum (~570 waves).
+const RIPPLES := "res://assets/environment/water/ocean_normal.png"
 ## Grid spacing right under the camera (the warp's slope at the centre).
 const STEP := SIZE / (SUBDIV + 1) * WARP_LINEAR
 
@@ -25,9 +27,7 @@ func _ready() -> void:
 	# Reading the screen puts the sea in the transparent pass; draw it first
 	# so spray, splashes and clouds always show on top of it.
 	mat.render_priority = -100
-	mat.set_shader_parameter("ripples_a", _ripple_texture(3, 0.012, 512, 6.0))
-	mat.set_shader_parameter("ripples_b", _ripple_texture(8, 0.02, 512, 5.0))
-	mat.set_shader_parameter("ripples_c", _ripple_texture(21, 0.035, 256, 3.0))
+	mat.set_shader_parameter("ripples", load(RIPPLES))
 	mat.set_shader_parameter("foam_tex", _foam_texture())
 	mat.set_shader_parameter("waves", Waves.shader_dirs())
 	mat.set_shader_parameter("fades", Waves.shader_fades())
@@ -56,22 +56,6 @@ func _process(delta: float) -> void:
 	# Snap to the finest grid step so the waves under the camera never swim.
 	_mesh.global_position = Vector3(snappedf(p.x, STEP), 0, snappedf(p.z, STEP))
 
-
-static func _ripple_texture(seed: int, frequency: float, size: int, bump: float) -> NoiseTexture2D:
-	var noise := FastNoiseLite.new()
-	noise.seed = seed
-	noise.frequency = frequency * 256.0 / size
-	noise.fractal_octaves = 5
-	noise.fractal_gain = 0.45
-	var tex := NoiseTexture2D.new()
-	tex.width = size
-	tex.height = size
-	tex.seamless = true
-	tex.as_normal_map = true
-	tex.bump_strength = bump
-	tex.generate_mipmaps = true
-	tex.noise = noise
-	return tex
 
 
 ## Bubbly foam cells (bright rims, dark middles) for whitecaps and shores.
