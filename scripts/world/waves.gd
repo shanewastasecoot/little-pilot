@@ -5,15 +5,19 @@ extends RefCounted
 ## with the `gerstner` calls in shaders/ocean.gdshader (Ocean pushes them as
 ## uniforms, so this table is the single source of truth).
 
-## direction x, direction z, steepness, wavelength (m), fade start, fade end
-## (distance from the camera where the wave flattens out; 0 = never).
+## direction x, direction z, steepness, wavelength (m), then the distance
+## from the camera where the wave's *shape* flattens out (start, end), then
+## the same for its *shading* (per-pixel normal).
+## Shapes fade where the sea mesh gets too coarse to draw them (its quads
+## grow with distance), otherwise they alias into a visible grid; shading
+## carries the wave on much further.
 const WAVES := [
-	[1.0, 0.35, 0.05, 170.0, 0.0, 0.0],
-	[-0.4, 1.0, 0.04, 95.0, 0.0, 0.0],
-	[0.7, -0.8, 0.035, 61.0, 0.0, 0.0],
-	[0.2, 1.0, 0.11, 33.0, 300.0, 800.0],
-	[1.0, -0.3, 0.09, 19.0, 120.0, 300.0],
-	[-0.8, -0.5, 0.07, 11.0, 60.0, 150.0],
+	[1.0, 0.35, 0.05, 170.0, 1300.0, 2300.0, 0.0, 0.0],
+	[-0.4, 1.0, 0.04, 95.0, 650.0, 1150.0, 2500.0, 4000.0],
+	[0.7, -0.8, 0.035, 61.0, 380.0, 700.0, 1800.0, 3000.0],
+	[0.2, 1.0, 0.11, 33.0, 130.0, 240.0, 900.0, 1600.0],
+	[1.0, -0.3, 0.09, 19.0, 55.0, 110.0, 450.0, 900.0],
+	[-0.8, -0.5, 0.07, 11.0, 22.0, 50.0, 200.0, 450.0],
 ]
 const SPEED := 0.6  # matches the shader's phase speed scale
 
@@ -79,8 +83,9 @@ static func shader_dirs() -> PackedVector4Array:
 	return out
 
 
-static func shader_fades() -> PackedVector2Array:
-	var out := PackedVector2Array()
+## Per wave: shape fade start/end, shading fade start/end.
+static func shader_fades() -> PackedVector4Array:
+	var out := PackedVector4Array()
 	for w in WAVES:
-		out.append(Vector2(w[4], w[5]))
+		out.append(Vector4(w[4], w[5], w[6], w[7]))
 	return out

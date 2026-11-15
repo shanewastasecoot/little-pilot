@@ -20,8 +20,9 @@ func _init() -> void:
 func build() -> void:
 	_hull = Node3D.new()
 	add_child(_hull)
-	# Model points along +X; turned so its bow faces the direction of travel.
-	AssetLib.place(_hull, "res://assets/environment/pirate_ship.glb", Vector3(0, 1.61 * 3.5 - 2.5, 0), 3.5, 180.0)
+	# Model's bow points along -X; turned to face the direction of travel
+	# (this node's +Z, see _update).
+	AssetLib.place(_hull, "res://assets/environment/pirate_ship.glb", Vector3(0, 1.61 * 3.5 - 2.5, 0), 3.5, 90.0)
 	BuildKit.push_volume(self, 45.0, 70.0)
 	_update()
 
