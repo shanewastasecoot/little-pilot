@@ -14,7 +14,7 @@ case "${1:-}" in
   editor) $GODOT --path . --editor ;;
   run)    if [[ "${2:-}" == full ]]; then $GODOT --path . --fullscreen; else $GODOT --path .; fi ;;
   test)   fail=0
-          for t in controller_test save_test crash_test star_run_test stress_test; do
+          for t in controller_test save_test crash_test dragon_test star_run_test stress_test; do
             echo "=== $t"
             $GODOT --headless --path . --fixed-fps 60 "res://tests/$t.tscn" 2>&1 \
               | grep -E "PASS|FAIL|note|ERROR|---|Stars|unreached|#[0-9]" || true

@@ -45,6 +45,63 @@ func _ready() -> void:
 	_streams.boom = _synth([[70.0, 0.0, 0.9], [48.0, 0.0, 0.9]], 0.6, 4.5, true, 0.5)
 	_streams.whistle = _synth([[900.0, 0.0, 0.8]], 0.18, 1.0, false, 2.2)
 	_streams.pop = _synth([[600.0, 0.0, 0.12]], 0.4, 25.0, false, 2.5)
+	# Dragon
+	_streams.roar = _roar()
+	_streams.fire = _noise_burst(1.7, 0.09, 0.12, 0.7, 2)
+	_streams.explode = _explosion()
+
+
+## A big, growly dragon roar: a buzzy voice sliding down with vibrato over
+## rough breathy noise, swelling in and fading out.
+func _roar() -> AudioStreamWAV:
+	var length := 1.9
+	var count := int(length * RATE)
+	var noise := _seamless_noise(count, 0.25, 41)
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / RATE
+		var k := t / length
+		var freq := lerpf(150.0, 75.0, k) * (1.0 + 0.06 * sin(TAU * 7.0 * t))
+		phase += TAU * freq / RATE
+		var voice := clampf(sin(phase) * 2.5, -1.0, 1.0) * 0.5 + 0.3 * sin(phase * 0.5) + 0.2 * sin(phase * 3.0)
+		var growl := 0.6 + 0.4 * sin(TAU * 31.0 * t)  # gravelly flutter
+		var env := smoothstep(0.0, 0.25, t) * (1.0 - smoothstep(length * 0.55, length, t))
+		buf[i] = (voice * growl + noise[i] * 3.5) * env
+	return _to_wav(_normalize(buf, 0.85), false)
+
+
+## Rushing noise (fire breath, wind gusts): swells in, holds, fades.
+func _noise_burst(length: float, smooth: float, attack: float, peak: float, seed: int) -> AudioStreamWAV:
+	var count := int(length * RATE)
+	var noise := _seamless_noise(count, smooth, seed)
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	for i in count:
+		var t := float(i) / RATE
+		var env := smoothstep(0.0, attack, t) * (1.0 - smoothstep(length * 0.6, length, t))
+		buf[i] = noise[i] * env * (0.8 + 0.2 * sin(TAU * 9.0 * t))
+	return _to_wav(_normalize(buf, peak), false)
+
+
+## Cartoon explosion: a sharp crack, a deep thump and crackly debris.
+func _explosion() -> AudioStreamWAV:
+	var length := 1.6
+	var count := int(length * RATE)
+	var rough := _seamless_noise(count, 0.5, 13)
+	var deep := _seamless_noise(count, 0.03, 17)
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	var phase := 0.0
+	for i in count:
+		var t := float(i) / RATE
+		phase += TAU * lerpf(90.0, 35.0, minf(t / 0.6, 1.0)) / RATE
+		var crack := rough[i] * exp(-t * 14.0) * 1.5
+		var thump := (sin(phase) * 0.8 + deep[i] * 10.0) * exp(-t * 3.0)
+		var debris := rough[i] * 0.3 * exp(-t * 2.5) * float(sin(TAU * 13.0 * t + sin(t * 40.0)) > 0.6)
+		buf[i] = (crack + thump + debris) * minf(1.0, t * 400.0)
+	return _to_wav(_normalize(buf, 0.9), false)
 
 
 ## A sound that plays at a point in the world (louder when close).

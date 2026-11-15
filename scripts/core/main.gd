@@ -25,6 +25,7 @@ const CRASH_HOLD := 1.3
 const CRASH_FADE := 0.45
 var _fade: ColorRect
 var _respawning := false
+var _dragon: Dragon
 
 @onready var map: GameMap = $Map
 @onready var aircraft: Aircraft = $Aircraft
@@ -63,6 +64,9 @@ func _ready() -> void:
 		_fireworks.show_finished.connect(hud.hide_city_pointer)
 	for l in get_tree().get_nodes_in_group("landmarks"):
 		l.discovered.connect(_on_landmark_discovered)
+	_dragon = get_tree().get_first_node_in_group("dragon") as Dragon
+	if _dragon:
+		_dragon.plane_hit.connect(func(_where, _fire): aircraft.explode())
 
 	title.start_requested.connect(_open_select)
 	plane_select.confirmed.connect(_on_plane_confirmed)
@@ -102,6 +106,25 @@ func _process(delta: float) -> void:
 	# Waiting on the runway: show the hint straight away so they know to go.
 	var waiting := aircraft.mode == Aircraft.Mode.PARKED
 	hud.show_idle_hint(state == State.FLYING and (waiting or _idle_time > IDLE_HINT_DELAY))
+	_update_dragon_warning()
+
+
+## Edge glow and arrow while the dragon is hunting the plane.
+func _update_dragon_warning() -> void:
+	var hunting := _dragon != null and _dragon.visible and state == State.FLYING \
+			and (_dragon.state == Dragon.State.HUNT or _dragon.state == Dragon.State.BREATHE) \
+			and aircraft.mode == Aircraft.Mode.FLYING
+	if not hunting:
+		hud.set_dragon_warning(false)
+		return
+	var cam := chase_camera.cam
+	var to := _dragon.global_position - cam.global_position
+	var fwd := -cam.global_basis.z
+	var flat_fwd := Vector2(fwd.x, fwd.z).normalized()
+	var flat_to := Vector2(to.x, to.z).normalized()
+	var angle := flat_fwd.angle_to(flat_to)
+	var closeness := clampf(1.0 - to.length() / 450.0, 0.0, 1.0)
+	hud.set_dragon_warning(true, angle, closeness, _dragon.state == Dragon.State.BREATHE)
 
 
 func _input(event: InputEvent) -> void:
@@ -211,7 +234,9 @@ func _on_crashed(where: Vector3, into_water: bool) -> void:
 	_respawning = true
 	# Effects a little towards the camera so walls don't hide them.
 	where += (chase_camera.cam.global_position - where).normalized() * 4.0
-	if into_water:
+	if aircraft.exploded:
+		_explosion(where)
+	elif into_water:
 		Sfx.play("splash", 1.0)
 		var splash := PickupBurst.new(60, 14.0, [Color.WHITE, Color("bfe9ff"), Color("7fd3ff")])
 		splash.gravity = Vector3(0, -16, 0)
@@ -239,9 +264,45 @@ func _on_crashed(where: Vector3, into_water: bool) -> void:
 	await tw.finished
 	aircraft.park(map.runway_start(), map.spawn_heading())
 	chase_camera.snap_to_target()
+	if _dragon:
+		_dragon.forgive(12.0)  # a fresh start: it leaves you alone for a bit
 	tw = create_tween()
 	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE)
 	_respawning = false
+
+
+## The dragon got the plane: a fireball, smoke, bits of plane flying off
+## in its paint colour, and an orange flash.
+func _explosion(where: Vector3) -> void:
+	Sfx.play("explode", 1.0, 2.0)
+	var paint := Paint.color(SaveManager.get_paint(aircraft.stats.id, aircraft.stats.default_paint))
+	var fire := PickupBurst.new(70, 22.0, [Color(2.0, 1.8, 1.2), Color("ffb02e"), Color("ff5a1f"), Color("8a2a10")]).keep_scale()
+	fire.scale_amount_min = 2.5
+	fire.scale_amount_max = 5.0
+	fire.lifetime = 1.1
+	fire.gravity = Vector3(0, 4, 0)
+	fire.position = where
+	add_child(fire)
+	var smoke := PickupBurst.new(40, 9.0, [Color("555555"), Color("333333"), Color("777777")]).keep_scale()
+	smoke.scale_amount_min = 3.0
+	smoke.scale_amount_max = 6.0
+	smoke.lifetime = 2.2
+	smoke.gravity = Vector3(0, 3, 0)
+	smoke.position = where
+	add_child(smoke)
+	var bits := PickupBurst.new(26, 30.0, [paint, paint.darkened(0.3), Color("dddddd")]).keep_scale()
+	bits.gravity = Vector3(0, -22, 0)
+	bits.scale_amount_min = 1.2
+	bits.scale_amount_max = 2.4
+	bits.lifetime = 1.6
+	bits.position = where
+	add_child(bits)
+	var flash := create_tween()
+	_fade.color = Color(1.0, 0.6, 0.2, 0.0)
+	flash.tween_property(_fade, "color:a", 0.55, 0.06)
+	flash.tween_property(_fade, "color:a", 0.0, 0.35)
+	await flash.finished
+	_fade.color = Color(1, 1, 1, 0)
 
 
 func _on_landmark_discovered(_landmark: Landmark) -> void:

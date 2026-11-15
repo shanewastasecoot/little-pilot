@@ -52,6 +52,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Igloo | `assets/environment/igloo.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/6k656rJhVzY) |
 | Iceberg | `assets/environment/iceberg.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/9U2KjmvOJvY) |
 | Penguin | `assets/environment/penguin.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/fBXvsC6pe_V) |
+| Dragon ("Dragon Evolved", animated) | `assets/environment/dragon.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/LlwD0QNUPj) |
 | T-Rex | `assets/environment/trex.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/UYtneO5FpF) |
 | Triceratops | `assets/environment/triceratops.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/IGvrUqGrRM) |
 | Stegosaurus | `assets/environment/stegosaurus.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/eFcNbOlpvl) |

@@ -2,7 +2,8 @@ class_name SettingsPanel
 extends CanvasLayer
 ## Parent settings, opened from the pause menu (gear button):
 ## music volume, sound volume, a battery saver (30 FPS cap), whether the
-## city-fireworks arrow is shown, and whether the plane can crash.
+## city-fireworks arrow is shown, whether the plane can crash, whether the
+## dragon lives on the island and how tough it is (1-3 flames).
 ## B / Esc or the back arrow closes it. Changes save automatically.
 
 signal closed
@@ -12,6 +13,8 @@ var _sounds: VolumeBar
 var _battery: BigButton
 var _arrow: BigButton
 var _crash: BigButton
+var _dragon: BigButton
+var _level: BigButton
 
 
 func _ready() -> void:
@@ -47,7 +50,7 @@ func _ready() -> void:
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 50)
+	row.add_theme_constant_override("separation", 30)
 	col.add_child(row)
 	var back := BigButton.new()
 	back.icon_type = UiIcon.Icon.ARROW_LEFT
@@ -73,6 +76,18 @@ func _ready() -> void:
 	_crash.toggle_mode = true
 	_crash.toggled.connect(_on_crash)
 	row.add_child(_crash)
+	_dragon = BigButton.new()
+	_dragon.icon_type = UiIcon.Icon.DRAGON
+	_dragon.button_size = Vector2(130, 130)
+	_dragon.toggle_mode = true
+	_dragon.toggled.connect(_on_dragon)
+	row.add_child(_dragon)
+	# Difficulty: one press steps Easy -> Medium -> Hard (1, 2, 3 flames).
+	_level = BigButton.new()
+	_level.icon_type = UiIcon.Icon.FLAME
+	_level.button_size = Vector2(130, 130)
+	_level.pressed.connect(func(): SaveManager.set_dragon_level(SaveManager.dragon_level + 1); _tint_battery())
+	row.add_child(_level)
 
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
@@ -86,6 +101,7 @@ func _on_visibility_changed() -> void:
 	_battery.set_pressed_no_signal(SaveManager.battery_saver)
 	_arrow.set_pressed_no_signal(SaveManager.city_arrow)
 	_crash.set_pressed_no_signal(SaveManager.crashes)
+	_dragon.set_pressed_no_signal(SaveManager.dragon)
 	_tint_battery()
 	_music.grab_focus.call_deferred()
 
@@ -100,6 +116,11 @@ func _on_arrow(on: bool) -> void:
 	_tint_battery()
 
 
+func _on_dragon(on: bool) -> void:
+	SaveManager.set_dragon(on)
+	_tint_battery()
+
+
 func _on_crash(on: bool) -> void:
 	SaveManager.set_crashes(on)
 	_tint_battery()
@@ -107,12 +128,20 @@ func _on_crash(on: bool) -> void:
 
 ## Toggle buttons are green when on, grey when off.
 func _tint_battery() -> void:
-	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow], [_crash, SaveManager.crashes]]:
+	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow], [_crash, SaveManager.crashes], [_dragon, SaveManager.dragon]]:
 		var b: BigButton = pair[0]
 		var c := Color("4cc06a") if pair[1] else Color("8a94a6")
 		b.add_theme_stylebox_override("normal", b._style(c, Color(0, 0, 0, 0)))
 		b.add_theme_stylebox_override("hover", b._style(c.lightened(0.1), Color(0, 0, 0, 0)))
 		b.add_theme_stylebox_override("pressed", b._style(c, Color(0, 0, 0, 0)))
+	# Difficulty: green, orange, red with 1-3 dots; dim when the dragon is off.
+	var lc: Color = [Color("4cc06a"), Color("ff9f1c"), Color("e63946")][SaveManager.dragon_level]
+	if not SaveManager.dragon:
+		lc = Color("8a94a6")
+	_level._icon.pips = SaveManager.dragon_level + 1
+	_level.add_theme_stylebox_override("normal", _level._style(lc, Color(0, 0, 0, 0)))
+	_level.add_theme_stylebox_override("hover", _level._style(lc.lightened(0.1), Color(0, 0, 0, 0)))
+	_level.add_theme_stylebox_override("pressed", _level._style(lc, Color(0, 0, 0, 0)))
 
 
 func _unhandled_input(event: InputEvent) -> void:

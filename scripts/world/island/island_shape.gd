@@ -4,8 +4,10 @@ extends RefCounted
 ## Terrain, trees, landmarks and star placement all read from here, so they
 ## always agree. North is -Z. Units are metres; sea level is y = 0.
 
-const SIZE := 3200.0          # terrain square edge length
-const COAST_RADIUS := 1180.0
+const SIZE := 3700.0          # terrain square edge length
+## The terrain square is shifted north to fit the Dragon Peak headland.
+const TERRAIN_CENTRE := Vector2(0, -250)
+const COAST_RADIUS := 1300.0
 
 # Landmark anchor points (x, z)
 const RUNWAY := Vector2(0, 0)            # runway centre, runs east-west
@@ -28,6 +30,17 @@ const PEAKS := [                          # x, z, height, radius
 	Vector4(195, -897, 295, 288),
 	Vector4(611, -728, 180, 220),
 ]
+
+# Dragon country: a headland on the far (north) side, behind the mountains.
+# Dragon Peak rises from the north coast; the lair (a cave) sits at its
+# southern foot in a rocky clearing, its mouth facing the valley.
+const DRAGON_PEAK := Vector4(-180, -1640, 250, 270)
+const LAIR := Vector2(-170, -1430)
+const LAIR_RADIUS := 82.0       # cave dome footprint
+const LAIR_FLOOR := 26.0
+const LAIR_CLEARING := Vector2(-160, -1300)
+const NORTH_BULGE := 430.0      # extra coast distance at the headland
+const NORTH_ANGLE := -1.68      # direction of the headland (atan2 z, x)
 
 # Extra islands (map expansion)
 const PALM_ISLAND := Vector2(2050, 380)
@@ -60,6 +73,9 @@ static func coast_radius(x: float, z: float) -> float:
 	_ensure_noise()
 	var a := atan2(z, x)
 	var r := COAST_RADIUS + _coast_noise.get_noise_1d(a * 1.5) * 110.0
+	# Dragon headland to the north (a broad, smooth bulge).
+	var na := absf(wrapf(a - NORTH_ANGLE, -PI, PI))
+	r += NORTH_BULGE * pow(maxf(0.0, cos(na * 2.6)), 1.5) * float(na < PI / 5.2)
 	# Lighthouse peninsula to the south-east.
 	var la := atan2(LIGHTHOUSE.y, LIGHTHOUSE.x)
 	r += 160.0 * maxf(0.0, cos((a - la) * 6.0)) ** 2 * float(absf(wrapf(a - la, -PI, PI)) < PI / 6.0)
@@ -81,6 +97,10 @@ static func height(x: float, z: float) -> float:
 		var profile := smoothstep(0.0, 1.0, t)
 		h += pk.z * profile * profile * (3.0 - 2.0 * profile) * 0.92 + pk.z * 0.08 * profile
 		h += t * (1.0 - t) * 4.0 * _noise.get_noise_2d(x * 3.0, z * 3.0) * 18.0
+	# Dragon Peak: craggy, with a steep rock face toward the lair.
+	var dp := p.distance_to(Vector2(DRAGON_PEAK.x, DRAGON_PEAK.y))
+	var dt := 1.0 - clampf(dp / DRAGON_PEAK.w, 0.0, 1.0)
+	h += DRAGON_PEAK.z * pow(dt, 1.4) + dt * (1.0 - dt) * 4.0 * _noise.get_noise_2d(x * 4.0, z * 4.0) * 26.0
 	# Turbine ridge (north-east)
 	var rd := _dist_to_segment(p, RIDGE_A, RIDGE_B)
 	h += 55.0 * smoothstep(110.0, 0.0, rd)
@@ -91,6 +111,9 @@ static func height(x: float, z: float) -> float:
 	h = lerpf(10.0, h, smoothstep(0.0, 110.0, rw))
 	h = lerpf(FARM_HEIGHT, h, smoothstep(170.0, 260.0, p.distance_to(FARM)))
 	h = lerpf(CITY_HEIGHT, h, smoothstep(CITY_RADIUS, CITY_RADIUS + 110.0, p.distance_to(CITY)))
+	# The lair: a flat cave floor, and a clearing in front of the mouth.
+	h = lerpf(LAIR_FLOOR, h, smoothstep(LAIR_RADIUS - 6.0, LAIR_RADIUS + 30.0, p.distance_to(LAIR)))
+	h = lerpf(LAIR_FLOOR + 2.0, h, smoothstep(110.0, 190.0, p.distance_to(LAIR_CLEARING)))
 
 	return lerpf(-28.0, h, land)
 
@@ -112,11 +135,23 @@ static func color(x: float, z: float, h: float, slope: float) -> Color:
 	grass = grass.lerp(Color("5fbf4b"), smoothstep(-0.15, -0.45, patch) * 0.5)
 	if p_in_forest(x, z):
 		grass = Color("4fa83e")
+	# Scorched, rocky ground around the dragon's lair.
+	var lair := 1.0 - smoothstep(150.0, 260.0, Vector2(x, z).distance_to(LAIR_CLEARING) + wobble * 30.0)
+	if lair > 0.0:
+		grass = grass.lerp(Color("6b6460").lerp(Color("4d4644"), clampf(wobble + 0.5, 0.0, 1.0)), lair)
 	var rock := Color("9a96a3").lerp(Color("8a8694"), clampf(wobble + 0.5, 0.0, 1.0))
 	var rockiness := smoothstep(0.42, 0.62, slope + wobble * 0.08) + smoothstep(130.0, 175.0, h + wobble * 20.0)
 	var col := grass.lerp(rock, clampf(rockiness, 0.0, 1.0))
 	var snow := smoothstep(195.0, 215.0, h + wobble * 25.0) * (1.0 - smoothstep(0.7, 0.85, slope))
-	return col.lerp(Color("f4f7ff"), snow)
+	col = col.lerp(Color("f4f7ff"), snow)
+	# Dragon Peak: dark, scorched rock with glowing-ember streaks, no snow.
+	var dp := Vector2(x, z).distance_to(Vector2(DRAGON_PEAK.x, DRAGON_PEAK.y))
+	var dragon := 1.0 - smoothstep(DRAGON_PEAK.w * 0.55, DRAGON_PEAK.w * 1.05, dp + wobble * 40.0)
+	if dragon > 0.0:
+		var dark := Color("4a4342").lerp(Color("3a3333"), clampf(wobble + 0.5, 0.0, 1.0))
+		var ember := smoothstep(0.82, 0.95, absf(sin(x * 0.045 + z * 0.02 + wobble * 3.0))) * smoothstep(60.0, 120.0, h)
+		col = col.lerp(dark.lerp(Color("a3402a"), ember * 0.6), dragon)
+	return col
 
 
 static func p_in_forest(x: float, z: float) -> bool:

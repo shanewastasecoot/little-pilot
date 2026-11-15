@@ -3,7 +3,7 @@ extends Landmark
 ## A little sail boat (Quaternius CC0) cruising in a big loop off the south
 ## coast. Toots when discovered. Its discovery zone travels with it.
 
-@export var loop_center: Vector3 = Vector3(300, 0, 1480)
+@export var loop_center: Vector3 = Vector3(300, 0, 1700)
 @export var loop_radius: float = 160.0
 @export var loop_speed: float = 0.05  # radians per second
 

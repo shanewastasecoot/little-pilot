@@ -9,6 +9,7 @@ var _jar: StarJar
 var _party: Celebration
 var _hint: StickHint
 var _city_pointer: CityPointer
+var _dragon: DragonWarning
 
 
 func _ready() -> void:
@@ -71,6 +72,19 @@ func _ready() -> void:
 	_city_pointer = CityPointer.new()
 	_city_pointer.hide()
 	root.add_child(_city_pointer)
+
+	_dragon = DragonWarning.new()
+	root.add_child(_dragon)
+	root.move_child(_dragon, 0)  # under the counters
+
+
+## The dragon warning: on while it hunts the plane. angle: where it is
+## relative to the camera (0 ahead, + right); closeness 0..1.
+func set_dragon_warning(on: bool, angle := 0.0, closeness := 0.0, breathing := false) -> void:
+	_dragon.active = on
+	_dragon.angle = angle
+	_dragon.closeness = closeness
+	_dragon.breathing = breathing
 
 
 ## Show/update the city arrow. seconds < 0 means the fireworks are on.

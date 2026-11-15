@@ -20,7 +20,7 @@ func runway_start() -> Vector3:
 
 func _ready() -> void:
 	_build_environment()
-	TerrainBuilder.build(self, IslandShape.height, IslandShape.color, Vector2.ZERO, IslandShape.SIZE, 267)
+	TerrainBuilder.build(self, IslandShape.height, IslandShape.color, IslandShape.TERRAIN_CENTRE, IslandShape.SIZE, 308)
 	TerrainBuilder.build(self, IslandShape.palm_height, IslandShape.palm_color, IslandShape.PALM_ISLAND, 760.0, 64, "PalmTerrain")
 	TerrainBuilder.build(self, IslandShape.volcano_height, IslandShape.volcano_color, IslandShape.VOLCANO, 1000.0, 84, "VolcanoTerrain")
 	TerrainBuilder.build(self, OuterIslands.ice_height, OuterIslands.ice_color, OuterIslands.ICE, 1100.0, 70, "IceTerrain")
@@ -120,8 +120,19 @@ func _place_landmarks() -> void:
 	_place_outer(CastleIsland.new(), OuterIslands.CASTLE)
 	_place_outer(TownIsland.new(), OuterIslands.TOWN)
 	add_child(PirateShip.new())
+	var lair := DragonLair.new()
+	lair.name = "DragonLair"
+	lair.position = Vector3(IslandShape.LAIR.x, IslandShape.LAIR_FLOOR, IslandShape.LAIR.y)
+	var face := IslandShape.LAIR_CLEARING - IslandShape.LAIR
+	lair.rotation.y = atan2(face.x, face.y)  # mouth (+Z) toward the clearing
+	add_child(lair)
+	var dragon := Dragon.new()
+	dragon.name = "Dragon"
+	dragon.lair = lair
+	dragon.add_to_group("dragon")
+	add_child(dragon)
 	var whale := Whale.new()
-	whale.position = Vector3(-1460, 0, 300)
+	whale.position = Vector3(-1640, 0, 300)
 	add_child(whale)
 
 
@@ -201,7 +212,7 @@ func _place_stars() -> void:
 		var p := IslandShape.RIDGE_A.lerp(IslandShape.RIDGE_B, (i + 1.0) / WindFarm.COUNT)
 		_trail(stars, 1, [Vector3(p.x, _ground(p) + WindFarm.TOWER_H, p.y)])
 	# Ocean: low stars skimming the water along the south coast.
-	_trail(stars, 6, [Vector3(-650, 16, 1330), Vector3(-200, 16, 1380), Vector3(250, 16, 1350)])
+	_trail(stars, 6, [_air(Vector2(-650, 1500), 16), _air(Vector2(-200, 1540), 16), _air(Vector2(250, 1510), 16)])
 	# Expansion: stepping stones over the sea, through the rainbow, to Palm Island.
 	_trail(stars, 8, [Vector3(1320, 28, 270), Vector3(1560, 50, 340), Vector3(1780, 30, 365)])
 	# A ring round Palm Island.
@@ -212,7 +223,7 @@ func _place_stars() -> void:
 		ring.append(Vector3(pt.x, IslandShape.palm_height(pt.x, pt.y) + 30.0, pt.y))
 	_trail(stars, 8, ring)
 	# Out across the sea to Volcano Island, then a spiral up the cone.
-	_trail(stars, 6, [Vector3(-1000, 40, -780), Vector3(-1220, 40, -920), Vector3(-1420, 45, -1040)])
+	_trail(stars, 6, [_air(Vector2(-1000, -780), 30), _air(Vector2(-1220, -920), 30), _air(Vector2(-1420, -1040), 35)])
 	var spiral_v: Array[Vector3] = []
 	for i in 7:
 		var a := 2.2 + i * 1.0
@@ -222,10 +233,10 @@ func _place_stars() -> void:
 	_trail(stars, 7, spiral_v)
 	_trail(stars, 1, [Vector3(IslandShape.VOLCANO.x, IslandShape.VOLCANO_HEIGHT + 60.0, IslandShape.VOLCANO.y)])
 	# Outer islands: a trail of stepping stones out to each, and a ring round it.
-	_stepping_stones(stars, Vector2(190, -1290), OuterIslands.ICE, OuterIslands.ICE_RADIUS, OuterIslands.ice_height)
+	_stepping_stones(stars, Vector2(320, -1840), OuterIslands.ICE, OuterIslands.ICE_RADIUS, OuterIslands.ice_height)
 	_stepping_stones(stars, IslandShape.PALM_ISLAND + Vector2(150, 220), OuterIslands.DINO, OuterIslands.DINO_RADIUS, OuterIslands.dino_height)
-	_stepping_stones(stars, Vector2(-390, 1300), OuterIslands.CASTLE, OuterIslands.CASTLE_RADIUS, OuterIslands.castle_height)
-	_stepping_stones(stars, Vector2(-1300, 390), OuterIslands.TOWN, OuterIslands.TOWN_RADIUS, OuterIslands.town_height)
+	_stepping_stones(stars, Vector2(-430, 1500), OuterIslands.CASTLE, OuterIslands.CASTLE_RADIUS, OuterIslands.castle_height)
+	_stepping_stones(stars, Vector2(-1500, 450), OuterIslands.TOWN, OuterIslands.TOWN_RADIUS, OuterIslands.town_height)
 	# City: a ring of stars round the new district.
 	var city_ring: Array[Vector3] = []
 	for i in 9:
@@ -244,7 +255,7 @@ func _place_stars() -> void:
 func _stepping_stones(parent: Node3D, start: Vector2, centre: Vector2, radius: float, height_fn: Callable) -> void:
 	var landing := centre + (start - centre).normalized() * (radius + 40.0)
 	var gap := start.distance_to(landing)
-	_trail(parent, maxi(int(gap / 230.0), 4), [Vector3(start.x, 35, start.y), Vector3(landing.x, 35, landing.y)])
+	_trail(parent, maxi(int(gap / 230.0), 4), [_air(start, 35), Vector3(landing.x, 35, landing.y)])
 	var ring: Array[Vector3] = []
 	for i in 9:
 		var a := TAU * i / 8.0
