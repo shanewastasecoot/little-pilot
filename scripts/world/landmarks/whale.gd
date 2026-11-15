@@ -25,7 +25,8 @@ func _process(delta: float) -> void:
 	# Surface for a few seconds, then dive.
 	var cycle := fmod(_t, 9.0)
 	var up := smoothstep(0.0, 1.5, cycle) * (1.0 - smoothstep(5.0, 6.5, cycle))
-	_body.position.y = lerpf(-8.0, 0.5, up)
+	var gp := global_position
+	_body.position.y = lerpf(-8.0, 0.5, up) + Waves.height(gp.x, gp.z) * up
 	_body.rotation.x = sin(cycle * 0.7) * 0.08
 	# A gentle side-to-side swim wiggle (the model has no rig).
 	_body.rotation.y = sin(_t * 1.6) * 0.07
