@@ -32,9 +32,15 @@ func _ready() -> void:
 	_play = BigButton.new()
 	_play.icon_type = UiIcon.Icon.PLAY
 	_play.base_color = Color("4cc06a")
-	_play.button_size = Vector2(220, 220)
-	_play.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	_play.position = Vector2(-110, 40)
+	_play.button_size = Vector2(170, 170)
+	_play.anchor_left = 0.5
+	_play.anchor_right = 0.5
+	_play.anchor_top = 1.0
+	_play.anchor_bottom = 1.0
+	_play.offset_left = -85
+	_play.offset_right = 85
+	_play.offset_top = -205
+	_play.offset_bottom = -35
 	_play.pressed.connect(_start)
 	root.add_child(_play)
 	visibility_changed.connect(_on_visibility_changed)

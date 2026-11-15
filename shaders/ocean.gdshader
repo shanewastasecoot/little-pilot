@@ -1,33 +1,102 @@
 shader_type spatial;
-// Cheap stylised ocean: gentle vertex swell, two-tone colour, sun glints.
-// No reflections or depth reads, so it's light on the Steam Deck GPU.
+render_mode blend_mix, cull_back, depth_draw_opaque, specular_schlick_ggx;
+// Stylised-but-believable ocean for the Steam Deck:
+//  * three Gerstner swells in the vertex shader (correct lighting normals)
+//  * two scrolling noise normal maps for fine ripples and sun glints
+//  * Fresnel sky reflection at grazing angles
+//  * depth-based colour: clear turquoise shallows, deep blue offshore
+//  * refraction: the sea floor and anything underwater wobbles with the
+//    ripples, fading out as the water gets deep
+//  * foam wherever the surface touches something (shores, rocks, boats,
+//    the whale) using the depth buffer, plus a little on wave crests
+// No screen-space reflections, so it stays cheap on the Deck.
 
-uniform vec4 deep_color : source_color = vec4(0.12, 0.52, 0.86, 1.0);
-uniform vec4 shallow_color : source_color = vec4(0.30, 0.78, 0.95, 1.0);
-uniform float wave_height = 0.6;
-uniform float wave_scale = 0.02;
+uniform vec4 deep_color : source_color = vec4(0.05, 0.32, 0.62, 1.0);
+uniform vec4 mid_color : source_color = vec4(0.07, 0.52, 0.78, 1.0);
+uniform vec4 shallow_color : source_color = vec4(0.25, 0.86, 0.85, 1.0);
+uniform vec4 sky_color : source_color = vec4(0.70, 0.86, 1.0, 1.0);
+uniform vec4 foam_color : source_color = vec4(0.97, 0.99, 1.0, 1.0);
+uniform sampler2D ripples_a : hint_normal, repeat_enable, filter_linear_mipmap;
+uniform sampler2D ripples_b : hint_normal, repeat_enable, filter_linear_mipmap;
+uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
+uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;
+// Waves: overall steepness multiplier and the three swell wavelengths (m).
+uniform float swell = 1.0;
+uniform vec3 wavelengths = vec3(170.0, 95.0, 61.0);
+// How far (UV units) underwater things wobble, and how clear the shallows are.
+uniform float refraction_strength = 0.02;
+uniform float clarity = 0.75;
+// Foam band width (m of water depth) around anything touching the surface.
+uniform float foam_width = 1.6;
 
-varying float v_wave;
+varying vec3 v_world;
+varying float v_crest;
+
+// Gerstner wave: x/y = direction, z = steepness, w = wavelength (m).
+vec3 gerstner(vec4 w, vec3 p, inout vec3 tangent, inout vec3 binormal) {
+	float k = 6.28318 / w.w;
+	float c = sqrt(9.8 / k);
+	vec2 d = normalize(w.xy);
+	float f = k * (dot(d, p.xz) - c * TIME * 0.6);
+	float a = w.z / k;
+	tangent += vec3(-d.x * d.x * w.z * sin(f), d.x * w.z * cos(f), -d.x * d.y * w.z * sin(f));
+	binormal += vec3(-d.x * d.y * w.z * sin(f), d.y * w.z * cos(f), -d.y * d.y * w.z * sin(f));
+	return vec3(d.x * a * cos(f), a * sin(f), d.y * a * cos(f));
+}
 
 void vertex() {
-	vec3 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	float t = TIME * 0.6;
-	float h = sin(w.x * wave_scale + t) * 0.5 + sin(w.z * wave_scale * 1.3 + t * 1.2) * 0.5;
-	VERTEX.y += h * wave_height;
-	v_wave = h;
+	vec3 p = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 t = vec3(1.0, 0.0, 0.0);
+	vec3 b = vec3(0.0, 0.0, 1.0);
+	vec3 offset = vec3(0.0);
+	offset += gerstner(vec4(1.0, 0.35, 0.05 * swell, wavelengths.x), p, t, b);
+	offset += gerstner(vec4(-0.4, 1.0, 0.04 * swell, wavelengths.y), p, t, b);
+	offset += gerstner(vec4(0.7, -0.8, 0.035 * swell, wavelengths.z), p, t, b);
+	VERTEX += offset;
+	NORMAL = normalize(cross(b, t));
+	v_world = p + offset;
+	v_crest = offset.y;
 }
 
 void fragment() {
-	vec3 w = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	float dist = length(w.xz);
-	// Lighter water near the island.
-	float near = 1.0 - smoothstep(850.0, 1200.0, dist);
-	vec3 col = mix(deep_color.rgb, shallow_color.rgb, near * 0.7 + v_wave * 0.08);
-	// Sparkles
-	float s = sin(w.x * 0.35 + TIME * 1.7) * sin(w.z * 0.31 - TIME * 1.3);
-	col += vec3(smoothstep(0.96, 1.0, s)) * 0.35;
+	vec2 uv = v_world.xz;
+	vec3 n1 = texture(ripples_a, uv / 46.0 + vec2(TIME * 0.012, TIME * 0.007)).xyz;
+	vec3 n2 = texture(ripples_b, uv / 27.0 - vec2(TIME * 0.009, -TIME * 0.013)).xyz;
+	NORMAL_MAP = normalize(mix(n1, n2, 0.5));
+	NORMAL_MAP_DEPTH = 0.55;
+
+	// Water depth under this pixel: scene depth behind the surface minus ours.
+	float scene_depth = texture(depth_tex, SCREEN_UV).r;
+	vec4 behind = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, scene_depth, 1.0);
+	behind.xyz /= behind.w;
+	float water_depth = clamp(length(behind.xyz) - length(VERTEX), 0.0, 400.0);
+
+	// Fully deep blue by ~24 m, matching where the sea floor mesh stops.
+	float shallow = exp(-water_depth * 0.28);
+	float mid = exp(-water_depth * 0.13);
+	vec3 col = mix(deep_color.rgb, mid_color.rgb, mid);
+	col = mix(col, shallow_color.rgb, shallow);
+
+	// Fresnel: water looks like the sky when seen at a low angle.
+	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
+	col = mix(col, sky_color.rgb, fresnel * 0.55);
+
+	// Shoreline foam (breaking up with the ripple pattern) and crest foam.
+	float ripple = n1.r * 0.5 + n2.g * 0.5;
+	float shore = smoothstep(foam_width, 0.0, water_depth + (ripple - 0.5) * 1.2);
+	float crest = smoothstep(1.2, 1.8, v_crest) * 0.12;
+	col = mix(col, foam_color.rgb, clamp(shore + crest, 0.0, 1.0));
+
+	// Refraction: look at what's under the surface through wobbling water,
+	// tinted by the water colour; deep water is opaque.
+	vec2 wobble = (NORMAL_MAP.xy - 0.5) * refraction_strength * (1.0 - shallow * 0.5);
+	vec3 below = textureLod(screen_tex, SCREEN_UV + wobble, 1.5).rgb;
+	float see_through = shallow * clarity * (1.0 - shore);
+	col = mix(col, below * mix(vec3(1.0), shallow_color.rgb, 0.55), see_through);
+
 	ALBEDO = col;
-	ROUGHNESS = 0.15;
+	ALPHA = 1.0;
+	ROUGHNESS = mix(0.06, 0.6, shore);
 	METALLIC = 0.0;
-	SPECULAR = 0.6;
+	SPECULAR = 0.55;
 }

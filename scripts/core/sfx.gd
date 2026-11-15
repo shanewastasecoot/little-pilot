@@ -37,7 +37,32 @@ func _ready() -> void:
 	_streams.chirp = _synth([[2200.0, 0.0, 0.08], [2600.0, 0.12, 0.08], [2400.0, 0.3, 0.08], [2900.0, 0.42, 0.1]], 0.3, 10.0, false, 1.3)
 	_streams.toot = _synth([[294.0, 0.0, 0.3], [294.0, 0.4, 0.7]], 0.5, 1.5, true)
 	_streams.splash = _synth([[200.0, 0.0, 0.5]], 0.4, 5.0, false, 0.3)
+	_streams.rumble = _synth([[55.0, 0.0, 1.6], [58.0, 0.0, 1.6], [82.0, 0.3, 1.2]], 0.55, 1.4, true, 0.8)
+	_streams.tropical = _synth([[523.3, 0.0, 0.25], [659.3, 0.18, 0.25], [784.0, 0.36, 0.25], [659.3, 0.54, 0.25], [880.0, 0.72, 0.5]], 0.35, 4.0)
+	_streams.bells = _synth([[1568.0, 0.0, 0.5], [1318.5, 0.15, 0.5], [1568.0, 0.3, 0.5], [2093.0, 0.45, 0.8]], 0.3, 4.0)
+	_streams.rawr = _synth([[140.0, 0.0, 0.7], [95.0, 0.15, 0.6]], 0.5, 2.0, true, 0.6)
+	_streams.lala = _synth([[784.0, 0.0, 0.3], [988.0, 0.25, 0.3], [1175.0, 0.5, 0.3], [988.0, 0.75, 0.3], [1318.5, 1.0, 0.6]], 0.3, 3.0, false, 1.02)
+	_streams.boom = _synth([[70.0, 0.0, 0.9], [48.0, 0.0, 0.9]], 0.6, 4.5, true, 0.5)
+	_streams.whistle = _synth([[900.0, 0.0, 0.8]], 0.18, 1.0, false, 2.2)
 	_streams.pop = _synth([[600.0, 0.0, 0.12]], 0.4, 25.0, false, 2.5)
+
+
+## A sound that plays at a point in the world (louder when close).
+func play_at(sound: String, where: Vector3, pitch: float = 1.0, volume_db: float = 0.0) -> void:
+	if not _streams.has(sound):
+		return
+	var p := AudioStreamPlayer3D.new()
+	p.bus = GameSettings.BUS_SFX
+	p.stream = _streams[sound]
+	p.pitch_scale = pitch
+	p.volume_db = volume_db
+	p.unit_size = 250.0
+	p.max_distance = 4000.0
+	p.attenuation_model = AudioStreamPlayer3D.ATTENUATION_LOGARITHMIC
+	get_tree().root.add_child(p)
+	p.global_position = where
+	p.finished.connect(p.queue_free)
+	p.play()
 
 
 func play(sound: String, pitch: float = 1.0, volume_db: float = 0.0) -> void:

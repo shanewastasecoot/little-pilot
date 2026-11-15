@@ -9,3 +9,9 @@ extends Node3D
 
 func spawn_heading() -> float:
 	return deg_to_rad(spawn_heading_deg)
+
+
+## Where the plane waits on the ground before take-off. Maps without a
+## runway return the air spawn (the plane then just starts flying).
+func runway_start() -> Vector3:
+	return spawn_position

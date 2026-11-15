@@ -7,6 +7,8 @@ extends Node
 signal star_collected(count: int, total: int)
 signal milestone_reached(count: int)
 signal all_collected
+## Every `party_every` stars (counted across respawns): the city celebrates.
+signal city_party_due
 
 ## Session counts that trigger a small celebration.
 @export var milestones: Array[int] = [10, 25]
@@ -15,7 +17,11 @@ signal all_collected
 ## Pause between the "all collected" party and stars coming back.
 @export var respawn_delay: float = 4.0
 
+@export var party_every: int = 30
+
 var count: int = 0
+## Stars collected this session (not reset when stars respawn).
+var session_count: int = 0
 var total: int = 0
 var _combo: int = 0
 var _last_pickup_ms: int = -100000
@@ -31,6 +37,7 @@ func _ready() -> void:
 
 func _on_star_collected(_star: Star) -> void:
 	count += 1
+	session_count += 1
 	var now := Time.get_ticks_msec()
 	_combo = mini(_combo + 1, 8) if now - _last_pickup_ms < combo_window * 1000.0 else 0
 	_last_pickup_ms = now
@@ -39,6 +46,8 @@ func _on_star_collected(_star: Star) -> void:
 	Sfx.play("chime", pow(2.0, steps[_combo] / 12.0))
 	SaveManager.add_lifetime_star()
 	star_collected.emit(count, total)
+	if session_count % party_every == 0:
+		city_party_due.emit()
 	if count >= total:
 		_celebrate_all()
 	elif count in milestones:

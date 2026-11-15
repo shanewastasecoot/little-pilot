@@ -337,10 +337,10 @@ Make the game feel finished and joyful through sound, music and full Steam Deck 
 
 Candidates for later milestones, in rough priority order:
 
-1. **Paint colours.** Cheap and very popular with kids.
+1. ~~**Paint colours.**~~ Done in v1.1 (plus barrel rolls).
 2. **Additional aircraft** (helicopter, hot-air balloon)
 3. **Windows build.** Mostly export and test.
 4. **Weather and time of day**
 5. **Local co-op split-screen**
 6. **iPad port.** Touch controls, Mac and Xcode setup, Apple Developer account.
-7. **More maps**
+7. ~~**More maps**~~ Done in v1.1: outer islands, islets, city start. Next: grow the city outward.

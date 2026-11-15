@@ -2,33 +2,24 @@
 
 [ext_resource type="Script" path="res://scripts/aircraft/aircraft_visuals.gd" id="1_vis"]
 [ext_resource type="Script" path="res://scripts/aircraft/boost_trail.gd" id="2_trail"]
-[ext_resource type="PackedScene" path="res://assets/aircraft/biplane.glb" id="3_glb"]
+[ext_resource type="PackedScene" path="res://assets/aircraft/toy_biplane.glb" id="3_glb"]
+[ext_resource type="Script" path="res://scripts/aircraft/model_recolor.gd" id="4_recolor"]
+[ext_resource type="Script" path="res://scripts/aircraft/prop_splitter.gd" id="5_split"]
 
-[sub_resource type="StandardMaterial3D" id="mat_dark"]
-albedo_color = Color(0.2, 0.22, 0.27, 1)
-
-[sub_resource type="BoxMesh" id="blade"]
-size = Vector3(2.2, 0.2, 0.05)
-
-[node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller", "boost_trails")]
+[node name="PropPlaneModel" type="Node3D" node_paths=PackedStringArray("propeller", "boost_trails", "recolor")]
 script = ExtResource("1_vis")
+recolor = NodePath("Recolor")
 propeller = NodePath("Propeller")
 boost_trails = [NodePath("TrailL"), NodePath("TrailR")]
 
 [node name="Biplane" parent="." instance=ExtResource("3_glb")]
-transform = Transform3D(4.6, 0, 0, 0, 4.6, 0, 0, 0, 4.6, 0, -0.1, -0.28)
+transform = Transform3D(-0.03, 0, 0, 0, 0.03, 0, 0, 0, -0.03, 0, -1.449, -0.792)
 
-[node name="Propeller" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -2.12)
-
-[node name="BladeA" type="MeshInstance3D" parent="Propeller"]
-mesh = SubResource("blade")
-surface_material_override/0 = SubResource("mat_dark")
-
-[node name="BladeB" type="MeshInstance3D" parent="Propeller"]
-transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("blade")
-surface_material_override/0 = SubResource("mat_dark")
+[node name="Propeller" type="Node3D" parent="." node_paths=PackedStringArray("source")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.316, -2.29)
+script = ExtResource("5_split")
+source = NodePath("../Biplane/Sketchfab_model/biplane_obj_cleaner/Object_3")
+cut = 49.0
 
 [node name="TrailL" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.6, 0.4, -0.4)
@@ -41,3 +32,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.6, 0.4, -0.4)
 script = ExtResource("2_trail")
 rainbow = true
 width = 0.4
+
+[node name="Recolor" type="Node" parent="." node_paths=PackedStringArray("target")]
+script = ExtResource("4_recolor")
+target = NodePath("../Biplane")
+from_hue = 0.76
+hue_range = 0.08
+to_color = Color(1, 0.3, 0.3, 1)

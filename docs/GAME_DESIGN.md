@@ -116,12 +116,12 @@ The Steam Deck uses the standard gamepad layout. Godot sees it as an Xbox-style 
 | **R2 (right trigger)** | Boost | Speeds up while held. Releasing returns to cruise speed. |
 | **A** | Boost (alternate) | Small hands may struggle with triggers |
 | **B** | Honk / beep 🎺 | Pure fun. No gameplay effect. |
-| **X** | Do a trick (future) | For example a barrel roll. Scripted and safe. |
+| **X** | Barrel roll | Tap for one roll, hold to keep rolling. Purely visual, so always safe. |
 | **Y** | Change camera | Cycles chase-close → chase-far |
 | **L2 (left trigger)** | Slow down | Never below minimum cruise speed |
 | **Menu (≡)** | Pause menu | Big picture buttons: *Resume*, *Change Plane* |
 | **View (⧉)** | No action | Avoids accidental actions |
-| **D-pad** | No action at launch | Reserved for paint colours later |
+| **D-pad ◀ ▶** | Paint colour | Cycles 8 colours; each plane remembers its own. Up/down repaints in the plane-select screen. |
 | **Trackpads / Gyro** | Not used | Gyro steering is a possible future option, off by default |
 
 #### Control Design Rules
@@ -139,6 +139,8 @@ The Steam Deck uses the standard gamepad layout. Godot sees it as an Xbox-style 
 | Shift / Space | Boost |
 | H | Honk |
 | C | Change camera |
+| R | Barrel roll |
+| Q / E | Paint colour |
 | Esc | Pause |
 
 ### 4.3 iPad (Future)

@@ -54,3 +54,55 @@ static func mesh_of(path: String) -> Array:
 	root.free()
 	_mesh_cache[path] = [mesh, xf]
 	return _mesh_cache[path]
+
+
+static var _merged_cache: Dictionary = {}
+
+
+## All meshes in a .glb merged into ONE surface with material colours baked
+## into vertex colours: one draw call per copy instead of one per part.
+## Optionally shifts one hue range (e.g. a mermaid's tail) to `to_color`.
+## parts: only merge parts whose node name is in this list (empty = all);
+## skip: leave these parts out. offset is added to every vertex (use it to
+## put a pivot, e.g. a shoulder, at the mesh origin).
+static func merged_mesh(path: String, from_hue := -1.0, hue_range := 0.06, to_color := Color.WHITE,
+		parts: PackedStringArray = [], skip: PackedStringArray = [], offset := Vector3.ZERO) -> ArrayMesh:
+	var key := "%s|%.2f|%s|%s|%s|%s" % [path, from_hue, to_color.to_html(), ",".join(parts), ",".join(skip), offset]
+	if _merged_cache.has(key):
+		return _merged_cache[key]
+	var root: Node = load(path).instantiate()
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for mi: MeshInstance3D in root.find_children("*", "MeshInstance3D", true, false):
+		var part := String(mi.name)
+		if (not parts.is_empty() and not parts.has(part)) or skip.has(part):
+			continue
+		var xf := Transform3D(Basis.IDENTITY, offset)
+		var cur: Node = mi
+		while cur != root:
+			xf = (cur as Node3D).transform * xf
+			cur = cur.get_parent()
+		for i in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			var col := mat.albedo_color if mat else Color.WHITE
+			if from_hue >= 0.0 and col.s > 0.35 and absf(wrapf(col.h - from_hue, -0.5, 0.5)) < hue_range:
+				col = Color.from_hsv(to_color.h, to_color.s, clampf(to_color.v * col.v / 0.8, 0.0, 1.0))
+			var arrays := mi.mesh.surface_get_arrays(i)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var normals = arrays[Mesh.ARRAY_NORMAL]
+			var indices = arrays[Mesh.ARRAY_INDEX]
+			var order: PackedInt32Array = indices if indices != null else PackedInt32Array(range(verts.size()))
+			for idx in order:
+				st.set_color(col)
+				if normals != null:
+					st.set_normal((xf.basis * normals[idx]).normalized())
+				st.add_vertex(xf * verts[idx])
+	root.free()
+	var mesh := st.commit()
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	m.roughness = 0.7
+	mesh.surface_set_material(0, m)
+	_merged_cache[key] = mesh
+	return mesh

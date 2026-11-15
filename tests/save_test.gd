@@ -22,15 +22,28 @@ func _ready() -> void:
 	_check("plane survives reload", SaveManager.selected_aircraft == "jet")
 	_check("stars survive reload", SaveManager.lifetime_stars == 7)
 
+	# 2a. Paint per plane
+	SaveManager.set_paint("prop", 5)
+	SaveManager.set_paint("jet", -1)  # wraps to the last colour
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("prop paint survives reload", SaveManager.get_paint("prop", 0) == 5)
+	_check("paint index wraps", SaveManager.get_paint("jet", 1) == Paint.COLORS.size() - 1)
+	_write('[player]\npaints={"prop": 99, "rocket": 2, "jet": "red"}\n')
+	SaveManager.use_path(PATH)
+	_check("bad paints fall back to defaults", SaveManager.get_paint("prop", 0) == 0 and SaveManager.get_paint("jet", 1) == 1 and not SaveManager.paints.has("rocket"))
+
 	# 2b. Settings round trip
 	SaveManager.set_music_volume(0.4)
 	SaveManager.set_sfx_volume(0.0)
 	SaveManager.set_battery_saver(true)
+	SaveManager.set_city_arrow(false)
 	SaveManager.save_now()
 	SaveManager.use_path(PATH)
 	_check("music volume survives reload", is_equal_approx(SaveManager.music_volume, 0.4))
 	_check("muted sounds survive reload", SaveManager.sfx_volume == 0.0)
 	_check("battery saver survives reload", SaveManager.battery_saver)
+	_check("arrow setting survives reload", not SaveManager.city_arrow)
 	_check("battery saver caps at 30 FPS", Engine.max_fps == GameSettings.BATTERY_SAVER_FPS)
 	_check("muted SFX bus", AudioServer.is_bus_mute(AudioServer.get_bus_index(GameSettings.BUS_SFX)))
 	_write('[settings]\nmusic_volume=7.5\nsfx_volume="loud"\nbattery_saver=3\n')

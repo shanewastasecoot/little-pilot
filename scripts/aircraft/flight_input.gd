@@ -5,6 +5,7 @@ extends Node
 
 signal honk_pressed
 signal camera_pressed
+signal trick_pressed
 
 ## Smoothed stick: x = turn (+right), y = pitch (+climb). Range -1..1.
 var stick: Vector2 = Vector2.ZERO
@@ -12,6 +13,8 @@ var stick: Vector2 = Vector2.ZERO
 var throttle: float = 0.0
 ## Raw (unsmoothed) stick magnitude, used for auto-level decisions.
 var has_stick_input: bool = false
+## True while the trick button (X) is held: keeps barrel-rolling.
+var trick_held: bool = false
 
 ## Set by tests to drive the plane without a controller.
 var override_enabled: bool = false
@@ -34,6 +37,7 @@ func _physics_process(delta: float) -> void:
 		raw_throttle = Input.get_action_strength("boost") - Input.get_action_strength("slow") * (1.0 - Input.get_action_strength("boost"))
 
 	has_stick_input = raw.length() > 0.05
+	trick_held = not override_enabled and Input.is_action_pressed("trick")
 	var t := 1.0 - exp(-smoothing * delta)
 	stick = stick.lerp(raw, t)
 	throttle = lerpf(throttle, clampf(raw_throttle, -1.0, 1.0), t)
@@ -46,3 +50,5 @@ func _unhandled_input(event: InputEvent) -> void:
 		honk_pressed.emit()
 	elif event.is_action_pressed("camera"):
 		camera_pressed.emit()
+	elif event.is_action_pressed("trick"):
+		trick_pressed.emit()

@@ -5,7 +5,7 @@ extends Node
 ## is saved. Run:
 ##   flatpak run org.godotengine.Godot --headless --path . --fixed-fps 60 res://tests/star_run_test.tscn
 
-const TIME_LIMIT := 900.0  # simulated seconds
+const TIME_LIMIT := 8000.0  # simulated seconds
 
 var _main: Node
 var _plane: Aircraft
@@ -15,6 +15,7 @@ var _milestones: Array[int] = []
 var _all_fired := false
 var _respawned := false
 var _done := false
+var _parties := 0
 
 
 func _ready() -> void:
@@ -27,7 +28,10 @@ func _ready() -> void:
 	_stars.milestone_reached.connect(func(n): _milestones.append(n))
 	_stars.all_collected.connect(func(): _all_fired = true)
 	_stars.star_collected.connect(_on_collected)
+	_stars.city_party_due.connect(func(): _parties += 1)
 	_main.title.hide()  # skip menus; the flow keeps autopilot override on
+	var map: GameMap = _main.get_node("Map")
+	_plane.teleport(map.spawn_position, map.spawn_heading())  # start airborne
 
 
 func _on_collected(count: int, _total: int) -> void:
@@ -82,12 +86,13 @@ func _finish() -> void:
 	var collected_all := _all_fired
 	print("Stars: %d total, collected %d in %.0f s simulated" % [_stars.total, _stars.total if _all_fired else _stars.count, _time])
 	for check in [
-		["at least 40 stars on the map", _stars.total >= 40],
+		["at least 200 stars on the map", _stars.total >= 200],
 		["every star reached", collected_all],
 		["10-star milestone fired", 10 in _milestones],
 		["all-collected celebration fired", _all_fired],
 		["stars respawned", _respawned and _stars.count == 0],
 		["lifetime total counted", SaveManager.lifetime_stars == _stars.total],
+		["city party every 30 stars", _parties == _stars.total / 30],
 	]:
 		print(("PASS  " if check[1] else "FAIL  ") + check[0])
 		if not check[1]:

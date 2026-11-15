@@ -2,6 +2,8 @@
 
 This file tracks every asset the game needs, from placeholder to final.
 
+> **Current status (v1.1):** the game now uses free low-poly models for the planes, trees, animals, buildings, sea life and props, and generated code for terrain, water, sky, music and sound. **`CREDITS.md` is the authoritative list** of every third-party asset in the game, with its author, licence and source. The per-item tables below are the original v1.0 plan and are kept for reference.
+
 ## How to Use This List
 
 Each asset has two checkboxes:

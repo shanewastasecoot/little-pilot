@@ -16,6 +16,8 @@ var turn_bias: float = 0.0
 ## and how strongly (0..1) it overrides everything else.
 var turn_override: float = 0.0
 var turn_override_weight: float = 0.0
+## 0.5..1: caps speed when a wall is close ahead (tighter turns, more time).
+var speed_factor: float = 1.0
 ## Last measured height above ground/water (for the debug HUD).
 var clearance: float = INF
 
@@ -62,6 +64,7 @@ func evaluate(pos: Vector3, velocity: Vector3, current_turn: float = 0.0) -> voi
 	pitch_ceiling_deg = stats.max_pitch_deg
 	turn_bias = 0.0
 	turn_override_weight = 0.0
+	speed_factor = 1.0
 
 	var path := _predict_path(pos, velocity, _yaw_rate(current_turn))
 	_avoid_ground(pos, path)
@@ -120,6 +123,7 @@ func _avoid_obstacles_ahead(pos: Vector3, velocity: Vector3, path: PackedVector3
 		var side: float = near.normal.dot(flat_v.cross(Vector3.UP))
 		turn_override = signf(side) if absf(side) > 0.05 else signf(-current_turn + 0.001)
 		turn_override_weight = 1.0
+		speed_factor = 0.5
 		return
 	var hit := _first_hit(pos, path)
 	if hit.is_empty():
@@ -135,7 +139,7 @@ func _avoid_obstacles_ahead(pos: Vector3, velocity: Vector3, path: PackedVector3
 	# the route that stays clear longest (ties go to the smallest change).
 	var best_turn := current_turn
 	var best_dist: float = hit.travelled
-	for candidate: float in [0.0, -1.0, 1.0]:
+	for candidate: float in [0.0, -0.5, 0.5, -1.0, 1.0]:
 		var h := _first_hit(pos, _predict_path(pos, velocity, _yaw_rate(candidate)))
 		var dist: float = lookahead * 1.01 if h.is_empty() else h.travelled
 		if dist > best_dist + 0.5:
@@ -145,6 +149,8 @@ func _avoid_obstacles_ahead(pos: Vector3, velocity: Vector3, path: PackedVector3
 	# would pull the plane straight back into the obstacle next frame.
 	turn_override = best_turn
 	turn_override_weight = clampf(urgency * 1.8, 0.0, 1.0)
+	# Slow down for walls ahead: a slower plane turns in a tighter circle.
+	speed_factor = lerpf(1.0, 0.5, clampf(urgency * 1.5, 0.0, 1.0))
 
 
 ## First world hit along a predicted path, with distance travelled to it.

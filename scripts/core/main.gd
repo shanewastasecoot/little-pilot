@@ -13,6 +13,12 @@ const AUTOPILOT_STICK := Vector2(0.3, 0.0)
 
 var state: State = State.TITLE
 var _idle_time := 0.0
+## City celebration: countdown seconds left (> 0), or -1 when idle.
+const CITY_COUNTDOWN := 30.0
+const FIREWORKS_TIME := 25.0
+var _party_countdown := -1.0
+var _city: Node3D
+var _fireworks: CityFireworks
 var _settings: SettingsPanel
 
 @onready var map: GameMap = $Map
@@ -27,10 +33,18 @@ var _settings: SettingsPanel
 
 func _ready() -> void:
 	aircraft.set_stats(AircraftCatalog.get_stats(SaveManager.selected_aircraft))
-	aircraft.teleport(map.spawn_position, map.spawn_heading())
+	aircraft.park(map.runway_start(), map.spawn_heading())
 	chase_camera.snap_to_target()
 	hud.bind(stars)
 	stars.all_collected.connect(_on_all_stars)
+	stars.city_party_due.connect(_on_city_party_due)
+	for l in get_tree().get_nodes_in_group("landmarks"):
+		if l is CityDistrict:
+			_city = l
+	if _city:
+		_fireworks = CityFireworks.new()
+		_city.add_child(_fireworks)
+		_fireworks.show_finished.connect(hud.hide_city_pointer)
 	for l in get_tree().get_nodes_in_group("landmarks"):
 		l.discovered.connect(_on_landmark_discovered)
 
@@ -57,6 +71,8 @@ func _enter(new_state: State) -> void:
 	var player_flying := state == State.FLYING
 	aircraft.input.override_enabled = not player_flying
 	aircraft.input.override_stick = Vector2.ZERO if player_flying else AUTOPILOT_STICK
+	if state == State.FLYING and aircraft.mode == Aircraft.Mode.PARKED:
+		aircraft.start_takeoff()
 	aircraft.input.override_throttle = 0.0
 	get_tree().paused = state == State.PAUSED
 	Music.set_mood("flight" if player_flying else "menu")
@@ -66,6 +82,7 @@ func _enter(new_state: State) -> void:
 
 
 func _process(delta: float) -> void:
+	_update_city_party(delta)
 	_idle_time += delta
 	hud.show_idle_hint(state == State.FLYING and _idle_time > IDLE_HINT_DELAY)
 
@@ -79,12 +96,46 @@ func _input(event: InputEvent) -> void:
 		_idle_time = 0.0
 
 
+func _on_city_party_due() -> void:
+	# One celebration at a time; extra 30s during a show are ignored.
+	if _city == null or _party_countdown > 0.0 or _fireworks.running:
+		return
+	_party_countdown = CITY_COUNTDOWN
+	Sfx.play("jingle", 1.2)
+
+
+func _update_city_party(delta: float) -> void:
+	if _city == null or (_party_countdown <= 0.0 and not _fireworks.running):
+		return
+	if _party_countdown > 0.0:
+		_party_countdown -= delta
+		if _party_countdown <= 0.0:
+			_party_countdown = -1.0
+			_fireworks.start(FIREWORKS_TIME)
+			Sfx.play("fanfare")
+	# Arrow: direction to the city relative to where the camera is looking.
+	var cam := chase_camera.cam
+	var to_city := _city.global_position - cam.global_position
+	var local := cam.global_basis.inverse() * to_city
+	var angle := atan2(local.x, -local.z)
+	var secs := ceili(_party_countdown) if _party_countdown > 0.0 else -1
+	hud.show_city_pointer(angle, secs)
+
+
 func _open_settings() -> void:
 	pause_menu.hide()
 	_settings.show()
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if state == State.FLYING and event.is_action_pressed("paint_next"):
+		aircraft.cycle_paint(1)
+		get_viewport().set_input_as_handled()
+		return
+	if state == State.FLYING and event.is_action_pressed("paint_prev"):
+		aircraft.cycle_paint(-1)
+		get_viewport().set_input_as_handled()
+		return
 	if state == State.FLYING and event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		Sfx.play("ui_move")

@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/characters/mermaid.gd" id="1_merm"]
+
+[sub_resource type="AnimationNodeAnimation" id="node_idle"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="node_lean"]
+animation = &"lean"
+
+[sub_resource type="AnimationNodeAnimation" id="node_hair"]
+animation = &"hair"
+
+[sub_resource type="AnimationNodeAnimation" id="node_wave"]
+animation = &"wave"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_start"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_idle_lean"]
+xfade_time = 1.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_idle_hair"]
+xfade_time = 1.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_idle_wave"]
+xfade_time = 0.35
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_lean_idle"]
+xfade_time = 1.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_lean_hair"]
+xfade_time = 1.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_lean_wave"]
+xfade_time = 0.35
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_hair_idle"]
+xfade_time = 1.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_hair_lean"]
+xfade_time = 1.2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_hair_wave"]
+xfade_time = 0.35
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_wave_idle"]
+xfade_time = 0.7
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_wave_lean"]
+xfade_time = 0.7
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="tr_wave_hair"]
+xfade_time = 0.7
+
+[sub_resource type="AnimationNodeStateMachine" id="state_machine"]
+states/idle/node = SubResource("node_idle")
+states/idle/position = Vector2(340, 100)
+states/lean/node = SubResource("node_lean")
+states/lean/position = Vector2(340, 260)
+states/hair/node = SubResource("node_hair")
+states/hair/position = Vector2(560, 260)
+states/wave/node = SubResource("node_wave")
+states/wave/position = Vector2(560, 100)
+transitions = ["Start", "idle", SubResource("tr_start"), "idle", "lean", SubResource("tr_idle_lean"), "idle", "hair", SubResource("tr_idle_hair"), "idle", "wave", SubResource("tr_idle_wave"), "lean", "idle", SubResource("tr_lean_idle"), "lean", "hair", SubResource("tr_lean_hair"), "lean", "wave", SubResource("tr_lean_wave"), "hair", "idle", SubResource("tr_hair_idle"), "hair", "lean", SubResource("tr_hair_lean"), "hair", "wave", SubResource("tr_hair_wave"), "wave", "idle", SubResource("tr_wave_idle"), "wave", "lean", SubResource("tr_wave_lean"), "wave", "hair", SubResource("tr_wave_hair")]
+
+[node name="Mermaid" type="Node3D"]
+script = ExtResource("1_merm")
+
+[node name="Model" type="Node3D" parent="."]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+active = false
+tree_root = SubResource("state_machine")
+anim_player = NodePath("../AnimationPlayer")

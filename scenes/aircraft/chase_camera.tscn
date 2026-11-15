@@ -18,4 +18,4 @@ margin = 0.3
 current = true
 fov = 70.0
 near = 0.2
-far = 3000.0
+far = 4500.0

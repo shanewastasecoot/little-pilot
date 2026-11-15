@@ -1,54 +1,103 @@
 class_name ModelRecolor
 extends Node
-## Recolours an imported model at load time by shifting one hue range in its
-## palette texture (or flat material colours) to another. Used to make the
-## red trainer jet blue without editing the original asset.
+## Recolours an imported model by swapping one hue range for another colour,
+## on the GPU: every material under `target` is replaced by a small shader
+## that does the swap per pixel (texture or flat colour), so changing colour
+## is instant even with large textures. Used for plane paint jobs, house
+## roofs and anything else that needs a colour variant without editing the
+## original asset.
 
-@export var target: MeshInstance3D
+## A MeshInstance3D, or any node whose MeshInstance3D descendants to recolour.
+@export var target: Node3D
 ## Hue (0..1) to replace and how far around it counts as a match.
 @export var from_hue: float = 0.0
 @export var hue_range: float = 0.06
 @export var to_color: Color = Color("3f8cff")
 
+const SHADER := """
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform bool use_tex = false;
+uniform vec4 albedo : source_color = vec4(1.0);
+uniform float from_hue = 0.0;
+uniform float hue_range = 0.06;
+uniform vec3 to_hsv = vec3(0.6, 0.7, 1.0);
+uniform float roughness = 0.6;
+uniform float metallic = 0.0;
+vec3 rgb2hsv(vec3 c) {
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1e-10)), d / (q.x + 1e-10), q.x);
+}
+vec3 hsv2rgb(vec3 c) {
+	vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+	return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}
+vec3 to_srgb(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+vec3 to_linear(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
+void fragment() {
+	vec4 c = albedo;
+	if (use_tex) {
+		c *= texture(albedo_tex, UV);
+	}
+	vec3 hsv = rgb2hsv(to_srgb(c.rgb));
+	float d = abs(fract(hsv.x - from_hue + 0.5) - 0.5);
+	float k = (1.0 - smoothstep(hue_range * 0.75, hue_range, d)) * smoothstep(0.28, 0.4, hsv.y);
+	// Keep the model's shading (value relative to its brightest), take the
+	// paint's hue, saturation and brightness.
+	float shade = clamp(hsv.z / 0.96, 0.4, 1.1);
+	vec3 painted = to_linear(hsv2rgb(vec3(to_hsv.x, to_hsv.y, clamp(to_hsv.z * shade, 0.0, 1.0))));
+	ALBEDO = mix(c.rgb, painted, k);
+	ROUGHNESS = roughness;
+	METALLIC = metallic;
+}
+"""
+
+static var _shader: Shader
+## Shared per (source material, from_hue, to_color) so many copies batch.
 static var _cache: Dictionary = {}
 
 
 func _ready() -> void:
-	if target == null or target.mesh == null:
+	apply(to_color)
+
+
+## Recolour to `color` (cached per colour, so switching is instant).
+func apply(color: Color) -> void:
+	to_color = color
+	if target == null:
 		return
-	for i in target.mesh.get_surface_count():
-		var mat := target.mesh.surface_get_material(i) as BaseMaterial3D
-		if mat == null:
+	var meshes: Array = target.find_children("*", "MeshInstance3D", true, false)
+	if target is MeshInstance3D:
+		meshes.append(target)
+	for mi: MeshInstance3D in meshes:
+		if mi.mesh == null:
 			continue
-		var key := "%s:%d:%s" % [target.mesh.resource_path, i, to_color.to_html()]
-		if not _cache.has(key):
-			_cache[key] = _recolored(mat)
-		target.set_surface_override_material(i, _cache[key])
+		for i in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			if mat == null:
+				continue
+			var key := "%d:%.3f:%s" % [mat.get_instance_id(), from_hue, to_color.to_html()]
+			if not _cache.has(key):
+				_cache[key] = _shader_material(mat)
+			mi.set_surface_override_material(i, _cache[key])
 
 
-func _recolored(mat: BaseMaterial3D) -> BaseMaterial3D:
-	var m := mat.duplicate() as BaseMaterial3D
-	if _matches(m.albedo_color):
-		m.albedo_color = _shift(m.albedo_color)
-	if m.albedo_texture:
-		var img := m.albedo_texture.get_image()
-		if img.is_compressed():
-			img.decompress()
-		img.convert(Image.FORMAT_RGBA8)
-		for y in img.get_height():
-			for x in img.get_width():
-				var c := img.get_pixel(x, y)
-				if _matches(c):
-					img.set_pixel(x, y, _shift(c))
-		m.albedo_texture = ImageTexture.create_from_image(img)
+func _shader_material(mat: BaseMaterial3D) -> ShaderMaterial:
+	if _shader == null:
+		_shader = Shader.new()
+		_shader.code = SHADER
+	var m := ShaderMaterial.new()
+	m.shader = _shader
+	m.set_shader_parameter("albedo", mat.albedo_color)
+	m.set_shader_parameter("use_tex", mat.albedo_texture != null)
+	if mat.albedo_texture:
+		m.set_shader_parameter("albedo_tex", mat.albedo_texture)
+	m.set_shader_parameter("from_hue", from_hue)
+	m.set_shader_parameter("hue_range", hue_range)
+	m.set_shader_parameter("to_hsv", Vector3(to_color.h, to_color.s, to_color.v))
+	m.set_shader_parameter("roughness", mat.roughness)
+	m.set_shader_parameter("metallic", mat.metallic)
 	return m
-
-
-func _matches(c: Color) -> bool:
-	var d := absf(wrapf(c.h - from_hue, -0.5, 0.5))
-	return c.s > 0.35 and d < hue_range
-
-
-## Keep the original brightness (shading in the palette), take the new hue.
-func _shift(c: Color) -> Color:
-	return Color.from_hsv(to_color.h, to_color.s * clampf(c.s / 0.75, 0.6, 1.2), c.v * to_color.v / 0.95, c.a)

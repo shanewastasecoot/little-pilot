@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -40,6 +40,10 @@ func _draw() -> void:
 			_draw_power(c, s)
 		Icon.GEAR:
 			_draw_gear(c, s)
+		Icon.POINTER:
+			# Countdown bubble with the guiding arrow above it (like the HUD).
+			draw_arc(c + Vector2(0, 0.12) * s, s * 0.26, 0, TAU, 32, color, s * 0.07, true)
+			_poly(PackedVector2Array([c + Vector2(0, -0.46) * s, c + Vector2(0.2, -0.2) * s, c + Vector2(0, -0.26) * s, c + Vector2(-0.2, -0.2) * s]))
 		Icon.MUSIC:
 			draw_circle(c + Vector2(-0.18, 0.22) * s, s * 0.13, color)
 			draw_circle(c + Vector2(0.24, 0.14) * s, s * 0.13, color)

@@ -1,7 +1,7 @@
 class_name Whale
 extends Landmark
-## A friendly whale (Quaternius CC0, swim animation) that surfaces every few
-## seconds off the west coast and blows a big spout when discovered.
+## A friendly cartoon whale that surfaces every few seconds off the west
+## coast, waggling as she swims, and blows a big spout when discovered.
 
 var _body: Node3D
 var _t := 0.0
@@ -16,7 +16,8 @@ func _init() -> void:
 func build() -> void:
 	_body = Node3D.new()
 	add_child(_body)
-	AssetLib.place(_body, "res://assets/environment/whale.glb", Vector3.ZERO, 2.6)
+	# Model is ~1.13 long, head along +Z, origin under her belly.
+	AssetLib.place(_body, "res://assets/environment/whale.glb", Vector3(0, -6.0, 2.6), 23.0)
 
 
 func _process(delta: float) -> void:
@@ -26,6 +27,9 @@ func _process(delta: float) -> void:
 	var up := smoothstep(0.0, 1.5, cycle) * (1.0 - smoothstep(5.0, 6.5, cycle))
 	_body.position.y = lerpf(-8.0, 0.5, up)
 	_body.rotation.x = sin(cycle * 0.7) * 0.08
+	# A gentle side-to-side swim wiggle (the model has no rig).
+	_body.rotation.y = sin(_t * 1.6) * 0.07
+	_body.rotation.z = sin(_t * 1.6 + 1.0) * 0.04
 
 
 func react() -> void:
