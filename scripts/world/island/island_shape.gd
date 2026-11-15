@@ -9,7 +9,7 @@ const COAST_RADIUS := 1180.0
 
 # Landmark anchor points (x, z)
 const RUNWAY := Vector2(0, 0)            # runway centre, runs east-west
-const RUNWAY_HALF := Vector2(300, 28)    # half length, half width
+const RUNWAY_HALF := Vector2(450, 28)    # half length, half width
 const HANGAR := Vector2(110, -95)        # hangar + apron footprint centre
 ## The new city (south-east of the runway).
 const CITY := Vector2(380, 600)

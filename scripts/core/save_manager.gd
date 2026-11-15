@@ -20,6 +20,9 @@ var sfx_volume: float = 1.0
 var battery_saver: bool = false
 ## Show the arrow that points to the city before its fireworks.
 var city_arrow: bool = true
+## The plane can crash (bonk, then back to the runway). Off = the old
+## can't-crash mode where it steers itself away from everything.
+var crashes: bool = true
 
 var _save_timer: Timer
 
@@ -78,6 +81,9 @@ func load_game() -> void:
 	var arrow = cfg.get_value("settings", "city_arrow", city_arrow)
 	if arrow is bool:
 		city_arrow = arrow
+	var crash = cfg.get_value("settings", "crashes", crashes)
+	if crash is bool:
+		crashes = crash
 	loaded.emit()
 	settings_changed.emit()
 
@@ -102,6 +108,7 @@ func save_now() -> void:
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
 	cfg.set_value("settings", "battery_saver", battery_saver)
 	cfg.set_value("settings", "city_arrow", city_arrow)
+	cfg.set_value("settings", "crashes", crashes)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -155,6 +162,12 @@ func set_city_arrow(on: bool) -> void:
 	request_save()
 
 
+func set_crashes(on: bool) -> void:
+	crashes = on
+	settings_changed.emit()
+	request_save()
+
+
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
@@ -163,3 +176,4 @@ func _reset_to_defaults() -> void:
 	sfx_volume = 1.0
 	battery_saver = false
 	city_arrow = true
+	crashes = true

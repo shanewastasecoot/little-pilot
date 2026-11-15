@@ -27,7 +27,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Asset | File | Author | License | Source |
 |---|---|---|---|---|
 | Biplane ("Toy plane") | `assets/aircraft/toy_biplane.glb` | law | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Sketchfab](https://sketchfab.com/3d-models/toy-plane-9b4e13700da14d31b9d923c499e18f64) |
-| Jet ("Lowpoly cartoon fighter jet") | `assets/aircraft/cartoon_jet.glb` | lukas.dlabek | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Sketchfab](https://sketchfab.com/3d-models/lowpoly-cartoon-fighter-jet-f44b683050f7431686149dd3bf745ad4) |
+| Jet trainer ("Jet") | `assets/aircraft/jet_trainer.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/3B3Pa6BHXn1) |
 
 | Pine tree | `assets/environment/pine.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/igSu0cPoBz) |
 | Round tree | `assets/environment/tree_round.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/9nvGuZlbpE) |
@@ -79,7 +79,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); both planes are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin.
+Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin.
 
 ## Generated in code
 

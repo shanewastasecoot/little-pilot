@@ -30,6 +30,7 @@ func _init(count: int = 24, speed: float = 9.0, colors: Array[Color] = [Color("f
 	var quad := QuadMesh.new()
 	quad.size = Vector2(0.6, 0.6)
 	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = _soft_dot()  # round, soft-edged particles
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	mat.vertex_color_use_as_albedo = true
@@ -37,6 +38,25 @@ func _init(count: int = 24, speed: float = 9.0, colors: Array[Color] = [Color("f
 	quad.material = mat
 	mesh = quad
 	finished.connect(queue_free)
+
+
+static var _dot: GradientTexture2D
+
+
+## A shared white disc that fades out at the edge.
+static func _soft_dot() -> GradientTexture2D:
+	if _dot == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.55, 1.0])
+		g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.9), Color(1, 1, 1, 0)])
+		_dot = GradientTexture2D.new()
+		_dot.gradient = g
+		_dot.fill = GradientTexture2D.FILL_RADIAL
+		_dot.fill_from = Vector2(0.5, 0.5)
+		_dot.fill_to = Vector2(1.0, 0.5)
+		_dot.width = 64
+		_dot.height = 64
+	return _dot
 
 
 func _ready() -> void:

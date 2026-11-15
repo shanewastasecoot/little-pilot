@@ -19,8 +19,17 @@ func _init() -> void:
 func build() -> void:
 	var half := IslandShape.RUNWAY_HALF
 	BuildKit.add(self, BuildKit.box(Vector3(half.x * 2.0, 0.4, half.y * 2.0)), "55585f", Vector3(0, 0.2, 0))
-	for i in 14:  # centre-line dashes
-		BuildKit.add(self, BuildKit.box(Vector3(18, 0.1, 1.6)), "ffffff", Vector3(-half.x + 30 + i * 42, 0.45, 0))
+	var dashes := MultiMesh.new()  # centre-line dashes, one draw call
+	dashes.transform_format = MultiMesh.TRANSFORM_3D
+	dashes.mesh = BuildKit.box(Vector3(18, 0.1, 1.6))
+	dashes.instance_count = int((half.x * 2.0 - 60.0) / 42.0) + 1
+	for i in dashes.instance_count:
+		dashes.set_instance_transform(i, Transform3D(Basis.IDENTITY, Vector3(-half.x + 30 + i * 42, 0.45, 0)))
+	var dash_mi := MultiMeshInstance3D.new()
+	dash_mi.multimesh = dashes
+	dash_mi.material_override = BuildKit.mat("ffffff")
+	dash_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(dash_mi)
 	for side in [-1, 1]:  # threshold stripes
 		for k in 6:
 			BuildKit.add(self, BuildKit.box(Vector3(14, 0.1, 3)), "ffffff", Vector3(side * (half.x - 14), 0.45, -19 + k * 7.6))

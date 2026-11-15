@@ -1,8 +1,8 @@
 class_name SettingsPanel
 extends CanvasLayer
 ## Parent settings, opened from the pause menu (gear button):
-## music volume, sound volume, a battery saver (30 FPS cap) and whether the
-## city-fireworks arrow is shown.
+## music volume, sound volume, a battery saver (30 FPS cap), whether the
+## city-fireworks arrow is shown, and whether the plane can crash.
 ## B / Esc or the back arrow closes it. Changes save automatically.
 
 signal closed
@@ -11,6 +11,7 @@ var _music: VolumeBar
 var _sounds: VolumeBar
 var _battery: BigButton
 var _arrow: BigButton
+var _crash: BigButton
 
 
 func _ready() -> void:
@@ -66,6 +67,12 @@ func _ready() -> void:
 	_arrow.toggle_mode = true
 	_arrow.toggled.connect(_on_arrow)
 	row.add_child(_arrow)
+	_crash = BigButton.new()
+	_crash.icon_type = UiIcon.Icon.CRASH
+	_crash.button_size = Vector2(130, 130)
+	_crash.toggle_mode = true
+	_crash.toggled.connect(_on_crash)
+	row.add_child(_crash)
 
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
@@ -78,6 +85,7 @@ func _on_visibility_changed() -> void:
 	_sounds.set_value(SaveManager.sfx_volume)
 	_battery.set_pressed_no_signal(SaveManager.battery_saver)
 	_arrow.set_pressed_no_signal(SaveManager.city_arrow)
+	_crash.set_pressed_no_signal(SaveManager.crashes)
 	_tint_battery()
 	_music.grab_focus.call_deferred()
 
@@ -92,9 +100,14 @@ func _on_arrow(on: bool) -> void:
 	_tint_battery()
 
 
+func _on_crash(on: bool) -> void:
+	SaveManager.set_crashes(on)
+	_tint_battery()
+
+
 ## Toggle buttons are green when on, grey when off.
 func _tint_battery() -> void:
-	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow]]:
+	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow], [_crash, SaveManager.crashes]]:
 		var b: BigButton = pair[0]
 		var c := Color("4cc06a") if pair[1] else Color("8a94a6")
 		b.add_theme_stylebox_override("normal", b._style(c, Color(0, 0, 0, 0)))
