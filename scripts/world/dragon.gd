@@ -33,7 +33,7 @@ const ANIM_GLOAT := "CharacterArmature|Yes"
 const AIRPORT_RADIUS := 470.0
 const WORLD_RADIUS := 4200.0
 const CEILING := 330.0
-const PATROL_SPEED := 17.0
+const PATROL_SPEED := 15.0
 const PATROL_ALT := 55.0
 const HUNT_ALT := 16.0
 const FIRE_TIME := 1.7
@@ -51,21 +51,21 @@ const HIT_SPHERES := [
 ## before it gives up a chase, fire range (m), fire cone (deg), seconds
 ## between breaths, wind-up (s), sleep and patrol times (s).
 const LEVELS := [
-	{"sight": 560.0, "fov": 115.0, "hear": 180.0, "notice": 1.7, "memory": 7.0,
-		"scent_every": 28.0, "scent_range": 1300.0, "scent_blur": 200.0,
-		"cruise_frac": 1.05, "boost_frac": 0.0, "turn": 50.0, "lead": 0.0, "give_up": 12.0,
-		"fire_range": 55.0, "fire_cone": 13.0, "cooldown": 7.0, "windup": 1.1,
-		"sleep": 60.0, "patrol": 90.0},
-	{"sight": 720.0, "fov": 135.0, "hear": 240.0, "notice": 1.3, "memory": 9.0,
-		"scent_every": 25.0, "scent_range": 1500.0, "scent_blur": 140.0,
-		"cruise_frac": 0.0, "boost_frac": 0.95, "turn": 72.0, "lead": 0.6, "give_up": 22.0,
-		"fire_range": 70.0, "fire_cone": 16.0, "cooldown": 5.0, "windup": 0.8,
-		"sleep": 40.0, "patrol": 120.0},
-	{"sight": 900.0, "fov": 160.0, "hear": 320.0, "notice": 0.6, "memory": 16.0,
-		"scent_every": 15.0, "scent_range": 2200.0, "scent_blur": 70.0,
-		"cruise_frac": 0.0, "boost_frac": 1.08, "turn": 95.0, "lead": 1.0, "give_up": 40.0,
-		"fire_range": 85.0, "fire_cone": 18.0, "cooldown": 3.5, "windup": 0.55,
-		"sleep": 25.0, "patrol": 160.0},
+	{"sight": 560.0, "fov": 115.0, "hear": 180.0, "notice": 2.1, "memory": 6.0,
+		"scent_every": 34.0, "scent_range": 1300.0, "scent_blur": 220.0,
+		"cruise_frac": 0.95, "boost_frac": 0.0, "turn": 43.0, "lead": 0.0, "give_up": 10.0,
+		"fire_range": 55.0, "fire_cone": 13.0, "cooldown": 9.0, "windup": 1.4,
+		"sleep": 70.0, "patrol": 80.0},
+	{"sight": 720.0, "fov": 135.0, "hear": 240.0, "notice": 1.6, "memory": 8.0,
+		"scent_every": 30.0, "scent_range": 1500.0, "scent_blur": 160.0,
+		"cruise_frac": 0.0, "boost_frac": 0.87, "turn": 62.0, "lead": 0.5, "give_up": 18.0,
+		"fire_range": 70.0, "fire_cone": 16.0, "cooldown": 6.5, "windup": 1.0,
+		"sleep": 48.0, "patrol": 105.0},
+	{"sight": 900.0, "fov": 160.0, "hear": 320.0, "notice": 0.8, "memory": 14.0,
+		"scent_every": 19.0, "scent_range": 2200.0, "scent_blur": 85.0,
+		"cruise_frac": 0.0, "boost_frac": 1.0, "turn": 82.0, "lead": 0.9, "give_up": 34.0,
+		"fire_range": 85.0, "fire_cone": 18.0, "cooldown": 4.5, "windup": 0.7,
+		"sleep": 30.0, "patrol": 140.0},
 ]
 
 ## The dragon can hurt the plane (parents' Crashes setting).
@@ -503,7 +503,7 @@ func _steer(goal: Vector3, want_speed: float, min_alt: float, delta: float, hunt
 	new_fwd.y = clampf(new_fwd.y, -0.55, 0.65)
 	new_fwd = new_fwd.normalized()
 	_yaw_rate = lerpf(_yaw_rate, fwd.signed_angle_to(new_fwd, Vector3.UP) / maxf(delta, 0.001), 0.1)
-	speed = move_toward(speed, want_speed, 12.0 * delta)
+	speed = move_toward(speed, want_speed, 10.0 * delta)
 	velocity = new_fwd * speed
 	global_position += velocity * delta
 	# Never sink into the ground, even in a tight spot.
