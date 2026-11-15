@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.0.0 released; v1.1 (paint, barrel roll, runway take-off, much bigger world, city with fireworks, erupting volcano, Mermaid Lagoon, new planes and characters) in review |
+| **Status** | v1.1.0 released (paint, barrel roll, crashing with runway respawn, player take-off, much bigger world, city with Ferris wheel and fireworks, erupting volcano, Mermaid Lagoon, new planes and characters) |
 
 ## Target Audience
 
