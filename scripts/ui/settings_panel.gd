@@ -4,9 +4,16 @@ extends CanvasLayer
 ## music volume, sound volume, a battery saver (30 FPS cap), whether the
 ## city-fireworks arrow is shown, whether the plane can crash, whether the
 ## dragon lives on the island and how tough it is (1-3 flames).
+## Bottom row: how long they've played, and "Restart the city" (press once
+## and it turns orange; press again within a few seconds to really do it).
 ## B / Esc or the back arrow closes it. Changes save automatically.
 
 signal closed
+
+## Seconds the city-restart button stays armed after the first press.
+const CITY_ARM_TIME := 4.0
+const CITY_BLUE := Color("4aa8ff")
+const CITY_ARMED := Color("ff9f1c")
 
 var _music: VolumeBar
 var _sounds: VolumeBar
@@ -15,6 +22,9 @@ var _arrow: BigButton
 var _crash: BigButton
 var _dragon: BigButton
 var _level: BigButton
+var _city: BigButton
+var _played: Label
+var _city_armed := 0.0
 
 
 func _ready() -> void:
@@ -89,8 +99,51 @@ func _ready() -> void:
 	_level.pressed.connect(func(): SaveManager.set_dragon_level(SaveManager.dragon_level + 1); _tint_battery())
 	row.add_child(_level)
 
+	var row2 := HBoxContainer.new()
+	row2.alignment = BoxContainer.ALIGNMENT_CENTER
+	row2.add_theme_constant_override("separation", 30)
+	col.add_child(row2)
+	var flown := UiIcon.new()
+	flown.icon = UiIcon.Icon.PLANE
+	flown.custom_minimum_size = Vector2(70, 70)
+	row2.add_child(flown)
+	_played = Label.new()
+	_played.add_theme_font_size_override("font_size", 44)
+	_played.add_theme_color_override("font_color", Color.WHITE)
+	_played.add_theme_color_override("font_outline_color", Color(0.15, 0.2, 0.35))
+	_played.add_theme_constant_override("outline_size", 10)
+	_played.custom_minimum_size = Vector2(240, 0)
+	row2.add_child(_played)
+	_city = BigButton.new()
+	_city.icon_type = UiIcon.Icon.CITY
+	_city.button_size = Vector2(130, 130)
+	_city.pressed.connect(_on_city_pressed)
+	row2.add_child(_city)
+
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
+
+
+func _process(delta: float) -> void:
+	if _city_armed > 0.0:
+		_city_armed -= delta
+		if _city_armed <= 0.0:
+			_tint(_city, CITY_BLUE)
+
+
+## First press arms it (orange), a second press within CITY_ARM_TIME
+## restarts the city, so a stray tap never wipes hours of building.
+func _on_city_pressed() -> void:
+	if _city_armed > 0.0:
+		_city_armed = 0.0
+		SaveManager.reset_city()
+		Sfx.play("ui_confirm")
+		_tint(_city, Color("4cc06a"))
+		create_tween().tween_callback(_tint.bind(_city, CITY_BLUE)).set_delay(0.8)
+	else:
+		_city_armed = CITY_ARM_TIME
+		Sfx.play("ui_move")
+		_tint(_city, CITY_ARMED)
 
 
 func _on_visibility_changed() -> void:
@@ -102,6 +155,9 @@ func _on_visibility_changed() -> void:
 	_arrow.set_pressed_no_signal(SaveManager.city_arrow)
 	_crash.set_pressed_no_signal(SaveManager.crashes)
 	_dragon.set_pressed_no_signal(SaveManager.dragon)
+	_played.text = SaveManager.format_duration(SaveManager.playtime)
+	_city_armed = 0.0
+	_tint(_city, CITY_BLUE)
 	_tint_battery()
 	_music.grab_focus.call_deferred()
 
@@ -124,6 +180,12 @@ func _on_dragon(on: bool) -> void:
 func _on_crash(on: bool) -> void:
 	SaveManager.set_crashes(on)
 	_tint_battery()
+
+
+func _tint(b: BigButton, c: Color) -> void:
+	b.add_theme_stylebox_override("normal", b._style(c, Color(0, 0, 0, 0)))
+	b.add_theme_stylebox_override("hover", b._style(c.lightened(0.1), Color(0, 0, 0, 0)))
+	b.add_theme_stylebox_override("pressed", b._style(c, Color(0, 0, 0, 0)))
 
 
 ## Toggle buttons are green when on, grey when off.

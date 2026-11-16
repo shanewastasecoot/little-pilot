@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -93,6 +93,17 @@ func _draw() -> void:
 			_poly(PackedVector2Array([c + Vector2(-0.4, -0.13) * s, c + Vector2(-0.2, -0.13) * s, c + Vector2(0.05, -0.36) * s, c + Vector2(0.05, 0.36) * s, c + Vector2(-0.2, 0.13) * s, c + Vector2(-0.4, 0.13) * s]))
 			for k in 2:
 				draw_arc(c + Vector2(0.05, 0) * s, s * (0.18 + k * 0.15), -0.8, 0.8, 12, color, s * 0.06)
+		Icon.CITY:
+			# A little skyline: three towers with windows on a ground line.
+			for t in [[-0.40, -0.12, 0.22], [-0.14, -0.42, 0.26], [0.16, -0.24, 0.24]]:
+				var r := Rect2(c + Vector2(t[0], t[1]) * s, Vector2(t[2], 0.36 - t[1]) * s)
+				_poly(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]))
+				var y: float = t[1] + 0.08
+				while y < 0.28:
+					for wx in [0.05, t[2] - 0.11]:
+						draw_rect(Rect2(c + Vector2(t[0] + wx, y) * s, Vector2(0.06, 0.06) * s), Color(0, 0, 0, 0.3))
+					y += 0.13
+			draw_line(c + Vector2(-0.46, 0.37) * s, c + Vector2(0.46, 0.37) * s, color, s * 0.05)
 		Icon.BATTERY:
 			var body := Rect2(c + Vector2(-0.4, -0.2) * s, Vector2(0.72, 0.4) * s)
 			draw_rect(body, color, false, s * 0.06)

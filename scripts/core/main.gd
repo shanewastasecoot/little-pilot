@@ -8,6 +8,10 @@ enum State { TITLE, SELECT, FLYING, PAUSED }
 ## Seconds without input before the stick hint appears.
 const IDLE_HINT_DELAY := 10.0
 
+## No input for this long while flying = nobody's playing (the Deck was put
+## down): stop counting playtime until they touch it again.
+const AWAY_TIME := 120.0
+
 ## Gentle circle flown behind the menus.
 const AUTOPILOT_STICK := Vector2(0.3, 0.0)
 
@@ -103,6 +107,8 @@ func _enter(new_state: State) -> void:
 func _process(delta: float) -> void:
 	_update_city_party(delta)
 	_idle_time += delta
+	if state == State.FLYING and _idle_time < AWAY_TIME:
+		SaveManager.add_playtime(delta)
 	# Waiting on the runway: show the hint straight away so they know to go.
 	var waiting := aircraft.mode == Aircraft.Mode.PARKED
 	hud.show_idle_hint(state == State.FLYING and (waiting or _idle_time > IDLE_HINT_DELAY))
