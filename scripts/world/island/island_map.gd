@@ -160,7 +160,7 @@ func _open_meadow(x: float, z: float) -> bool:
 	var p := Vector2(x, z)
 	if IslandShape.on_runway(x, z) or absf(z) < 120.0 and absf(x) < IslandShape.RUNWAY_HALF.x + 80.0:
 		return false
-	if p.distance_to(IslandShape.CITY) < IslandShape.CITY_RADIUS + 40.0 or p.distance_to(IslandShape.FARM) < 200.0:
+	if IslandShape.in_city_area(x, z, 40.0) or p.distance_to(IslandShape.FARM) < 200.0:
 		return false
 	if p.distance_to(IslandShape.HANGAR) < 90.0 or IslandShape.p_in_forest(x, z):
 		return false

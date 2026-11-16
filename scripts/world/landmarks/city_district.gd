@@ -7,6 +7,8 @@ extends Landmark
 ## building site, a park with a pond, and a big turning Ferris wheel.
 ## Streets have lane markings, street lights and traffic lights. Node sits at
 ## the city centre on its flat ground.
+## The city keeps growing as the player flies (CityGrowth, a child): the
+## outer ring of lots fills in and the three construction sites finish.
 
 const ENV := "res://assets/environment/"
 const PITCH := 80.0      # block spacing (block + road)
@@ -20,6 +22,15 @@ var _fountain: CPUParticles3D
 var _wheel: Node3D
 var _gondolas: Array[Node3D] = []
 var _wheel_speed := 0.08
+var growth: CityGrowth
+## Construction sites by cell: {"core": frame/structure, "edge": floor,
+## barriers and crane}. The core goes when its building starts rising, the
+## edge when it opens.
+var _sites: Dictionary = {}
+## Downtown shop pairs by cell (holder node), and what each was built from,
+## so a restarted city gets back any that were upgraded into towers.
+var _pairs: Dictionary = {}
+var _pair_models: Dictionary = {}
 
 
 func _init() -> void:
@@ -39,8 +50,6 @@ func build() -> void:
 	_skyscraper("sky_grey", Vector2(1, 0), 30.0, 4.08)        # ~120 m
 	_skyscraper("sky_classic", Vector2(-1, 1), 32.0, 3.15)    # ~100 m
 	_pair(Vector2(0, -1), "bld_b", "bld_c")
-	_construction(Vector2(0, 1), true)
-	_construction(Vector2(1, 1), false)
 	# Outer ring.
 	_skyscraper("sky_grey", Vector2(-2, -2), 28.0, 4.08, 90.0)       # ~115 m
 	_skyscraper("sky_glass_b", Vector2(2, 2), 28.0, 4.48, 90.0)      # ~125 m
@@ -50,9 +59,50 @@ func build() -> void:
 			Vector2(2, -1), Vector2(-1, 2), Vector2(0, 2), Vector2(1, 2)]:
 		var flip := int(cell.x + cell.y) % 2 == 0
 		_pair(cell, "bld_c" if flip else "bld_b", "bld_b" if flip else "bld_c")
-	_construction(Vector2(2, 1), false)
 	_ferris_wheel(Vector2(2, -2))
 	_park(Vector2(-2, 2))
+	growth = CityGrowth.new()
+	growth.name = "Growth"
+	growth.city = self
+	add_child(growth)  # builds the sites (reset_sites) and everything grown so far
+
+
+## Put the three construction sites and every old shop pair back as they
+## were (start of the city).
+func reset_sites() -> void:
+	for cell in _sites.keys():
+		clear_site(cell)
+	for cell in _pair_models:
+		if not _pairs.has(cell):
+			var m: Array = _pair_models[cell]
+			_pair(Vector2(cell), m[0], m[1])
+	_construction(Vector2(0, 1), true)
+	_construction(Vector2(1, 1), false)
+	_construction(Vector2(2, 1), false)
+
+
+## An old shop pair is being replaced by a tower: knock it down.
+func clear_pair(cell: Vector2i) -> void:
+	if _pairs.has(cell) and is_instance_valid(_pairs[cell]):
+		_pairs[cell].free()
+	_pairs.erase(cell)
+
+
+## Its building has started rising: take away the old frame.
+func clear_site_core(cell: Vector2i) -> void:
+	var s: Dictionary = _sites.get(cell, {})
+	if s.has("core") and is_instance_valid(s.core):
+		s.core.free()
+	s.erase("core")
+
+
+## Its building has opened: take away the whole site.
+func clear_site(cell: Vector2i) -> void:
+	clear_site_core(cell)
+	var s: Dictionary = _sites.get(cell, {})
+	if s.has("edge") and is_instance_valid(s.edge):
+		s.edge.free()
+	_sites.erase(cell)
 
 
 # --- Streets -------------------------------------------------------------------
@@ -131,44 +181,53 @@ func _skyscraper(model: String, cell: Vector2, s: float, model_h: float, yaw := 
 
 func _pair(cell: Vector2, a: String, b: String) -> void:
 	var c := _block_centre(cell)
+	var holder := Node3D.new()
+	add_child(holder)
+	_pairs[Vector2i(cell)] = holder
+	_pair_models[Vector2i(cell)] = [a, b]
 	for side in [-1.0, 1.0]:
 		var model: String = a if side < 0.0 else b
 		var p := c + Vector3(side * 16.0, 0, 0)
-		AssetLib.place(self, ENV + model + ".glb", p, 16.0, 180.0 if cell.y < 0 or (cell.y == 0 and cell.x < 0) else 0.0)
+		AssetLib.place(holder, ENV + model + ".glb", p, 16.0, 180.0 if cell.y < 0 or (cell.y == 0 and cell.x < 0) else 0.0)
 		var h := (3.05 if model == "bld_b" else 2.35) * 16.0
-		BuildKit.collider(self, BuildKit.box_shape(Vector3(32, h, 32)), p + Vector3(0, h * 0.5, 0))
-	BuildKit.push_volume(self, 44.0, 90.0, c)
+		BuildKit.collider(holder, BuildKit.box_shape(Vector3(32, h, 32)), p + Vector3(0, h * 0.5, 0))
+	BuildKit.push_volume(holder, 44.0, 90.0, c)
 
 
 func _construction(cell: Vector2, half_built: bool) -> void:
 	var c := _block_centre(cell)
+	var edge := Node3D.new()
+	var core := Node3D.new()
+	add_child(edge)
+	add_child(core)
+	_sites[Vector2i(cell)] = {"edge": edge, "core": core}
 	# Site floor and barriers round the edge.
-	BuildKit.add(self, BuildKit.box(Vector3(60, 0.5, 60)), "b9a88a", c + Vector3(0, 0.25, 0)).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	BuildKit.add(edge, BuildKit.box(Vector3(60, 0.5, 60)), "b9a88a", c + Vector3(0, 0.25, 0)).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for k in 16:
 		var side := k / 4
 		var t := -24.0 + (k % 4) * 16.0
 		var p := Vector3(t, 0, 29) if side == 0 else Vector3(t, 0, -29) if side == 1 else Vector3(29, 0, t) if side == 2 else Vector3(-29, 0, t)
-		AssetLib.place(self, ENV + "barrier.glb", c + p + Vector3(0, 0.06 * 15.0, 0), 15.0, 0.0 if side < 2 else 90.0)
+		AssetLib.place(edge, ENV + "barrier.glb", c + p + Vector3(0, 0.06 * 15.0, 0), 15.0, 0.0 if side < 2 else 90.0)
 	if half_built:
-		AssetLib.place(self, ENV + "structure.glb", c + Vector3(-6, 0, 0), 5.5)
-		BuildKit.collider(self, BuildKit.box_shape(Vector3(57, 42, 41)), c + Vector3(-6, 21, 0))
+		AssetLib.place(core, ENV + "structure.glb", c + Vector3(-6, 0, 0), 5.5)
+		BuildKit.collider(core, BuildKit.box_shape(Vector3(57, 42, 41)), c + Vector3(-6, 21, 0))
 	else:
 		# Foundation with a steel frame rising: the next tower going up.
-		BuildKit.add(self, BuildKit.box(Vector3(44, 3, 44)), "9aa0a8", c + Vector3(0, 1.5, 0))
+		BuildKit.add(core, BuildKit.box(Vector3(44, 3, 44)), "9aa0a8", c + Vector3(0, 1.5, 0))
 		for fx in 4:
 			for fz in 4:
-				BuildKit.add(self, BuildKit.box(Vector3(1.2, 46, 1.2)), "6b7a8f", c + Vector3(-19.5 + fx * 13.0, 26, -19.5 + fz * 13.0))
+				BuildKit.add(core, BuildKit.box(Vector3(1.2, 46, 1.2)), "6b7a8f", c + Vector3(-19.5 + fx * 13.0, 26, -19.5 + fz * 13.0))
 		for level in 4:
-			BuildKit.add(self, BuildKit.box(Vector3(42, 1.0, 42)), "8a97a8", c + Vector3(0, 12 + level * 12.0, 0))
-		BuildKit.collider(self, BuildKit.box_shape(Vector3(44, 50, 44)), c + Vector3(0, 25, 0))
-	_crane(c + Vector3(26, 0, -22), half_built)
+			BuildKit.add(core, BuildKit.box(Vector3(42, 1.0, 42)), "8a97a8", c + Vector3(0, 12 + level * 12.0, 0))
+		BuildKit.collider(core, BuildKit.box_shape(Vector3(44, 50, 44)), c + Vector3(0, 25, 0))
+	make_crane(edge, c + Vector3(26, 0, -22), 110.0 if half_built else 95.0)
 
 
-func _crane(at: Vector3, tall: bool) -> void:
-	var h := 110.0 if tall else 95.0
+## A tower crane `h` m tall under `parent`; its top turns with the others.
+func make_crane(parent: Node3D, at: Vector3, h: float) -> void:
 	var crane := Node3D.new()
 	crane.position = at
-	add_child(crane)
+	parent.add_child(crane)
 	# Mast: four yellow legs with cross braces (reads as a lattice).
 	for lx in [-1.2, 1.2]:
 		for lz in [-1.2, 1.2]:
@@ -293,6 +352,8 @@ func _process(delta: float) -> void:
 			car.global_rotation = Vector3(0, PI * 0.25, 0)  # cars hang level
 		_wheel_speed = move_toward(_wheel_speed, 0.08, delta * 0.1)
 	for i in _cranes.size():
+		if not is_instance_valid(_cranes[i]):
+			continue
 		_cranes[i].rotate_y(_crane_speed * delta * (1.0 if i % 2 == 0 else -0.8))
 	_crane_speed = move_toward(_crane_speed, 0.12, delta * 0.2)
 

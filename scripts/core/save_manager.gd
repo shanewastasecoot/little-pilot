@@ -25,6 +25,9 @@ var playtime: float = 0.0
 ## Seconds of flying since the city was last restarted; the city grows from
 ## this. Never more than `playtime`.
 var city_time: float = 0.0
+## Seeds the city's growth plan (CityPlan), so each family's city grows a
+## little differently but always the same way for them. New on each restart.
+var city_seed: int = 0
 ## Paint index per aircraft id.
 var paints: Dictionary = {}
 # Parent settings (0..1 volumes)
@@ -70,15 +73,24 @@ func use_path(new_path: String) -> void:
 
 
 func load_game() -> void:
+	_load_file()
+	if city_seed <= 0:
+		city_seed = _new_seed()  # saved with the next save (playtime autosaves)
+	loaded.emit()
+
+
+func _new_seed() -> int:
+	return randi_range(1, 999999)
+
+
+func _load_file() -> void:
 	_reset_to_defaults()
 	var cfg := ConfigFile.new()
 	var err := cfg.load(path)
 	if err == ERR_FILE_NOT_FOUND:
-		loaded.emit()
 		return
 	if err != OK:
 		push_warning("Save file %s unreadable (error %d); using defaults." % [path, err])
-		loaded.emit()
 		return
 	var plane = cfg.get_value("player", "selected_aircraft", selected_aircraft)
 	if plane is String and AircraftCatalog.has(plane):
@@ -88,6 +100,9 @@ func load_game() -> void:
 		lifetime_stars = stars
 	playtime = _seconds(cfg.get_value("progress", "playtime", 0.0))
 	city_time = minf(_seconds(cfg.get_value("progress", "city_time", playtime)), playtime)
+	var cs = cfg.get_value("progress", "city_seed", 0)
+	if cs is int and cs > 0:
+		city_seed = cs
 	var saved_paints = cfg.get_value("player", "paints", {})
 	if saved_paints is Dictionary:
 		for id in saved_paints:
@@ -111,7 +126,6 @@ func load_game() -> void:
 	var lvl = cfg.get_value("settings", "dragon_level", dragon_level)
 	if lvl is int and lvl >= 0 and lvl < DRAGON_LEVELS:
 		dragon_level = lvl
-	loaded.emit()
 	settings_changed.emit()
 
 
@@ -142,6 +156,7 @@ func save_now() -> void:
 	cfg.set_value("progress", "lifetime_stars", lifetime_stars)
 	cfg.set_value("progress", "playtime", playtime)
 	cfg.set_value("progress", "city_time", city_time)
+	cfg.set_value("progress", "city_seed", city_seed)
 	cfg.set_value("settings", "music_volume", music_volume)
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
 	cfg.set_value("settings", "battery_saver", battery_saver)
@@ -186,6 +201,7 @@ func add_playtime(delta: float) -> void:
 ## Total playtime and stars are kept.
 func reset_city() -> void:
 	city_time = 0.0
+	city_seed = _new_seed()  # a restarted city grows a new way
 	city_reset.emit()
 	request_save()
 
@@ -254,6 +270,7 @@ func _reset_to_defaults() -> void:
 	lifetime_stars = 0
 	playtime = 0.0
 	city_time = 0.0
+	city_seed = 0
 	_unsaved_play = 0.0
 	paints = {}
 	music_volume = 0.7

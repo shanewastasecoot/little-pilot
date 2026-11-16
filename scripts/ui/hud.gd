@@ -10,6 +10,10 @@ var _party: Celebration
 var _hint: StickHint
 var _city_pointer: CityPointer
 var _dragon: DragonWarning
+var _news: PanelContainer
+var _news_label: Label
+var _news_queue: Array[String] = []
+var _news_tween: Tween
 
 
 func _ready() -> void:
@@ -77,6 +81,33 @@ func _ready() -> void:
 	root.add_child(_dragon)
 	root.move_child(_dragon, 0)  # under the counters
 
+	# City news banner: "A new bakery opened!" slides down at the top.
+	_news = PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.13, 0.2, 0.38, 0.85)
+	style.set_corner_radius_all(26)
+	style.content_margin_left = 22
+	style.content_margin_right = 30
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	_news.add_theme_stylebox_override("panel", style)
+	_news.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	_news.add_child(row)
+	var city_icon := UiIcon.new()
+	city_icon.icon = UiIcon.Icon.CITY
+	city_icon.color = Color("ffd23f")
+	city_icon.custom_minimum_size = Vector2(64, 64)
+	row.add_child(city_icon)
+	_news_label = Label.new()
+	_news_label.add_theme_font_size_override("font_size", 40)
+	_news_label.add_theme_color_override("font_color", Color.WHITE)
+	_news_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(_news_label)
+	_news.modulate.a = 0.0
+	root.add_child(_news)
+
 
 ## The dragon warning: on while it hunts the plane. angle: where it is
 ## relative to the camera (0 ahead, + right); closeness 0..1.
@@ -111,6 +142,35 @@ func bind(stars: StarManager) -> void:
 	stars.star_collected.connect(_on_star_collected)
 	stars.milestone_reached.connect(func(_n): _party.play(false))
 	stars.all_collected.connect(func(): _party.play(true))
+
+
+## City news: a banner at the top for a few seconds, with bells. Several
+## at once queue up.
+func show_news(text: String) -> void:
+	_news_queue.append(text)
+	if _news_queue.size() == 1:
+		_show_next_news()
+
+
+func _show_next_news() -> void:
+	if _news_queue.is_empty():
+		return
+	_news_label.text = _news_queue[0]
+	_news.reset_size()
+	var w := get_viewport().get_visible_rect().size.x
+	var x := (w - _news.size.x) * 0.5
+	_news.position = Vector2(x, -90)
+	Sfx.play("bells", 1.0, -4.0)
+	if _news_tween:
+		_news_tween.kill()
+	_news_tween = create_tween()
+	_news_tween.tween_property(_news, "position:y", 150.0, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_news_tween.parallel().tween_property(_news, "modulate:a", 1.0, 0.3)
+	_news_tween.tween_interval(4.0)
+	_news_tween.tween_property(_news, "modulate:a", 0.0, 0.5)
+	_news_tween.tween_callback(func():
+		_news_queue.pop_front()
+		_show_next_news())
 
 
 ## Small party when a new landmark is found (doesn't interrupt flying).

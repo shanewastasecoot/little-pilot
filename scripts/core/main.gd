@@ -66,6 +66,7 @@ func _ready() -> void:
 		_fireworks = CityFireworks.new()
 		_city.add_child(_fireworks)
 		_fireworks.show_finished.connect(hud.hide_city_pointer)
+		_city.growth.building_opened.connect(hud.show_news)
 	for l in get_tree().get_nodes_in_group("landmarks"):
 		l.discovered.connect(_on_landmark_discovered)
 	_dragon = get_tree().get_first_node_in_group("dragon") as Dragon
