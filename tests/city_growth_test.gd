@@ -8,6 +8,10 @@ extends Node
 ##           an announcement, grow only (never un-build), roads arrive with
 ##           their lots, the old construction sites finish, and late on
 ##           old downtown shops are knocked down for skyscrapers
+##   people  townspeople from the start, more as the city grows; after a
+##           while of walking nobody is inside a building or out in the
+##           road (except crossing at corners), and people really do go in
+##           and come back out of doors
 ##   reset   "Restart the city" puts everything back to the start
 ## Exit code 0 = pass, 1 = fail.
 
@@ -111,6 +115,10 @@ func _live_checks(main: Node) -> void:
 	var g: CityGrowth = city.growth
 	g.building_opened.connect(func(t: String): _news.append(t))
 	_check("a new save starts with today's city", g._builds.get_child_count() == 0 and city._sites.size() == 3 and city._pairs.size() == 10)
+	var crowd: CityCrowd = city.crowd
+	var start_people := crowd.population()
+	_check("today's city has townspeople", start_people >= 100)
+	_crowd_walk_checks(crowd)
 	var first: Dictionary = g.plan[0]
 	# Halfway through the first build: it's there, rising, not open yet.
 	SaveManager.city_time = first.start + first.dur * 0.5
@@ -133,6 +141,7 @@ func _live_checks(main: Node) -> void:
 		last = n
 	var opened := g.opened_count(g.now())
 	_check("city only ever grows", grew_only)
+	_check("more people as the city grows", crowd.population() > start_people)
 	_check("every opening announced", _news.size() == opened)
 	_check("roads arrive with their lots", g._roads != null and g._segments.size() > 0)
 	# Late on: an upgrade knocks down an old shop pair for a tower.
@@ -154,11 +163,57 @@ func _live_checks(main: Node) -> void:
 	SaveManager.reset_city()
 	_check("restart puts the city back", g._builds.get_child_count() == 0 and g._segments.is_empty() and city._sites.size() == 3 and city._pairs.size() == 10)
 	_check("restart picks a new growth plan", SaveManager.city_seed != seed_before)
+	_check("restart shrinks the crowd back", crowd.population() == start_people)
 	# A full city builds without errors.
 	SaveManager.city_time = 24.0 * 3600.0
 	SaveManager.playtime = SaveManager.city_time
 	g.rebuild()
 	_check("the full city builds", g._active.is_empty() and g.opened_count(g.now()) == g.plan.size() and city._sites.is_empty())
+	_check("a full city's crowd is capped", crowd.population() == CityCrowd.MAX_PEOPLE)
+	_crowd_walk_checks(crowd)
+
+
+## Walk everyone for 90 s (in 0.1 s steps) and check where they are.
+func _crowd_walk_checks(crowd: CityCrowd) -> void:
+	var went_in := 0
+	var came_out := 0
+	var bad := ""
+	for step in 900:
+		for p in crowd.people:
+			var before: int = p.state
+			crowd._step(p, 0.1)
+			if before != CityCrowd.INSIDE and p.state == CityCrowd.INSIDE:
+				went_in += 1
+			if before == CityCrowd.INSIDE and p.state != CityCrowd.INSIDE:
+				came_out += 1
+			if bad == "" and step % 10 == 0:
+				bad = _where_wrong(crowd, p)
+	_check("people stay on pavements, doors, parks or crossings", bad == "")
+	if bad != "":
+		print("  " + bad)
+	_check("people go into buildings (%d)" % went_in, went_in > 10)
+	_check("people come back out (%d)" % came_out, came_out > 3)
+
+
+func _where_wrong(crowd: CityCrowd, p: Dictionary) -> String:
+	var pos: Vector3 = p.pos
+	if not (is_finite(pos.x) and is_finite(pos.z)):
+		return "a person at NaN"
+	if p.state == CityCrowd.INSIDE or p.state == CityCrowd.CROSS:
+		return ""
+	var info: Dictionary = crowd.blocks.get(p.block, {})
+	if info.is_empty():
+		return "a person on a block that doesn't exist"
+	var c := Vector3(p.block.x * CityCrowd.PITCH, 0, p.block.y * CityCrowd.PITCH)
+	var l := pos - c
+	var m := maxf(absf(l.x), absf(l.z))
+	if m > CityCrowd.LOOP + 0.6:
+		return "person in the road at %s (state %d, %.1f m out)" % [pos, p.state, m]
+	if info.open:
+		return ""
+	if m < CityCrowd.EDGE - 0.6:
+		return "person inside block %s at %s (state %d)" % [p.block, pos, p.state]
+	return ""
 
 
 func _check(name: String, ok: bool) -> void:

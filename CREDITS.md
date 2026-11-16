@@ -77,10 +77,16 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Classic skyscraper | `assets/environment/sky_classic.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/obYD8hWLTZ) |
 | Grey skyscraper | `assets/environment/sky_grey.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/XST1j6kYsL) |
 | Glass skyscraper 3 | `assets/environment/sky_glass_c.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/BwEXdOoUSO) |
+| Townsperson: worker ("Worker") | `assets/characters/people/worker.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/E8079Ahx7k) |
+| Townsperson: suit ("Suit") | `assets/characters/people/suit.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/sOUciDsoVV) |
+| Townsperson: hoodie ("Hoodie Character") | `assets/characters/people/hoodie.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/gKLBoRsyKe) |
+| Townsperson: beach ("Beach Character") | `assets/characters/people/beach.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/DojKLcO34E) |
+| Townsperson: woman ("Animated Woman") | `assets/characters/people/woman_a.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/qJ2gsTUBHL) |
+| Townsperson: woman ("Animated Woman") | `assets/characters/people/woman_b.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/nIItLV9nxS) |
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin.
+Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin. The townspeople are simplified to about 40% of their triangles and their walk and idle animations baked into vertex animation textures for the city crowd (`tools/bake_people.gd`, `*_crowd.res` / `*_vat.res`).
 
 ## Generated in code
 

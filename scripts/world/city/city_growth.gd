@@ -32,6 +32,8 @@ var _acc := 0.0
 var _batches: Dictionary = {}
 var _batch_root: Node3D
 var _dirty: Dictionary = {}
+var _lot_cells: Array[Vector2i] = []
+var _crowd_dirty := false
 
 
 func _ready() -> void:
@@ -66,10 +68,12 @@ func rebuild() -> void:
 	add_child(_lots)
 	_roads = null
 	_segments.clear()
+	_lot_cells.clear()
 	_active.clear()
 	_next = 0
 	plan = CityPlan.make(SaveManager.city_seed)
 	city.reset_sites()
+	_crowd_dirty = true
 	advance(now(), false)
 
 
@@ -91,8 +95,12 @@ func advance(t: float, live: bool) -> void:
 			city.clear_site_core(e.cell)
 		elif e.kind == "upgrade":
 			city.clear_pair(e.cell)
+		if e.kind in ["site", "upgrade"]:
+			_crowd_dirty = true  # old frame / shops gone
 		if e.lot != "":
 			_build_lot(e)
+			_lot_cells.append(e.cell)
+			roads_changed = true  # its pavement
 			for seg in CityPlan.lot_roads(e.cell):
 				var key := "%d,%d,%d,%d" % [seg[0].x, seg[0].z, seg[1].x, seg[1].z]
 				if not _segments.has(key):
@@ -114,6 +122,7 @@ func advance(t: float, live: bool) -> void:
 			if e.kind == "site":
 				city.clear_site(e.cell)
 			_active.erase(i)
+			_crowd_dirty = true
 			if live:
 				building_opened.emit(e.text)
 		else:
@@ -123,6 +132,28 @@ func advance(t: float, live: bool) -> void:
 	for key in _dirty:
 		_batch_flush(key)
 	_dirty.clear()
+	if _crowd_dirty and city.crowd:
+		_crowd_dirty = false
+		city.crowd.set_blocks(crowd_blocks())
+
+
+## Where people can be: today's blocks plus every lot with something open
+## on it. Finished buildings are doors; finished parks are open spaces.
+func crowd_blocks() -> Dictionary:
+	var out := city.core_blocks()
+	for i in range(_next):
+		if _active.has(i):
+			continue
+		var e: Dictionary = plan[i]
+		if not out.has(e.cell):
+			out[e.cell] = {"doors": [], "open": false}
+		if e.kind == "park" or e.kind == "playground":
+			out[e.cell].open = true
+		elif e.kind == "upgrade" or e.kind == "site":
+			out[e.cell].doors = [CityPlan.cell_centre(e.cell)]
+		else:
+			out[e.cell].doors.append(e.pos)
+	return out
 
 
 func _batch_add(e: Dictionary) -> void:
@@ -218,6 +249,7 @@ func _build_roads() -> void:
 			var p := a.lerp(b, t)
 			var side := Vector3(0, 0, ROAD_W * 0.5 + 1.5) if along_x else Vector3(ROAD_W * 0.5 + 1.5, 0, 0)
 			lights.append(Transform3D(Basis(Vector3.UP, PI if along_x else PI * 0.5).scaled(Vector3.ONE * 1.6), p + side) * light[1])
+	_roads.add_child(CityDistrict.pavements(_lot_cells))
 	var road := MeshInstance3D.new()
 	road.mesh = st.commit()
 	road.material_override = BuildKit.mat("4a4f57")

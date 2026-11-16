@@ -23,6 +23,15 @@ var _wheel: Node3D
 var _gondolas: Array[Node3D] = []
 var _wheel_speed := 0.08
 var growth: CityGrowth
+var crowd: CityCrowd
+## Today's towers (cells): people go in and out of them.
+const TOWER_CELLS := [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 0), Vector2i(1, 0), Vector2i(-1, 1),
+	Vector2i(-2, -2), Vector2i(2, 2), Vector2i(-2, 0), Vector2i(2, 0)]
+## Pavement ring round a block (people walk on it): inner edge at the block
+## edge (32 m from its centre), 3.5 m wide, on top of the road.
+const PAVE_IN := 32.0
+const PAVE_W := 3.5
+const PAVE_Y := 0.3
 ## Construction sites by cell: {"core": frame/structure, "edge": floor,
 ## barriers and crane}. The core goes when its building starts rising, the
 ## edge when it opens.
@@ -61,10 +70,63 @@ func build() -> void:
 		_pair(cell, "bld_c" if flip else "bld_b", "bld_b" if flip else "bld_c")
 	_ferris_wheel(Vector2(2, -2))
 	_park(Vector2(-2, 2))
+	var cells: Array[Vector2i] = []
+	for x in range(-2, 3):
+		for z in range(-2, 3):
+			cells.append(Vector2i(x, z))
+	add_child(pavements(cells))
+	crowd = CityCrowd.new()
+	crowd.name = "Crowd"
+	crowd.city = self
+	add_child(crowd)
 	growth = CityGrowth.new()
 	growth.name = "Growth"
 	growth.city = self
 	add_child(growth)  # builds the sites (reset_sites) and everything grown so far
+
+
+## Pavement rings round `cells` as one MultiMesh (one draw call).
+static func pavements(cells: Array[Vector2i]) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	var long := (PAVE_IN + PAVE_W) * 2.0
+	mm.mesh = BuildKit.box(Vector3(long, 0.12, PAVE_W))
+	mm.instance_count = cells.size() * 4
+	var mid := PAVE_IN + PAVE_W * 0.5
+	var i := 0
+	for cell in cells:
+		var c := Vector3(cell.x * PITCH, PAVE_Y, cell.y * PITCH)
+		for k in 4:
+			var yaw := PI * 0.5 * k
+			var off := Vector3(0, 0, -mid).rotated(Vector3.UP, yaw)
+			mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, yaw), c + off))
+			i += 1
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.material_override = BuildKit.mat("c9c4bb")
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	return mmi
+
+
+## Today's blocks for the crowd, as they stand now: cell -> {"doors":
+## [building centres], "open": bool (park/plaza), "plaza": bool}.
+## Construction sites have no doors yet; knocked-down pairs drop out.
+func core_blocks() -> Dictionary:
+	var out := {}
+	for x in range(-2, 3):
+		for z in range(-2, 3):
+			out[Vector2i(x, z)] = {"doors": [], "open": false}
+	out[Vector2i(0, 0)] = {"doors": [], "open": true, "plaza": true}
+	out[Vector2i(2, -2)].open = true    # Ferris wheel park
+	out[Vector2i(-2, 2)].open = true    # park
+	for cell in TOWER_CELLS:
+		out[cell].doors.append(Vector3(cell.x * PITCH, 0, cell.y * PITCH))
+	for cell in _pairs:
+		var c := Vector3(cell.x * PITCH, 0, cell.y * PITCH)
+		out[cell].doors.append(c + Vector3(-16, 0, 0))
+		out[cell].doors.append(c + Vector3(16, 0, 0))
+	return out
 
 
 ## Put the three construction sites and every old shop pair back as they
