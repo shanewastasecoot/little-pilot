@@ -14,17 +14,17 @@ const LIST := [
 	[Vector2(-120, -2300), 270.0, 10.0, "lagoon", false],
 	[Vector2(520, -2620), 70.0, 16.0, "rocky", false],
 	[Vector2(-150, 1720), 100.0, 14.0, "palm", true],
-	[Vector2(-880, 2220), 120.0, 10.0, "mermaid", false],
+	[Vector2(-880, 2220), 190.0, 12.0, "mermaid", false],
 	[Vector2(-330, 2660), 70.0, 4.0, "sandbar", false],
 	[Vector2(-1660, 620), 90.0, 18.0, "rocky", false],
 	[Vector2(-2220, 120), 100.0, 14.0, "palm", true],
 	[Vector2(-2620, 820), 70.0, 4.0, "sandbar", false],
 	[Vector2(2080, 1150), 95.0, 16.0, "rocky", false],
-	[Vector2(2420, 1560), 110.0, 10.0, "mermaid", false],
+	[Vector2(2420, 1560), 175.0, 12.0, "mermaid", false],
 	[Vector2(2650, -1200), 120.0, 15.0, "palm", true],
 	[Vector2(-2620, -2050), 110.0, 18.0, "rocky", false],
 	[Vector2(1320, -2420), 90.0, 4.0, "sandbar", true],
-	[Vector2(-2300, 2620), 115.0, 10.0, "mermaid", false],
+	[Vector2(-2300, 2620), 185.0, 12.0, "mermaid", false],
 	[Vector2(1500, 3220), 110.0, 14.0, "palm", true],
 ]
 
@@ -60,7 +60,9 @@ static func build_all(parent: Node3D, stars: Node3D) -> void:
 			_build_lagoon(parent, stars, c, i)
 			continue
 		var hf := height.bind(c, r, peak)
-		TerrainBuilder.build(parent, hf, color.bind(kind), c, r * 2.0 + 220.0, 24, "Islet%d" % i)
+		# The big mermaid coves get a finer grid so their beaches stay smooth.
+		var res := 36 if kind == "mermaid" else 24
+		TerrainBuilder.build(parent, hf, color.bind(kind), c, r * 2.0 + 220.0, res, "Islet%d" % i)
 		var node: Node3D
 		if kind == "mermaid":
 			node = MermaidCove.new()

@@ -60,6 +60,47 @@ func _ready() -> void:
 	_check("bad settings clamp/fall back", SaveManager.music_volume == 1.0 and SaveManager.sfx_volume == 1.0 and not SaveManager.battery_saver and SaveManager.crashes and SaveManager.dragon and SaveManager.dragon_level == 0)
 	_check("FPS cap removed when saver off", Engine.max_fps == 0)
 
+	# 2c. Playtime and city time
+	SaveManager.use_path(PATH)
+	_check("old saves start with no playtime", SaveManager.playtime == 0.0 and SaveManager.city_time == 0.0)
+	for i in 3:
+		SaveManager.add_lifetime_star()
+	for i in 600:
+		SaveManager.add_playtime(0.1)  # one minute of flying
+	SaveManager.add_playtime(3600.0)  # Deck woke from an hour's sleep
+	SaveManager.add_playtime(-5.0)    # clock went backwards
+	_check("playtime counts flying only", is_equal_approx(SaveManager.playtime, 60.5))
+	_check("city time follows playtime", is_equal_approx(SaveManager.city_time, 60.5))
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("playtime survives reload", is_equal_approx(SaveManager.playtime, 60.5))
+	_check("city time survives reload", is_equal_approx(SaveManager.city_time, 60.5))
+	var resets := [0]
+	SaveManager.city_reset.connect(func(): resets[0] += 1)
+	SaveManager.reset_city()
+	SaveManager.add_playtime(0.5)
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("restart city keeps playtime", is_equal_approx(SaveManager.playtime, 61.0) and is_equal_approx(SaveManager.city_time, 0.5) and resets[0] == 1)
+	_check("restart city keeps stars", SaveManager.lifetime_stars == 3)
+	_write('[progress]\nplaytime=-40.0\ncity_time="soon"\n')
+	SaveManager.use_path(PATH)
+	_check("bad playtime falls back to 0", SaveManager.playtime == 0.0 and SaveManager.city_time == 0.0)
+	_write('[progress]\nplaytime=100\ncity_time=5000.0\n')
+	SaveManager.use_path(PATH)
+	_check("city time never exceeds playtime", SaveManager.playtime == 100.0 and SaveManager.city_time == 100.0)
+	_write('[progress]\nplaytime=250.0\n')
+	SaveManager.use_path(PATH)
+	_check("missing city time uses playtime", SaveManager.city_time == 250.0)
+	_check("durations read nicely", SaveManager.format_duration(12 * 60 + 5) == "12 m" and SaveManager.format_duration(200 * 60) == "3 h 20 m")
+	# Autosave: 30 s of flying queues a save without anyone asking.
+	SaveManager.use_path(PATH)
+	SaveManager.save_now()
+	for i in 61:
+		SaveManager.add_playtime(0.5)
+	_check("playtime autosaves while flying", not SaveManager._save_timer.is_stopped())
+	SaveManager.save_now()
+
 	# 3. Corrupt file -> defaults, no crash
 	_write("this is { not [ a config ::: file \u0007\u0001")
 	SaveManager.use_path(PATH)

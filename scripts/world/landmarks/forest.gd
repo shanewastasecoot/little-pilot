@@ -105,7 +105,7 @@ func _can_grow(x: float, z: float) -> bool:
 		return false
 	if Vector2(x, z).distance_to(IslandShape.FARM) < 150.0:
 		return false
-	if Vector2(x, z).distance_to(IslandShape.CITY) < IslandShape.CITY_RADIUS + 20.0:
+	if IslandShape.in_city_area(x, z, 20.0):
 		return false
 	if Vector2(x, z).distance_to(IslandShape.RUNWAY) < 380.0 and absf(z) < 130.0:
 		return false

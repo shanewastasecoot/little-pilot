@@ -36,6 +36,9 @@ const CASES := [
 	["circle the town", Vector2(-0.6, -0.2), 0.0, Vector3(-3400, 60, 200), -90.0],
 	["through the city", Vector2(0.3, -0.5), 1.0, Vector3(380, 60, 400), 180.0],
 	["low over mermaid cove", Vector2(0.5, -0.6), 0.0, Vector3(-120, 25, -2100), 0.0],
+	# The fully grown city (city time is set to the end of the plan below).
+	["across the new suburbs", Vector2(0, -0.3), 1.0, Vector3(20, 35, 840), -90.0],
+	["dive on a new tower lot", Vector2(0, -1), 1.0, Vector3(620, 150, 420), 180.0],
 ]
 
 var _main: Node
@@ -52,6 +55,8 @@ var _failures: Array[String] = []
 func _ready() -> void:
 	SaveManager.use_path("user://test_save.cfg")  # never touch the real save
 	SaveManager.crashes = false  # this test checks the can't-crash mode
+	SaveManager.playtime = 24.0 * 3600.0  # fly through the fully grown city
+	SaveManager.city_time = SaveManager.playtime
 	_main = load("res://scenes/main/main.tscn").instantiate()
 	add_child(_main)
 	_plane = _main.get_node("Aircraft")

@@ -5,13 +5,29 @@ extends Node
 
 signal loaded
 signal settings_changed
+## The parents restarted the city (city_time went back to 0).
+signal city_reset
 
 const DEFAULT_PATH := "user://save.cfg"
 const SAVE_DELAY := 1.0  # seconds; batches rapid changes into one write
+## Playtime is written at least this often (seconds of play) while flying,
+## so a flat battery or the Deck sleeping loses at most this much.
+const PLAYTIME_SAVE_EVERY := 30.0
+## Longest single tick counted as play (seconds). A Deck resumed from sleep
+## hands us one huge frame; it mustn't count as hours of flying.
+const MAX_PLAY_TICK := 0.5
 
 var path: String = DEFAULT_PATH
 var selected_aircraft: String = AircraftCatalog.DEFAULT_ID
 var lifetime_stars: int = 0
+## Seconds spent actually flying, ever (shown to parents).
+var playtime: float = 0.0
+## Seconds of flying since the city was last restarted; the city grows from
+## this. Never more than `playtime`.
+var city_time: float = 0.0
+## Seeds the city's growth plan (CityPlan), so each family's city grows a
+## little differently but always the same way for them. New on each restart.
+var city_seed: int = 0
 ## Paint index per aircraft id.
 var paints: Dictionary = {}
 # Parent settings (0..1 volumes)
@@ -30,6 +46,7 @@ var dragon_level: int = 0
 const DRAGON_LEVELS := 3
 
 var _save_timer: Timer
+var _unsaved_play := 0.0
 
 
 func _ready() -> void:
@@ -45,7 +62,7 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	# Flush pending changes on quit (including Steam's "Exit game").
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_PREDELETE:
-		if _save_timer and not _save_timer.is_stopped():
+		if (_save_timer and not _save_timer.is_stopped()) or _unsaved_play > 0.0:
 			save_now()
 
 
@@ -56,15 +73,24 @@ func use_path(new_path: String) -> void:
 
 
 func load_game() -> void:
+	_load_file()
+	if city_seed <= 0:
+		city_seed = _new_seed()  # saved with the next save (playtime autosaves)
+	loaded.emit()
+
+
+func _new_seed() -> int:
+	return randi_range(1, 999999)
+
+
+func _load_file() -> void:
 	_reset_to_defaults()
 	var cfg := ConfigFile.new()
 	var err := cfg.load(path)
 	if err == ERR_FILE_NOT_FOUND:
-		loaded.emit()
 		return
 	if err != OK:
 		push_warning("Save file %s unreadable (error %d); using defaults." % [path, err])
-		loaded.emit()
 		return
 	var plane = cfg.get_value("player", "selected_aircraft", selected_aircraft)
 	if plane is String and AircraftCatalog.has(plane):
@@ -72,6 +98,11 @@ func load_game() -> void:
 	var stars = cfg.get_value("progress", "lifetime_stars", 0)
 	if stars is int and stars >= 0:
 		lifetime_stars = stars
+	playtime = _seconds(cfg.get_value("progress", "playtime", 0.0))
+	city_time = minf(_seconds(cfg.get_value("progress", "city_time", playtime)), playtime)
+	var cs = cfg.get_value("progress", "city_seed", 0)
+	if cs is int and cs > 0:
+		city_seed = cs
 	var saved_paints = cfg.get_value("player", "paints", {})
 	if saved_paints is Dictionary:
 		for id in saved_paints:
@@ -95,8 +126,15 @@ func load_game() -> void:
 	var lvl = cfg.get_value("settings", "dragon_level", dragon_level)
 	if lvl is int and lvl >= 0 and lvl < DRAGON_LEVELS:
 		dragon_level = lvl
-	loaded.emit()
 	settings_changed.emit()
+
+
+## A saved duration: a finite, non-negative number, else 0.
+func _seconds(value) -> float:
+	if not (value is float or value is int):
+		return 0.0
+	var v := float(value)
+	return v if is_finite(v) and v >= 0.0 else 0.0
 
 
 func _volume(value, fallback: float) -> float:
@@ -110,11 +148,15 @@ func request_save() -> void:
 
 func save_now() -> void:
 	_save_timer.stop()
+	_unsaved_play = 0.0
 	var cfg := ConfigFile.new()
 	cfg.set_value("meta", "version", 1)
 	cfg.set_value("player", "selected_aircraft", selected_aircraft)
 	cfg.set_value("player", "paints", paints)
 	cfg.set_value("progress", "lifetime_stars", lifetime_stars)
+	cfg.set_value("progress", "playtime", playtime)
+	cfg.set_value("progress", "city_time", city_time)
+	cfg.set_value("progress", "city_seed", city_seed)
 	cfg.set_value("settings", "music_volume", music_volume)
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
 	cfg.set_value("settings", "battery_saver", battery_saver)
@@ -140,6 +182,36 @@ func set_selected_aircraft(id: String) -> void:
 func add_lifetime_star() -> void:
 	lifetime_stars += 1
 	request_save()
+
+
+## Count `delta` seconds of flying. Call every frame while playing.
+func add_playtime(delta: float) -> void:
+	var d := clampf(delta, 0.0, MAX_PLAY_TICK)
+	if d <= 0.0:
+		return
+	playtime += d
+	city_time += d
+	_unsaved_play += d
+	if _unsaved_play >= PLAYTIME_SAVE_EVERY:
+		_unsaved_play = 0.0
+		request_save()
+
+
+## Parents' "Restart the city": the city goes back to how it started.
+## Total playtime and stars are kept.
+func reset_city() -> void:
+	city_time = 0.0
+	city_seed = _new_seed()  # a restarted city grows a new way
+	city_reset.emit()
+	request_save()
+
+
+## "3 h 20 m" / "12 m" for the parents' panel.
+static func format_duration(seconds: float) -> String:
+	var mins := int(seconds / 60.0)
+	if mins < 60:
+		return "%d m" % mins
+	return "%d h %d m" % [mins / 60, mins % 60]
 
 
 func get_paint(id: String, fallback: int) -> int:
@@ -196,6 +268,10 @@ func set_dragon_level(lvl: int) -> void:
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
+	playtime = 0.0
+	city_time = 0.0
+	city_seed = 0
+	_unsaved_play = 0.0
 	paints = {}
 	music_volume = 0.7
 	sfx_volume = 1.0

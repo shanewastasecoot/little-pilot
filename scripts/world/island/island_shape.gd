@@ -15,7 +15,12 @@ const RUNWAY_HALF := Vector2(450, 28)    # half length, half width
 const HANGAR := Vector2(110, -95)        # hangar + apron footprint centre
 ## The new city (south-east of the runway).
 const CITY := Vector2(380, 600)
-const CITY_RADIUS := 330.0
+const CITY_RADIUS := 330.0       # today's 5x5 city (the star ring circles it)
+## The city grows up to an 11x11 grid of 80 m blocks (CityPlan); the ground
+## is flat over the whole square it can reach, except round the lighthouse.
+const CITY_PITCH := 80.0
+const CITY_MAX_RING := 5
+const CITY_HALF := CITY_PITCH * (CITY_MAX_RING + 0.5) + 8.0
 const CITY_HEIGHT := 10.0
 const HANGAR_HALF := Vector2(50, 50)
 const FARM := Vector2(-560, 494)
@@ -110,12 +115,45 @@ static func height(x: float, z: float) -> float:
 	var rw := minf(_box_dist(p - RUNWAY, RUNWAY_HALF + Vector2(40, 40)), _box_dist(p - HANGAR, HANGAR_HALF))
 	h = lerpf(10.0, h, smoothstep(0.0, 110.0, rw))
 	h = lerpf(FARM_HEIGHT, h, smoothstep(170.0, 260.0, p.distance_to(FARM)))
-	h = lerpf(CITY_HEIGHT, h, smoothstep(CITY_RADIUS, CITY_RADIUS + 110.0, p.distance_to(CITY)))
+	var city_w := smoothstep(0.0, 110.0, _box_dist(p - CITY, Vector2(CITY_HALF, CITY_HALF)))
+	city_w = maxf(city_w, smoothstep(200.0, 120.0, p.distance_to(LIGHTHOUSE)))  # keep its hill
+	h = lerpf(CITY_HEIGHT, h, city_w)
 	# The lair: a flat cave floor, and a clearing in front of the mouth.
 	h = lerpf(LAIR_FLOOR, h, smoothstep(LAIR_RADIUS - 6.0, LAIR_RADIUS + 30.0, p.distance_to(LAIR)))
 	h = lerpf(LAIR_FLOOR + 2.0, h, smoothstep(110.0, 190.0, p.distance_to(LAIR_CLEARING)))
 
 	return lerpf(-28.0, h, land)
+
+
+## Inside the area the city can grow into (plus `margin` metres)?
+static func in_city_area(x: float, z: float, margin := 0.0) -> bool:
+	return _box_dist(Vector2(x, z) - CITY, Vector2(CITY_HALF, CITY_HALF)) < margin
+
+
+## Fully inland: well clear of the beach (the land mask is 1 here).
+static func is_inland(x: float, z: float) -> bool:
+	return Vector2(x, z).length() < coast_radius(x, z) - 115.0
+
+
+## Can the city build on grid block `cell` (plaza = 0,0)? The old 5x5 and
+## the first ring always; further out only on solid land, clear of the
+## runway, the lighthouse's hill and the farm.
+static func city_cell_ok(cell: Vector2i) -> bool:
+	var ring := maxi(absi(cell.x), absi(cell.y))
+	if ring > CITY_MAX_RING:
+		return false
+	if ring <= 3:
+		return true
+	var c := CITY + Vector2(cell) * CITY_PITCH
+	for corner in [Vector2(-40, -40), Vector2(40, -40), Vector2(-40, 40), Vector2(40, 40), Vector2.ZERO]:
+		var p: Vector2 = c + corner
+		if not is_inland(p.x, p.y):
+			return false
+		if absf(p.y - RUNWAY.y) < 130.0 and absf(p.x - RUNWAY.x) < RUNWAY_HALF.x + 110.0:
+			return false
+		if p.distance_to(LIGHTHOUSE) < 220.0 or p.distance_to(FARM) < 260.0:
+			return false
+	return true
 
 
 ## Is this spot on the flat runway strip itself?

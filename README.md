@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.2.0 released (fire-breathing dragon with its own cave and Easy/Medium/Hard, bigger mainland with Dragon Peak, living ocean with wave physics, bigger planes); v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
+| **Status** | v1.3.0 released (the city grows as you play: playtime is saved and the city spreads to an 11x11 grid of blocks over ~22 hours, with buildings rising inside scaffolding, "A new bakery opened!" news, parks, schools and townspeople who walk the streets and go in and out of buildings; calmer dragon, bigger Mermaid Coves); v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
 
 ## Target Audience
 
@@ -128,8 +128,9 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 | Command | What it does |
 |---|---|
 | `./dev.sh run` / `./dev.sh run full` | Play in a window / fullscreen |
+| `./dev.sh city 12` | Play with the city grown 12 hours ahead (a preview: not saved) |
 | `./dev.sh editor` | Open the Godot editor |
-| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), flight stress test (50 cases across both planes, incl. mountains, lighthouse, turbines and the city). Exit code 0 = pass. |
+| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), growing city (plan, pacing, construction, people, restart), flight stress test (54 cases across both planes, incl. mountains, lighthouse, turbines and the fully grown city). Exit code 0 = pass. |
 | `./dev.sh check` | Import the project and report script errors |
 | `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
 
