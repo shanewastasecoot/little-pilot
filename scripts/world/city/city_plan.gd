@@ -13,6 +13,11 @@ extends RefCounted
 ## houses and parks. The three old construction sites finish early on, and
 ## late in the plan a few of downtown's old shop pairs become skyscrapers.
 ##
+## IMPORTANT: a saved city is rebuilt from its seed with this code, so any
+## change to what make() produces (models, order, kinds, timings) changes
+## every family's city. After release, only add things in a way that keeps
+## old seeds' plans the same (or bump a plan version and keep the old one).
+##
 ## Builds are spread evenly so every city is finished after about
 ## FULL_CITY_HOURS of play (one every ~4-5 minutes), with a little jitter.
 ## Because the plan is a pure function of the seed, the city at any city
@@ -20,14 +25,16 @@ extends RefCounted
 ##
 ## Each event is a Dictionary:
 ##   kind   "site" | "upgrade" | "shop" | "house" | "apartment" | "tower" |
-##          "park" | "playground"
+##          "park" | "playground" | "school"
 ##   cell   Vector2i block (grid coordinates, plaza = 0,0)
 ##   model  .glb name in assets/environment ("" for parks/playgrounds)
 ##   scale  model scale
 ##   pos    Vector3 in city space (city node origin, on the ground)
 ##   yaw    degrees
 ##   size   Vector3 collider (width, height, depth) before yaw
-##   tint   roof colour for houses (Color), else null
+##   tint   roof colour for houses (Color), else null; tint_hue: the hue
+##          (0..1) of the model's roof that gets swapped for it
+##   offset Vector3 that centres the model on its spot (model pivot fix)
 ##   text   the message shown when it opens
 ##   lot    the lot's ground style the first time a lot is used, else ""
 ##   start, dur   seconds of city time
@@ -51,11 +58,33 @@ const SHOPS := ["bakery", "toy shop", "ice cream shop", "pet shop", "book shop",
 	"sweet shop", "bike shop", "pizza place", "music shop", "cafe", "sports shop", "art shop",
 	"shoe shop", "hat shop", "kite shop", "cake shop", "fruit shop", "comic shop", "puppet theatre",
 	"cinema", "library", "post office", "fire station", "doctor's", "vet's", "school", "museum",
-	"aquarium", "dance school", "bowling alley", "swimming pool", "noodle bar", "taco stand"]
+	"aquarium", "dance studio", "bowling alley", "swimming pool", "noodle bar", "taco stand"]
 const ROOFS := [Color("ff5a5f"), Color("4aa8ff"), Color("ffd23f"), Color("9b5de5"), Color("4cc06a"), Color("ff8c42")]
 const TOWERS := [["sky_classic", 22.0, 3.15], ["sky_grey", 21.0, 4.08], ["sky_glass_b", 20.0, 4.48], ["sky_glass", 21.0, 4.08]]
+## Model catalogue: [name, width, height, depth, centre x, centre z] at
+## scale 1 (measured from each .glb's bounds). Each is scaled to fit its
+## spot (and under the height cap) when placed.
+const SHOP_MODELS := [["bld_b", 2.0, 3.05, 2.0, 0.0, 0.0], ["bld_c", 2.0, 2.35, 2.0, 0.0, 0.0],
+	["office_a", 0.84, 1.68, 0.84, 0.0, 0.0], ["office_b", 2.32, 2.48, 1.82, -0.34, -0.09],
+	["office_c", 1.24, 1.68, 1.24, 0.0, 0.0], ["office_d", 0.97, 1.68, 0.84, -0.065, 0.0],
+	["office_e", 1.24, 2.08, 1.34, 0.0, -0.05], ["office_f", 2.04, 1.5, 0.845, 0.0, 0.0],
+	["office_g", 2.04, 1.68, 1.24, 0.0, 0.0], ["shop_small_a", 1.64, 0.88, 0.968, 0.0, -0.064],
+	["shop_small_b", 0.84, 1.28, 0.968, 0.0, -0.064]]
+## Houses: roof hue to recolour (house_a: red, home_*: teal).
+const HOUSE_MODELS := [["house_a", 1.108, 0.952, 1.172, 0.015, -0.307, 0.0], ["house_b", 2.144, 3.39, 2.659, 0.0, -0.013, -1.0],
+	["home_1", 1.308, 0.7375, 1.308, 0.0, 0.0, 0.45], ["home_2", 1.308, 1.1375, 1.406, 0.0, 0.0, 0.45],
+	["home_3", 1.736, 1.2, 1.006, 0.0, 0.0, 0.45], ["home_4", 1.3, 1.1375, 1.316, 0.0, 0.0, 0.45],
+	["home_5", 1.3, 1.1375, 1.006, 0.0, 0.0, 0.45]]
+const SCHOOL_MODELS := [["school_a", 13.18, 15.02, 15.31, 0.0, 0.0], ["school_b", 6.93, 10.05, 6.83, 0.34, 0.0]]
+## Kenney roofs keep their teal or get one of these (fewer variants = fewer
+## batches to draw).
+const HOME_ROOFS := [Color("ff5a5f"), Color("4aa8ff"), Color("ffd23f")]
+const SLOT := 22.0           # a quarter-lot spot (m)
+const LOW_CAP := 38.0        # height cap away from downtown (star ring)
+const SCHOOLS := 2
+
 const DURATIONS := {"site": 300.0, "upgrade": 360.0, "tower": 360.0, "apartment": 300.0, "shop": 240.0,
-	"house": 180.0, "park": 150.0, "playground": 120.0}
+	"house": 180.0, "park": 150.0, "playground": 120.0, "school": 300.0}
 const SIDES := [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 
 
@@ -131,6 +160,11 @@ static func _choose_kinds(cells: Array[Vector2i], rng: RandomNumberGenerator) ->
 			kinds[c] = "shops" if r < 0.35 else ("houses" if r < 0.8 else ("apartment" if r < 0.9 else "park"))
 		else:
 			kinds[c] = "houses" if r < 0.65 else ("shops" if r < 0.85 else "park")
+	# A couple of schools out where the families live (whole-lot buildings).
+	var homes := cells.filter(func(c): return ring_of(c) > FIRST_RING and kinds[c] == "houses")
+	_shuffle(homes, rng)
+	for k in mini(SCHOOLS, homes.size()):
+		kinds[homes[k]] = "school"
 	# At least one park per ring.
 	for ring in range(FIRST_RING, MAX_RING + 1):
 		var in_ring := cells.filter(func(c): return ring_of(c) == ring)
@@ -180,7 +214,8 @@ static func _claim_order(cells: Array[Vector2i], rng: RandomNumberGenerator) -> 
 
 static func _event(kind: String, cell: Vector2i, model: String, scale: float, offset: Vector3, yaw: float, size: Vector3, text: String) -> Dictionary:
 	return {"kind": kind, "cell": cell, "model": model, "scale": scale, "pos": cell_centre(cell) + offset,
-		"yaw": yaw, "size": size, "tint": null, "text": text, "lot": "", "start": 0.0, "dur": 0.0}
+		"yaw": yaw, "size": size, "tint": null, "tint_hue": 0.0, "offset": Vector3.ZERO, "text": text,
+		"lot": "", "start": 0.0, "dur": 0.0}
 
 
 static func _lot_events(c: Vector2i, kind: String, rng: RandomNumberGenerator, shop_names: Array) -> Array[Dictionary]:
@@ -196,29 +231,49 @@ static func _lot_events(c: Vector2i, kind: String, rng: RandomNumberGenerator, s
 			for side in [-1.0, 1.0]:
 				out.append(_event("apartment", c, "bld_b", 13.0, axis * side, face, Vector3(26, 3.05 * 13.0, 26), "A new apartment building is ready!"))
 		"shops":
+			var cap := 50.0 if tall_ok(c) else LOW_CAP
 			for p: Vector3 in _quad_spots(rng):
-				var model := "bld_b" if rng.randf() < 0.5 else "bld_c"
-				var h := (3.05 if model == "bld_b" else 2.35) * 11.0
 				if shop_names.is_empty():
 					shop_names.append_array(SHOPS)
 					_shuffle(shop_names, rng)
 				var name: String = shop_names.pop_back()
-				out.append(_event("shop", c, model, 11.0, p, 0.0 if p.z > 0.0 else 180.0, Vector3(22, h, 22), _opened(name)))
+				var m: Array = SHOP_MODELS[rng.randi() % SHOP_MODELS.size()]
+				out.append(_fitted("shop", c, m, SLOT, cap, p, 0.0 if p.z > 0.0 else 180.0, _opened(name)))
 		"houses":
 			for p: Vector3 in _quad_spots(rng):
-				var use_b := rng.randf() < 0.3
+				var m: Array = HOUSE_MODELS[rng.randi() % HOUSE_MODELS.size()]
 				# Each house faces the street on its side of the lot.
-				var yaw := 0.0 if p.z > 0.0 else 180.0
-				var e := _event("house", c, "house_b" if use_b else "house_a", 6.5 if use_b else 20.0, p, yaw,
-					Vector3(14, 22, 18) if use_b else Vector3(22, 19, 24), "A new house is ready!")
-				if not use_b:
+				var e := _fitted("house", c, m, SLOT, 24.0, p, 0.0 if p.z > 0.0 else 180.0, "A new house is ready!")
+				var hue: float = m[6]
+				if hue == 0.0:
 					e.tint = ROOFS[rng.randi() % ROOFS.size()]
+				elif hue > 0.0:
+					var pick := rng.randi() % (HOME_ROOFS.size() + 1)
+					if pick < HOME_ROOFS.size():
+						e.tint = HOME_ROOFS[pick]
+				e.tint_hue = maxf(hue, 0.0)
 				out.append(e)
+		"school":
+			var m: Array = SCHOOL_MODELS[rng.randi() % SCHOOL_MODELS.size()]
+			out.append(_fitted("school", c, m, 46.0, LOW_CAP, Vector3.ZERO, face, "A new school opened!"))
 		"park":
 			out.append(_event("park", c, "", 1.0, Vector3.ZERO, 0.0, Vector3.ZERO, "A new park opened!"))
 			out.append(_event("playground", c, "", 1.0, Vector3(15, 0, -15), 0.0, Vector3(22, 8, 22), "A new playground opened!"))
-	out[0].lot = "grass" if kind in ["houses", "park"] else "paving"
+	out[0].lot = "grass" if kind in ["houses", "park", "school"] else "paving"
 	return out
+
+
+## Kenney's teal roofs are soft (30% saturated): recolour them anyway.
+static func tint_min_saturation(hue: float) -> float:
+	return 0.18 if hue > 0.0 else 0.28
+
+
+## A catalogue model scaled to fit a `slot` m spot and `cap` m high.
+static func _fitted(kind: String, cell: Vector2i, m: Array, slot: float, cap: float, spot: Vector3, yaw: float, text: String) -> Dictionary:
+	var s := minf(slot / maxf(m[1], m[3]), cap / m[2])
+	var e := _event(kind, cell, m[0], s, spot, yaw, Vector3(m[1] * s, m[2] * s, m[3] * s), text)
+	e.offset = Vector3(-m[4] * s, 0, -m[5] * s)
+	return e
 
 
 static func _opened(name: String) -> String:

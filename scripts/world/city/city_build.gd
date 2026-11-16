@@ -42,12 +42,14 @@ func _ready() -> void:
 		_build_playground()
 		return
 	_height = event.size.y
-	_model = AssetLib.place(self, ENV + event.model + ".glb", Vector3.ZERO, event.scale)
+	_model = AssetLib.place(self, ENV + event.model + ".glb", event.offset, event.scale)
 	for mi: MeshInstance3D in _model.find_children("*", "MeshInstance3D", true, false):
 		mi.visibility_range_end = VIEW_RANGE
 	if event.tint != null:
 		var rc := ModelRecolor.new()
-		rc.target = _model.find_children("*", "MeshInstance3D", true, false)[0]
+		rc.target = _model
+		rc.from_hue = event.tint_hue
+		rc.min_saturation = CityPlan.tint_min_saturation(event.tint_hue)
 		rc.to_color = event.tint
 		_model.add_child(rc)
 	_shape = BoxShape3D.new()
@@ -79,7 +81,7 @@ func set_progress(p: float) -> void:
 			_pieces[k].visible = p >= float(k) / _pieces.size()
 		return
 	# The walls rise out of the ground; the scaffold stays a storey ahead.
-	_model.position.y = -_height * (1.0 - p) - 0.5 * (1.0 - p)
+	_model.position = event.offset + Vector3(0, -_height * (1.0 - p) - 0.5 * (1.0 - p), 0)
 	var cage_h := clampf(_height * p + 6.0, 4.0, _height + 3.0)
 	_cage.scale.y = cage_h
 	var solid := maxf(_height * p, 2.0)

@@ -157,12 +157,12 @@ func crowd_blocks() -> Dictionary:
 
 
 func _batch_add(e: Dictionary) -> void:
-	var key: String = e.model + ("" if e.tint == null else "|" + (e.tint as Color).to_html())
+	var key: String = e.model + ("" if e.tint == null else "|%s|%.2f" % [(e.tint as Color).to_html(), e.tint_hue])
 	if not _batches.has(key):
 		var data: Array = AssetLib.mesh_of(CityDistrict.ENV + e.model + ".glb")
 		var mesh: Mesh = data[0]
 		if e.tint != null:
-			mesh = _tinted(mesh, e.tint)
+			mesh = _tinted(mesh, e.tint, e.tint_hue)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = mesh
@@ -172,7 +172,8 @@ func _batch_add(e: Dictionary) -> void:
 		_batch_root.add_child(mmi)
 		_batches[key] = {"mmi": mmi, "xforms": [] as Array[Transform3D], "xf": data[1]}
 	var batch: Dictionary = _batches[key]
-	var at := Transform3D(Basis(Vector3.UP, deg_to_rad(e.yaw)).scaled(Vector3.ONE * e.scale), e.pos)
+	var at := Transform3D(Basis(Vector3.UP, deg_to_rad(e.yaw)), e.pos) \
+		* Transform3D(Basis().scaled(Vector3.ONE * e.scale), e.offset)
 	batch.xforms.append(at * batch.xf)
 	_dirty[key] = true
 
@@ -186,11 +187,13 @@ func _batch_flush(key: String) -> void:
 
 
 ## A copy of `mesh` with ModelRecolor's roof colour baked into its materials.
-func _tinted(mesh: Mesh, tint: Color) -> Mesh:
+func _tinted(mesh: Mesh, tint: Color, hue: float) -> Mesh:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	var rc := ModelRecolor.new()
 	rc.target = mi
+	rc.from_hue = hue
+	rc.min_saturation = CityPlan.tint_min_saturation(hue)
 	rc.apply(tint)
 	var copy: Mesh = mesh.duplicate()
 	for i in copy.get_surface_count():

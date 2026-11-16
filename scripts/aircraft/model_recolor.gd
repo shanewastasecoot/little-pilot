@@ -12,6 +12,9 @@ extends Node
 ## Hue (0..1) to replace and how far around it counts as a match.
 @export var from_hue: float = 0.0
 @export var hue_range: float = 0.06
+## Colours less saturated than this are left alone (greys, whites). Lower
+## it for pastel parts (e.g. Kenney's soft teal roofs).
+@export var min_saturation: float = 0.28
 @export var to_color: Color = Color("3f8cff")
 
 const SHADER := """
@@ -21,6 +24,7 @@ uniform bool use_tex = false;
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform float from_hue = 0.0;
 uniform float hue_range = 0.06;
+uniform float min_sat = 0.28;
 uniform vec3 to_hsv = vec3(0.6, 0.7, 1.0);
 uniform float roughness = 0.6;
 uniform float metallic = 0.0;
@@ -44,7 +48,7 @@ void fragment() {
 	}
 	vec3 hsv = rgb2hsv(to_srgb(c.rgb));
 	float d = abs(fract(hsv.x - from_hue + 0.5) - 0.5);
-	float k = (1.0 - smoothstep(hue_range * 0.75, hue_range, d)) * smoothstep(0.28, 0.4, hsv.y);
+	float k = (1.0 - smoothstep(hue_range * 0.75, hue_range, d)) * smoothstep(min_sat, min_sat + 0.12, hsv.y);
 	// Keep the model's shading (value relative to its brightest), take the
 	// paint's hue, saturation and brightness.
 	float shade = clamp(hsv.z / 0.96, 0.4, 1.1);
@@ -79,7 +83,7 @@ func apply(color: Color) -> void:
 			var mat := mi.mesh.surface_get_material(i) as BaseMaterial3D
 			if mat == null:
 				continue
-			var key := "%d:%.3f:%s" % [mat.get_instance_id(), from_hue, to_color.to_html()]
+			var key := "%d:%.3f:%s:%.2f" % [mat.get_instance_id(), from_hue, to_color.to_html(), min_saturation]
 			if not _cache.has(key):
 				_cache[key] = _shader_material(mat)
 			mi.set_surface_override_material(i, _cache[key])
@@ -97,6 +101,7 @@ func _shader_material(mat: BaseMaterial3D) -> ShaderMaterial:
 		m.set_shader_parameter("albedo_tex", mat.albedo_texture)
 	m.set_shader_parameter("from_hue", from_hue)
 	m.set_shader_parameter("hue_range", hue_range)
+	m.set_shader_parameter("min_sat", min_saturation)
 	m.set_shader_parameter("to_hsv", Vector3(to_color.h, to_color.s, to_color.v))
 	m.set_shader_parameter("roughness", mat.roughness)
 	m.set_shader_parameter("metallic", mat.metallic)

@@ -149,7 +149,7 @@ func _live_checks(main: Node) -> void:
 	SaveManager.city_time = up.start + up.dur + 1.0
 	g.advance(g.now(), false)
 	_check("upgrade replaces old shops with a tower", not city._pairs.has(up.cell))
-	_check("finished buildings are batched", g._batches.size() > 3 and g._batches.size() < 40)
+	_check("finished buildings are batched", g._batches.size() > 3 and g._batches.size() < 70)
 	# Reload: the same city comes back from the save.
 	var built_before := g._builds.get_child_count()
 	var seed_before := SaveManager.city_seed

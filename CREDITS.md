@@ -77,6 +77,22 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Classic skyscraper | `assets/environment/sky_classic.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/obYD8hWLTZ) |
 | Grey skyscraper | `assets/environment/sky_grey.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/XST1j6kYsL) |
 | Glass skyscraper 3 | `assets/environment/sky_glass_c.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/BwEXdOoUSO) |
+| House ("House") | `assets/environment/home_1.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/7VSVwAg2T3) |
+| Two-storey house ("Two story house") | `assets/environment/home_2.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/hmXhiLDf8D) |
+| Two-storey house | `assets/environment/home_3.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/htvFgnVP4d) |
+| Two-storey house | `assets/environment/home_4.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/md92wqkDqS) |
+| Two-storey house | `assets/environment/home_5.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/sGgL4Nt7I7) |
+| Office block ("Large Building") | `assets/environment/office_a.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/JgGLJH2iXj) |
+| Office block | `assets/environment/office_b.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/h7Jaq7bqMq) |
+| Office block | `assets/environment/office_c.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/1bt4yYKmuK) |
+| Office block | `assets/environment/office_d.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/yKo7F36Qk2) |
+| Office block | `assets/environment/office_e.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/3IhrYZp6tP) |
+| Office block | `assets/environment/office_f.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/sxXonOmtct) |
+| Office block | `assets/environment/office_g.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/ppwtREejXg) |
+| Small shop ("Small Building") | `assets/environment/shop_small_a.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/gyjF60t7CG) |
+| Small shop | `assets/environment/shop_small_b.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/Rq572hdKEz) |
+| Schoolhouse ("Schoolhouse") | `assets/environment/school_a.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/ftnL_OvlkCx) |
+| Schoolhouse ("Schoolhouse") | `assets/environment/school_b.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/5uBxCBp0os0) |
 | Townsperson: worker ("Worker") | `assets/characters/people/worker.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/E8079Ahx7k) |
 | Townsperson: suit ("Suit") | `assets/characters/people/suit.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/sOUciDsoVV) |
 | Townsperson: hoodie ("Hoodie Character") | `assets/characters/people/hoodie.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/gKLBoRsyKe) |
@@ -86,7 +102,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin. The townspeople are simplified to about 40% of their triangles and their walk and idle animations baked into vertex animation textures for the city crowd (`tools/bake_people.gd`, `*_crowd.res` / `*_vat.res`).
+Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs (including the Kenney houses' teal roofs) are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin. The townspeople are simplified to about 40% of their triangles and their walk and idle animations baked into vertex animation textures for the city crowd (`tools/bake_people.gd`, `*_crowd.res` / `*_vat.res`).
 
 ## Generated in code
 
