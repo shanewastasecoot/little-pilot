@@ -248,6 +248,11 @@ func _open_settings() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# On foot, the D-pad changes clothes (left/right), hair (up) and body
+	# (down) until the character screen exists.
+	if state == State.ON_FOOT and _restyle(event):
+		get_viewport().set_input_as_handled()
+		return
 	if _in_plane() and event.is_action_pressed("paint_next"):
 		aircraft.cycle_paint(1)
 		get_viewport().set_input_as_handled()
@@ -302,6 +307,26 @@ func _show_pause() -> void:
 
 func _resume() -> void:
 	_enter(_play_state)
+
+
+func _restyle(event: InputEvent) -> bool:
+	var b := SaveManager.char_body
+	var h := SaveManager.char_hair
+	var o := SaveManager.char_outfit
+	if event.is_action_pressed("paint_next"):
+		o = o % 4 + 1
+	elif event.is_action_pressed("paint_prev"):
+		o = (o + 2) % 4 + 1
+	elif event.is_action_pressed("hair_next"):
+		h = h % 4 + 1
+	elif event.is_action_pressed("body_next"):
+		b = "F" if b == "M" else "M"
+	else:
+		return false
+	SaveManager.set_character(b, h, o)
+	Sfx.play("pop", 1.1)
+	walker.add_child(PickupBurst.new(20, 7.0, [Color.WHITE, Color("ffd23f")]))
+	return true
 
 
 ## Sitting in the parked plane with the controls: can get out.
