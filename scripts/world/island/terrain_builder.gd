@@ -92,6 +92,7 @@ static func build(parent: Node3D, height_fn: Callable, color_fn: Callable, centr
 	var body := StaticBody3D.new()
 	body.name = node_name
 	body.collision_layer = GameSettings.LAYER_WORLD
+	body.add_to_group("terrain")  # the plane can land on it, people walk on it
 	parent.add_child(body)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh

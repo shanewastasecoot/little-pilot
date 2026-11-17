@@ -1,9 +1,15 @@
 extends Node3D
-## Game flow: Title -> Plane Select -> Flying <-> Paused.
+## Game flow: Title -> Plane Select -> Flying <-> Landed, with Paused over
+## either. A small state machine: _enter() is the only place that switches
+## what's visible, who has the controls and what's paused.
+##   FLYING   in the air, or rolling on the ground
+##   LANDED   the plane has landed and parked somewhere; boost or push the
+##            stick to take off again
+## CHARACTER_CREATE and ON_FOOT are reserved for the walking update.
 ## The world is always live: on the title and plane-select screens the plane
 ## circles on autopilot behind the menus, so it's flying within seconds.
 
-enum State { TITLE, SELECT, FLYING, PAUSED }
+enum State { TITLE, SELECT, FLYING, PAUSED, LANDED, CHARACTER_CREATE, ON_FOOT }
 
 ## Seconds without input before the stick hint appears.
 const IDLE_HINT_DELAY := 10.0
@@ -16,6 +22,8 @@ const AWAY_TIME := 120.0
 const AUTOPILOT_STICK := Vector2(0.3, 0.0)
 
 var state: State = State.TITLE
+## The play state to go back to after pausing (FLYING or LANDED).
+var _play_state: State = State.FLYING
 var _idle_time := 0.0
 ## City celebration: countdown seconds left (> 0), or -1 when idle.
 const CITY_COUNTDOWN := 30.0
@@ -47,6 +55,7 @@ func _ready() -> void:
 	aircraft.park(map.runway_start(), map.spawn_heading())
 	chase_camera.snap_to_target()
 	aircraft.crashed.connect(_on_crashed)
+	aircraft.parked.connect(_on_parked)
 	SaveManager.settings_changed.connect(func(): aircraft.crashes = SaveManager.crashes)
 	var fade_layer := CanvasLayer.new()
 	fade_layer.layer = 40
@@ -87,13 +96,20 @@ func _ready() -> void:
 	_enter(State.TITLE)
 
 
+## The player is in the game world (not in a menu).
+func _playing() -> bool:
+	return state == State.FLYING or state == State.LANDED
+
+
 func _enter(new_state: State) -> void:
 	state = new_state
+	if _playing():
+		_play_state = state
 	title.visible = state == State.TITLE
 	plane_select.visible = state == State.SELECT
 	pause_menu.visible = state == State.PAUSED and not plane_select.visible
-	hud.visible = state == State.FLYING or state == State.PAUSED
-	var player_flying := state == State.FLYING
+	hud.visible = _playing() or state == State.PAUSED
+	var player_flying := _playing()
 	aircraft.input.override_enabled = not player_flying
 	aircraft.input.override_stick = Vector2.ZERO if player_flying else AUTOPILOT_STICK
 	aircraft.ground_controls = player_flying
@@ -108,11 +124,14 @@ func _enter(new_state: State) -> void:
 func _process(delta: float) -> void:
 	_update_city_party(delta)
 	_idle_time += delta
-	if state == State.FLYING and _idle_time < AWAY_TIME:
+	if _playing() and _idle_time < AWAY_TIME:
 		SaveManager.add_playtime(delta)
+	# Rolling again after a landing: back to flying.
+	if state == State.LANDED and aircraft.mode != Aircraft.Mode.PARKED:
+		_enter(State.FLYING)
 	# Waiting on the runway: show the hint straight away so they know to go.
 	var waiting := aircraft.mode == Aircraft.Mode.PARKED
-	hud.show_idle_hint(state == State.FLYING and (waiting or _idle_time > IDLE_HINT_DELAY))
+	hud.show_idle_hint(_playing() and (waiting or _idle_time > IDLE_HINT_DELAY))
 	_update_dragon_warning()
 
 
@@ -175,15 +194,15 @@ func _open_settings() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if state == State.FLYING and event.is_action_pressed("paint_next"):
+	if _playing() and event.is_action_pressed("paint_next"):
 		aircraft.cycle_paint(1)
 		get_viewport().set_input_as_handled()
 		return
-	if state == State.FLYING and event.is_action_pressed("paint_prev"):
+	if _playing() and event.is_action_pressed("paint_prev"):
 		aircraft.cycle_paint(-1)
 		get_viewport().set_input_as_handled()
 		return
-	if state == State.FLYING and event.is_action_pressed("pause"):
+	if _playing() and event.is_action_pressed("pause"):
 		get_viewport().set_input_as_handled()
 		Sfx.play("ui_move")
 		_show_pause()
@@ -191,13 +210,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _notification(what: int) -> void:
 	# Steam button / overlay / alt-tab: pause so nothing is missed.
-	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and state == State.FLYING:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and _playing():
 		_show_pause()
 
 
 func _on_joy_connection_changed(_device: int, connected: bool) -> void:
 	# Controller unplugged or out of battery: pause until it's back.
-	if not connected and state == State.FLYING:
+	if not connected and _playing():
 		_show_pause()
 
 
@@ -224,7 +243,17 @@ func _show_pause() -> void:
 
 
 func _resume() -> void:
-	_enter(State.FLYING)
+	_enter(_play_state)
+
+
+## The plane stopped and parked. After a landing that's the LANDED state
+## (a little chime: well done!); the game parking it on the runway isn't.
+func _on_parked(after_landing: bool) -> void:
+	if after_landing and state == State.FLYING:
+		Sfx.play("ding")
+		_enter(State.LANDED)
+	elif not after_landing and state == State.LANDED:
+		_enter(State.FLYING)
 
 
 func _quit() -> void:

@@ -31,6 +31,8 @@ func _ready() -> void:
 	_place_landmarks()
 	_place_stars()
 	Islets.build_all(self, get_node("Stars"))
+	for pad in [LandingPads.DINO, LandingPads.VOLCANO]:
+		add_child(LandingPads.windsock(pad))
 	_place_details()
 	add_child(Clouds.new())
 

@@ -31,6 +31,13 @@ var ceiling_band: float = 25.0
 ## Plane radius plus breathing room used when sweeping the predicted path.
 const SWEEP_RADIUS := 4.0
 
+## The player is coming in to land (set by the aircraft each tick: holding
+## slow, low over landable ground). The descent is flared to LANDING_DIVE_DEG
+## and, in can't-crash mode, the ground below stops being something to
+## avoid, so the plane can touch down.
+var landing := false
+const LANDING_DIVE_DEG := 12.0
+
 ## Steer clear of ground, water and buildings (the can't-crash mode). Off
 ## when crashes are allowed: only the world edge and ceiling still apply.
 var assist := true
@@ -71,12 +78,18 @@ func evaluate(pos: Vector3, velocity: Vector3, current_turn: float = 0.0) -> voi
 
 	if assist:
 		var path := _predict_path(pos, velocity, _yaw_rate(current_turn))
-		_avoid_ground(pos, path)
+		if landing:
+			var here := _ground_height_at(pos, 1.0)
+			clearance = pos.y - here if here != -INF else INF
+		else:
+			_avoid_ground(pos, path)
 		_avoid_obstacles_ahead(pos, velocity, path, current_turn, lookahead)
 		_steer_from_push_volumes(pos, flat_forward, right)
 	else:
 		var here := _ground_height_at(pos, 1.0)
 		clearance = pos.y - here if here != -INF else INF
+	if landing:
+		pitch_floor_deg = maxf(pitch_floor_deg, -LANDING_DIVE_DEG)  # flare
 	_avoid_ceiling(pos)
 	_steer_from_boundary(pos, flat_forward, right)
 
@@ -88,7 +101,7 @@ func evaluate(pos: Vector3, velocity: Vector3, current_turn: float = 0.0) -> voi
 func enforce() -> void:
 	var pos := _body.global_position
 	# Hard floor above ground and water (can't-crash mode only).
-	if assist:
+	if assist and not landing:
 		var ground := _ground_height_at(pos, 30.0)
 		if ground != -INF and pos.y < ground + stats.min_clearance:
 			pos.y = ground + stats.min_clearance
@@ -136,6 +149,8 @@ func _avoid_obstacles_ahead(pos: Vector3, velocity: Vector3, path: PackedVector3
 	var hit := _first_hit(pos, path)
 	if hit.is_empty():
 		return
+	if landing and (hit.normal as Vector3).y > 0.9:
+		return  # that's the ground we're landing on
 	var urgency := clampf(1.0 - hit.travelled / lookahead, 0.0, 1.0)
 	var normal: Vector3 = hit.normal
 	# Anything ahead means climb a little; slopes mean climb a lot.

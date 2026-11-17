@@ -60,7 +60,7 @@ static func dino_height(x: float, z: float) -> float:
 	var d := p.distance_to(DINO)
 	var h := 12.0 + 30.0 * smoothstep(DINO_RADIUS, 0.0, d) + _n().get_noise_2d(x * 1.3, z * 1.3) * 22.0
 	h += 60.0 * pow(maxf(0.0, 1.0 - p.distance_to(DINO + Vector2(150, -120)) / 150.0), 1.3)
-	return lerpf(-28.0, h, _land(p, DINO, DINO_RADIUS, 200.0))
+	return LandingPads.flatten(lerpf(-28.0, h, _land(p, DINO, DINO_RADIUS, 200.0)), x, z, LandingPads.DINO)
 
 
 static func dino_color(_x: float, _z: float, h: float, slope: float) -> Color:
