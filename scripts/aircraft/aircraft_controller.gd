@@ -79,6 +79,8 @@ var _landing := false
 ## Parked after landing: wait for the stick and triggers to be let go
 ## before a push counts as "let's go" (they were still held from flying).
 var _await_release := false
+## Seconds before the release check starts (fresh input after getting in).
+var _release_delay := 0.0
 var _grace := 0.0
 var _crash_spin := Vector3.ZERO
 
@@ -123,7 +125,10 @@ func _physics_process(delta: float) -> void:
 		visuals.update_visuals(0.0, 6.0, stats, delta)  # propeller idles
 		var pushing := input.throttle > 0.2 or absf(input.stick.y) > 0.35
 		if _await_release:
-			if not pushing and absf(input.throttle) < 0.2:
+			# Raw input: the smoothed stick starts near zero after a state
+			# change and would look "let go" while it's still held.
+			_release_delay -= delta
+			if _release_delay <= 0.0 and input.raw_stick.length() < 0.25 and absf(input.raw_throttle) < 0.2:
 				_await_release = false
 		elif ground_controls and pushing:
 			mode = Mode.ROLLING  # the player wants to go
@@ -388,6 +393,26 @@ func _roll_step(delta: float) -> void:
 		lift_off()
 
 
+## Stay parked until the stick and triggers have been let go once (used
+## when the player climbs back in: the stick was pushed to walk here).
+func hold_until_release() -> void:
+	_await_release = true
+	_release_delay = 0.2  # let the input catch up with the real stick first
+
+
+## Where someone getting out would stand: beside the cockpit, on the left
+## (or the right, behind or in front if that's no good). `fits` is asked
+## about each spot (Vector3 on the ground -> bool).
+func exit_spots() -> Array[Vector3]:
+	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
+	var left := Vector3(-cos(heading), 0.0, sin(heading))
+	var reach := BODY_RADIUS * stats.model_scale + 3.5
+	var out: Array[Vector3] = []
+	for off in [left, -left, -fwd, fwd, (left - fwd).normalized(), (-left - fwd).normalized()]:
+		out.append(global_position + off * reach)
+	return out
+
+
 ## Stopped: sit here with the engine idling until the player wants to go.
 func _park_here() -> void:
 	var was_landing := _landing
@@ -396,6 +421,7 @@ func _park_here() -> void:
 	mode = Mode.PARKED
 	_landing = false
 	_await_release = true
+	_release_delay = 0.2  # the game switching state can blank the input for a tick
 	parked.emit(was_landing)
 
 

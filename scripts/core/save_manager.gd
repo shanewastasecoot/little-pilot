@@ -43,6 +43,12 @@ var crashes: bool = true
 ## 0 easy, 1 medium, 2 hard.
 var dragon: bool = true
 var dragon_level: int = 0
+## On-foot camera: right-stick speed (0.4 slow .. 2.5 fast) and whether
+## pushing the stick up tilts the view down.
+var look_sensitivity: float = 1.0
+var invert_y: bool = false
+const LOOK_SENSITIVITY_MIN := 0.4
+const LOOK_SENSITIVITY_MAX := 2.5
 const DRAGON_LEVELS := 3
 
 var _save_timer: Timer
@@ -126,6 +132,12 @@ func _load_file() -> void:
 	var lvl = cfg.get_value("settings", "dragon_level", dragon_level)
 	if lvl is int and lvl >= 0 and lvl < DRAGON_LEVELS:
 		dragon_level = lvl
+	var sens = cfg.get_value("settings", "look_sensitivity", look_sensitivity)
+	if sens is float or sens is int:
+		look_sensitivity = clampf(float(sens), LOOK_SENSITIVITY_MIN, LOOK_SENSITIVITY_MAX)
+	var inv = cfg.get_value("settings", "invert_y", invert_y)
+	if inv is bool:
+		invert_y = inv
 	settings_changed.emit()
 
 
@@ -164,6 +176,8 @@ func save_now() -> void:
 	cfg.set_value("settings", "crashes", crashes)
 	cfg.set_value("settings", "dragon", dragon)
 	cfg.set_value("settings", "dragon_level", dragon_level)
+	cfg.set_value("settings", "look_sensitivity", look_sensitivity)
+	cfg.set_value("settings", "invert_y", invert_y)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -265,6 +279,18 @@ func set_dragon_level(lvl: int) -> void:
 	request_save()
 
 
+func set_look_sensitivity(v: float) -> void:
+	look_sensitivity = clampf(v, LOOK_SENSITIVITY_MIN, LOOK_SENSITIVITY_MAX)
+	settings_changed.emit()
+	request_save()
+
+
+func set_invert_y(on: bool) -> void:
+	invert_y = on
+	settings_changed.emit()
+	request_save()
+
+
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
@@ -280,3 +306,5 @@ func _reset_to_defaults() -> void:
 	crashes = true
 	dragon = true
 	dragon_level = 0
+	look_sensitivity = 1.0
+	invert_y = false

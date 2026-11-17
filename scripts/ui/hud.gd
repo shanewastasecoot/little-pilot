@@ -14,6 +14,9 @@ var _news: PanelContainer
 var _news_label: Label
 var _news_queue: Array[String] = []
 var _news_tween: Tween
+var _prompt: PanelContainer
+var _prompt_icon: UiIcon
+var _prompt_kind := ""
 
 
 func _ready() -> void:
@@ -108,6 +111,34 @@ func _ready() -> void:
 	_news.modulate.a = 0.0
 	root.add_child(_news)
 
+	# Button prompt (bottom right): [Y] + what it does (get out / get in).
+	_prompt = PanelContainer.new()
+	var pstyle := StyleBoxFlat.new()
+	pstyle.bg_color = Color(0.13, 0.2, 0.38, 0.85)
+	pstyle.set_corner_radius_all(30)
+	pstyle.content_margin_left = 18
+	pstyle.content_margin_right = 22
+	pstyle.content_margin_top = 12
+	pstyle.content_margin_bottom = 12
+	_prompt.add_theme_stylebox_override("panel", pstyle)
+	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var prow := HBoxContainer.new()
+	prow.add_theme_constant_override("separation", 14)
+	_prompt.add_child(prow)
+	var ybtn := UiIcon.new()
+	ybtn.icon = UiIcon.Icon.BUTTON_Y
+	ybtn.custom_minimum_size = Vector2(84, 84)
+	prow.add_child(ybtn)
+	_prompt_icon = UiIcon.new()
+	_prompt_icon.custom_minimum_size = Vector2(84, 84)
+	prow.add_child(_prompt_icon)
+	_prompt.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_prompt.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_prompt.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_prompt.position += Vector2(-34, -34)
+	_prompt.modulate.a = 0.0
+	root.add_child(_prompt)
+
 
 ## The dragon warning: on while it hunts the plane. angle: where it is
 ## relative to the camera (0 ahead, + right); closeness 0..1.
@@ -142,6 +173,21 @@ func bind(stars: StarManager) -> void:
 	stars.star_collected.connect(_on_star_collected)
 	stars.milestone_reached.connect(func(_n): _party.play(false))
 	stars.all_collected.connect(func(): _party.play(true))
+
+
+## The Y button prompt: "exit" (get out and walk), "enter" (get back in
+## the plane) or "" (hidden).
+func set_prompt(kind: String) -> void:
+	if kind == _prompt_kind:
+		return
+	_prompt_kind = kind
+	if kind != "":
+		_prompt_icon.icon = UiIcon.Icon.PERSON if kind == "exit" else UiIcon.Icon.PLANE
+	create_tween().tween_property(_prompt, "modulate:a", 1.0 if kind != "" else 0.0, 0.2)
+
+
+func prompt_kind() -> String:
+	return _prompt_kind
 
 
 ## City news: a banner at the top for a few seconds, with bells. Several

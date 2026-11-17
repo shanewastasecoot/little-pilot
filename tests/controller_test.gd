@@ -29,7 +29,18 @@ func _ready() -> void:
 		_axis(device, JOY_AXIS_TRIGGER_LEFT, 1.0, "slow")
 		_button(device, JOY_BUTTON_A, "boost")
 		_button(device, JOY_BUTTON_B, "honk")
-		_button(device, JOY_BUTTON_Y, "camera")
+		_button(device, JOY_BUTTON_RIGHT_STICK, "camera")
+		# On foot
+		_axis(device, JOY_AXIS_LEFT_Y, -1.0, "move_forward")
+		_axis(device, JOY_AXIS_LEFT_Y, 1.0, "move_back")
+		_axis(device, JOY_AXIS_LEFT_X, -1.0, "move_left")
+		_axis(device, JOY_AXIS_LEFT_X, 1.0, "move_right")
+		_button(device, JOY_BUTTON_A, "jump")
+		_button(device, JOY_BUTTON_B, "sprint")
+		_button(device, JOY_BUTTON_Y, "interact")
+		_button_none(device, JOY_BUTTON_Y, ["camera"])
+		# Analog walking: half a push is half strength (not snapped to full)
+		_axis_strength(device, JOY_AXIS_LEFT_Y, -0.6, "move_forward")
 		_button(device, JOY_BUTTON_START, "pause")
 		_button(device, JOY_BUTTON_X, "trick")
 		_button(device, JOY_BUTTON_DPAD_RIGHT, "paint_next")
@@ -50,6 +61,18 @@ func _ready() -> void:
 			_button_none(device, b, ["pause", "honk", "camera", "ui_cancel"])
 	print("\nCONTROLLER TEST %s" % ("PASSED" if _fails == 0 else "FAILED (%d)" % _fails))
 	get_tree().quit(1 if _fails else 0)
+
+
+func _axis_strength(device: int, axis: JoyAxis, value: float, action: String) -> void:
+	var e := InputEventJoypadMotion.new()
+	e.device = device
+	e.axis = axis
+	e.axis_value = value
+	var st := e.get_action_strength(action)
+	var ok := st > 0.3 and st < 0.9
+	print(("PASS  " if ok else "FAIL  ") + "%s partly pushed (%.2f) is partial %s (%.2f)" % [JOY_AXIS_LEFT_Y, value, action, st])
+	if not ok:
+		_fails += 1
 
 
 func _axis(device: int, axis: JoyAxis, value: float, action: String, expect := true) -> void:

@@ -7,6 +7,7 @@ const LAYER_WORLD := 1          # terrain, water, obstacles
 const LAYER_AIRCRAFT := 2
 const LAYER_PUSH_VOLUMES := 4   # soft keep-away zones around tall objects
 const LAYER_COLLECTIBLES := 8   # stars
+const LAYER_PLAYER := 16        # the player on foot
 
 const BUS_MUSIC := &"Music"
 const BUS_SFX := &"SFX"

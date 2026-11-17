@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -104,6 +104,25 @@ func _draw() -> void:
 						draw_rect(Rect2(c + Vector2(t[0] + wx, y) * s, Vector2(0.06, 0.06) * s), Color(0, 0, 0, 0.3))
 					y += 0.13
 			draw_line(c + Vector2(-0.46, 0.37) * s, c + Vector2(0.46, 0.37) * s, color, s * 0.05)
+		Icon.BUTTON_Y:
+			# The Xbox-style Y button: a dark disc with a yellow Y (the Deck's
+			# Y is in the same place).
+			draw_circle(c, s * 0.46, Color(0.12, 0.13, 0.16))
+			draw_arc(c, s * 0.46, 0, TAU, 40, Color(1, 1, 1, 0.85), s * 0.05, true)
+			var yc := Color("ffd23f")
+			var w := s * 0.11
+			draw_line(c + Vector2(-0.19, -0.24) * s, c + Vector2(0, 0.0) * s, yc, w, true)
+			draw_line(c + Vector2(0.19, -0.24) * s, c + Vector2(0, 0.0) * s, yc, w, true)
+			draw_line(c + Vector2(0, -0.02) * s, c + Vector2(0, 0.27) * s, yc, w, true)
+		Icon.PERSON:
+			# A little walking figure: head, body, arms and striding legs.
+			draw_circle(c + Vector2(0.02, -0.34) * s, s * 0.12, color)
+			var lw := s * 0.11
+			draw_line(c + Vector2(0.02, -0.2) * s, c + Vector2(-0.02, 0.1) * s, color, lw * 1.3, true)
+			draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(0.2, 0.02) * s, color, lw * 0.8, true)
+			draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(-0.2, 0.0) * s, color, lw * 0.8, true)
+			draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(0.17, 0.42) * s, color, lw, true)
+			draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(-0.2, 0.42) * s, color, lw, true)
 		Icon.BATTERY:
 			var body := Rect2(c + Vector2(-0.4, -0.2) * s, Vector2(0.72, 0.4) * s)
 			draw_rect(body, color, false, s * 0.06)
