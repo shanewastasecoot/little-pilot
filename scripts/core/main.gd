@@ -8,7 +8,8 @@ extends Node3D
 ##            stick to take off again, or Y to get out
 ##   ON_FOOT  walking about (Walker + WalkCamera); the plane waits, parked.
 ##            Y near the plane gets back in.
-## CHARACTER_CREATE is reserved for the character update.
+##   CHARACTER_CREATE  making your character (first start, before choosing
+##            a plane); from the pause menu it opens over PAUSED instead
 ## The world is always live: on the title and plane-select screens the plane
 ## circles on autopilot behind the menus, so it's flying within seconds.
 
@@ -57,6 +58,7 @@ const DOOR_RADIUS := 9.0
 @onready var title: TitleScreen = $TitleScreen
 @onready var plane_select: PlaneSelect = $PlaneSelect
 @onready var pause_menu: PauseMenu = $PauseMenu
+var character_screen: CharacterScreen
 
 
 func _ready() -> void:
@@ -110,7 +112,12 @@ func _ready() -> void:
 	if _dragon:
 		_dragon.plane_hit.connect(func(_where, _fire): aircraft.explode())
 
-	title.start_requested.connect(_open_select)
+	character_screen = CharacterScreen.new()
+	add_child(character_screen)
+	character_screen.done.connect(_on_character_done)
+	character_screen.back_requested.connect(_on_character_back)
+	pause_menu.character_requested.connect(_open_character.bind(true))
+	title.start_requested.connect(_on_start)
 	plane_select.confirmed.connect(_on_plane_confirmed)
 	plane_select.back_requested.connect(_show_pause)
 	pause_menu.resume_requested.connect(_resume)
@@ -140,7 +147,9 @@ func _enter(new_state: State) -> void:
 		_play_state = state
 	title.visible = state == State.TITLE
 	plane_select.visible = state == State.SELECT
-	pause_menu.visible = state == State.PAUSED and not plane_select.visible
+	if state != State.CHARACTER_CREATE and state != State.PAUSED:
+		character_screen.hide()
+	pause_menu.visible = state == State.PAUSED and not plane_select.visible and not character_screen.visible
 	hud.visible = _playing() or state == State.PAUSED
 	var player_flying := _in_plane()
 	# On foot (also while paused from walking): the walker and its camera.
@@ -248,11 +257,6 @@ func _open_settings() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# On foot, the D-pad changes clothes (left/right), hair (up) and body
-	# (down) until the character screen exists.
-	if state == State.ON_FOOT and _restyle(event):
-		get_viewport().set_input_as_handled()
-		return
 	if _in_plane() and event.is_action_pressed("paint_next"):
 		aircraft.cycle_paint(1)
 		get_viewport().set_input_as_handled()
@@ -309,24 +313,38 @@ func _resume() -> void:
 	_enter(_play_state)
 
 
-func _restyle(event: InputEvent) -> bool:
-	var b := SaveManager.char_body
-	var h := SaveManager.char_hair
-	var o := SaveManager.char_outfit
-	if event.is_action_pressed("paint_next"):
-		o = o % 4 + 1
-	elif event.is_action_pressed("paint_prev"):
-		o = (o + 2) % 4 + 1
-	elif event.is_action_pressed("hair_next"):
-		h = h % 4 + 1
-	elif event.is_action_pressed("body_next"):
-		b = "F" if b == "M" else "M"
+## Start on the title: make your character first if you never have.
+func _on_start() -> void:
+	if SaveManager.char_made:
+		_open_select()
 	else:
-		return false
-	SaveManager.set_character(b, h, o)
-	Sfx.play("pop", 1.1)
-	walker.add_child(PickupBurst.new(20, 7.0, [Color.WHITE, Color("ffd23f")]))
-	return true
+		_open_character(false)
+
+
+## The character screen: first start (from_pause false: B goes back to the
+## title) or from the pause menu (B undoes and returns to the pause menu).
+func _open_character(from_pause: bool) -> void:
+	character_screen.open(true)
+	if from_pause:
+		pause_menu.hide()  # stay paused underneath
+	else:
+		_enter(State.CHARACTER_CREATE)
+
+
+func _on_character_done() -> void:
+	character_screen.hide()
+	if state == State.PAUSED:
+		pause_menu.show()
+	else:
+		_open_select()
+
+
+func _on_character_back() -> void:
+	character_screen.hide()
+	if state == State.PAUSED:
+		pause_menu.show()
+	else:
+		_enter(State.TITLE)
 
 
 ## Sitting in the parked plane with the controls: can get out.

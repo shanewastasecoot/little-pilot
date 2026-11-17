@@ -38,8 +38,11 @@ func _ready() -> void:
 		_button(device, JOY_BUTTON_A, "jump")
 		_button(device, JOY_BUTTON_B, "sprint")
 		_button(device, JOY_BUTTON_Y, "interact")
-		_button(device, JOY_BUTTON_DPAD_UP, "hair_next")
-		_button(device, JOY_BUTTON_DPAD_DOWN, "body_next")
+		# Character screen tabs
+		_button(device, JOY_BUTTON_LEFT_SHOULDER, "tab_prev")
+		_button(device, JOY_BUTTON_RIGHT_SHOULDER, "tab_next")
+		_button(device, JOY_BUTTON_DPAD_UP, "ui_up")
+		_button(device, JOY_BUTTON_DPAD_DOWN, "ui_down")
 		_button_none(device, JOY_BUTTON_Y, ["camera"])
 		# Analog walking: half a push is half strength (not snapped to full)
 		_axis_strength(device, JOY_AXIS_LEFT_Y, -0.6, "move_forward")
