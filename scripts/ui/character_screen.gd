@@ -1,8 +1,8 @@
 class_name CharacterScreen
 extends CanvasLayer
 ## Make your character, without reading. Left: your character on a turntable
-## (right stick spins it). Right: three picture tabs (body, hair, clothes)
-## and big picture tiles for the choices on the current tab.
+## (right stick spins it; left alone it turns slowly and waves). Right: two
+## picture tabs (hair, outfit) and big picture tiles for the choices.
 ##   LB / RB (or up / down)        change tab
 ##   left / right (stick, D-pad)   pick on this tab: the character changes
 ##                                 straight away
@@ -14,12 +14,12 @@ extends CanvasLayer
 signal done
 signal back_requested
 
-const TABS := 3  # body, hair, outfit
+const TABS := 2  # hair, outfit
 const TURN_SPEED := 2.6  # radians/s at full right stick
 
 var tab := 0
-## The choices being tried on: [body index 0/1, hair 0..3, outfit 0..3].
-var choice := [0, 0, 0]
+## The choices being tried on: [hair 0..3, outfit 0..4].
+var choice := [0, 0]
 var allow_back := true
 
 var _preview: CharacterModel
@@ -76,7 +76,7 @@ func _ready() -> void:
 	right.add_child(tabs_row)
 	tabs_row.add_child(_glyph(UiIcon.Icon.BUTTON_LB, Vector2(84, 84)))
 	for i in TABS:
-		var t := CharacterTile.new(CharacterTile.Kind.TAB, i, Vector2(110, 110))
+		var t := CharacterTile.new(CharacterTile.Kind.TAB, i + 1, Vector2(110, 110))
 		t.pressed.connect(func(): _set_tab(i))
 		tabs_row.add_child(t)
 		_tab_tiles.append(t)
@@ -165,16 +165,17 @@ func _build_stage(vp: SubViewport) -> void:
 func open(can_go_back: bool) -> void:
 	allow_back = can_go_back
 	_saved = [SaveManager.char_body, SaveManager.char_hair, SaveManager.char_outfit]
-	choice = [0 if SaveManager.char_body == "M" else 1, SaveManager.char_hair - 1, SaveManager.char_outfit - 1]
+	choice = [SaveManager.char_hair - 1, SaveManager.char_outfit - 1]
 	_turntable.rotation.y = PI + 0.35
 	show()
 	_set_tab(0, true)
 	_try_on()
 
 
-## The look being tried on, as body "M"/"F", hair 1..4, outfit 1..4.
+## The look being tried on, as [body (kept from the save), hair 1..4,
+## outfit 1..5].
 func current_look() -> Array:
-	return ["M" if choice[0] == 0 else "F", choice[1] + 1, choice[2] + 1]
+	return [SaveManager.char_body, choice[0] + 1, choice[1] + 1]
 
 
 func preview() -> CharacterModel:
@@ -188,10 +189,10 @@ func _set_tab(i: int, quiet := false) -> void:
 	for t in _tiles:
 		t.queue_free()
 	_tiles.clear()
-	var count := 2 if tab == 0 else 4
-	var kind: CharacterTile.Kind = [CharacterTile.Kind.BODY, CharacterTile.Kind.HAIR, CharacterTile.Kind.OUTFIT][tab]
+	var count := CharacterModel.HAIRS if tab == 0 else Outfits.count()
+	var kind: CharacterTile.Kind = [CharacterTile.Kind.HAIR, CharacterTile.Kind.OUTFIT][tab]
 	for k in count:
-		var t := CharacterTile.new(kind, k, Vector2(150, 150))
+		var t := CharacterTile.new(kind, k, Vector2(124, 124) if count > 4 else Vector2(150, 150))
 		t.pressed.connect(func(): _pick(k))
 		_tiles_box.add_child(t)
 		_tiles.append(t)

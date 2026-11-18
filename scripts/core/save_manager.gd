@@ -51,6 +51,8 @@ var char_hair: int = 1
 var char_outfit: int = 1
 ## False until the player has made their character (phase 4 asks then).
 var char_made: bool = false
+## Outfits to choose from (Outfits: pilot, princess, astronaut, superhero, dino).
+const OUTFIT_COUNT := 5
 var look_sensitivity: float = 1.0
 var invert_y: bool = false
 const LOOK_SENSITIVITY_MIN := 0.4
@@ -145,7 +147,7 @@ func _load_file() -> void:
 	if ch is int and ch >= 1 and ch <= 4:
 		char_hair = ch
 	var co = cfg.get_value("character", "outfit", char_outfit)
-	if co is int and co >= 1 and co <= 4:
+	if co is int and co >= 1 and co <= OUTFIT_COUNT:
 		char_outfit = co
 	var cm = cfg.get_value("character", "made", char_made)
 	if cm is bool:
@@ -305,7 +307,7 @@ func set_dragon_level(lvl: int) -> void:
 func set_character(body: String, hair: int, outfit: int) -> void:
 	char_body = body if body in ["M", "F"] else "M"
 	char_hair = clampi(hair, 1, 4)
-	char_outfit = clampi(outfit, 1, 4)
+	char_outfit = clampi(outfit, 1, OUTFIT_COUNT)
 	char_made = true
 	settings_changed.emit()
 	request_save()
