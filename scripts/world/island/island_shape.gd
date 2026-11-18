@@ -238,7 +238,7 @@ static func volcano_height(x: float, z: float) -> float:
 	var t := 1.0 - clampf(d / (VOLCANO_RADIUS * 0.9), 0.0, 1.0)
 	var h := 8.0 + VOLCANO_HEIGHT * pow(t, 1.35) + _noise.get_noise_2d(x * 1.5, z * 1.5) * 6.0
 	h -= 55.0 * smoothstep(CRATER_RADIUS * 1.6, CRATER_RADIUS * 0.5, d)  # crater bowl
-	return lerpf(-28.0, h, land)
+	return LandingPads.flatten(lerpf(-28.0, h, land), x, z, LandingPads.VOLCANO)
 
 
 static func volcano_color(x: float, z: float, h: float, slope: float) -> Color:

@@ -1,13 +1,15 @@
 class_name PauseMenu
 extends CanvasLayer
-## Pause menu with three big picture buttons:
-## Resume (green), Change Plane (blue), Quit (red, hold 2 s).
+## Pause menu with big picture buttons:
+## Resume (green), Change Plane (blue), Me (orange: change your character),
+## Quit (red, hold 2 s).
 ## B / Menu / Esc also resume.
 
 signal resume_requested
 signal change_plane_requested
 signal quit_requested
 signal settings_requested
+signal character_requested
 
 var _resume: BigButton
 
@@ -33,6 +35,8 @@ func _ready() -> void:
 	_resume.pressed.connect(func(): resume_requested.emit())
 	var plane := _button(row, UiIcon.Icon.PLANE, Color("4aa8ff"), Vector2(200, 200))
 	plane.pressed.connect(func(): change_plane_requested.emit())
+	var me := _button(row, UiIcon.Icon.PERSON, Color("ff8c42"), Vector2(200, 200))
+	me.pressed.connect(func(): character_requested.emit())
 	var quit := HoldButton.new()
 	quit.icon_type = UiIcon.Icon.QUIT
 	quit.base_color = Color("ff5a5f")

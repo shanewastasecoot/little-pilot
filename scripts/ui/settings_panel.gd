@@ -4,8 +4,9 @@ extends CanvasLayer
 ## music volume, sound volume, a battery saver (30 FPS cap), whether the
 ## city-fireworks arrow is shown, whether the plane can crash, whether the
 ## dragon lives on the island and how tough it is (1-3 flames).
-## Bottom row: how long they've played, and "Restart the city" (press once
-## and it turns orange; press again within a few seconds to really do it).
+## Bottom row: how long they've played, "Restart the city" (press once and
+## it turns orange; press again within a few seconds to really do it), the
+## walking camera's speed (1-3 dots) and up/down direction (invert).
 ## B / Esc or the back arrow closes it. Changes save automatically.
 
 signal closed
@@ -25,6 +26,10 @@ var _level: BigButton
 var _city: BigButton
 var _played: Label
 var _city_armed := 0.0
+var _cam_speed: BigButton
+var _invert: BigButton
+## Camera speeds for 1, 2, 3 dots.
+const CAMERA_SPEEDS := [0.6, 1.0, 1.6]
 
 
 func _ready() -> void:
@@ -119,6 +124,17 @@ func _ready() -> void:
 	_city.button_size = Vector2(130, 130)
 	_city.pressed.connect(_on_city_pressed)
 	row2.add_child(_city)
+	_cam_speed = BigButton.new()
+	_cam_speed.icon_type = UiIcon.Icon.CAMERA
+	_cam_speed.button_size = Vector2(130, 130)
+	_cam_speed.pressed.connect(_on_cam_speed)
+	row2.add_child(_cam_speed)
+	_invert = BigButton.new()
+	_invert.icon_type = UiIcon.Icon.INVERT_Y
+	_invert.button_size = Vector2(130, 130)
+	_invert.toggle_mode = true
+	_invert.toggled.connect(func(on): SaveManager.set_invert_y(on); _tint_battery())
+	row2.add_child(_invert)
 
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
@@ -156,6 +172,7 @@ func _on_visibility_changed() -> void:
 	_crash.set_pressed_no_signal(SaveManager.crashes)
 	_dragon.set_pressed_no_signal(SaveManager.dragon)
 	_played.text = SaveManager.format_duration(SaveManager.playtime)
+	_invert.set_pressed_no_signal(SaveManager.invert_y)
 	_city_armed = 0.0
 	_tint(_city, CITY_BLUE)
 	_tint_battery()
@@ -188,9 +205,28 @@ func _tint(b: BigButton, c: Color) -> void:
 	b.add_theme_stylebox_override("pressed", b._style(c, Color(0, 0, 0, 0)))
 
 
+## Camera speed: one press steps slow -> normal -> fast (1-3 dots).
+func _on_cam_speed() -> void:
+	var i := CAMERA_SPEEDS.find(_nearest_speed())
+	SaveManager.set_look_sensitivity(CAMERA_SPEEDS[(i + 1) % CAMERA_SPEEDS.size()])
+	Sfx.play("ui_move", 0.9 + i * 0.15)
+	_tint_battery()
+
+
+func _nearest_speed() -> float:
+	var best: float = CAMERA_SPEEDS[1]
+	for v: float in CAMERA_SPEEDS:
+		if absf(v - SaveManager.look_sensitivity) < absf(best - SaveManager.look_sensitivity):
+			best = v
+	return best
+
+
 ## Toggle buttons are green when on, grey when off.
 func _tint_battery() -> void:
-	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow], [_crash, SaveManager.crashes], [_dragon, SaveManager.dragon]]:
+	_cam_speed._icon.pips = CAMERA_SPEEDS.find(_nearest_speed()) + 1
+	_tint(_cam_speed, Color("4aa8ff"))
+	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow], [_crash, SaveManager.crashes], [_dragon, SaveManager.dragon],
+			[_invert, SaveManager.invert_y]]:
 		var b: BigButton = pair[0]
 		var c := Color("4cc06a") if pair[1] else Color("8a94a6")
 		b.add_theme_stylebox_override("normal", b._style(c, Color(0, 0, 0, 0)))

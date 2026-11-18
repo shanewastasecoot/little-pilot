@@ -36,7 +36,8 @@ static func height(x: float, z: float, centre: Vector2, radius: float, peak: flo
 	var n := sin(a * 3.0 + centre.x) * 0.12 + sin(a * 7.0 + centre.y) * 0.06
 	var coast := radius * (1.0 + n)
 	var land := smoothstep(coast + 45.0, coast - 40.0, d)
-	var h := 3.0 + peak * smoothstep(coast, 0.0, d)
+	# A flat top (the middle 45%) so the plane can land on every islet.
+	var h := 3.0 + peak * smoothstep(coast, coast * 0.45, d)
 	return lerpf(-28.0, h, land)
 
 
@@ -94,6 +95,7 @@ static func _build_lagoon(parent: Node3D, stars: Node3D, c: Vector2, i: int) -> 
 	node.channel_angle = chan
 	node.position = Vector3(c.x, 0, c.y)
 	parent.add_child(node)
+	parent.add_child(LandingPads.windsock(LandingPads.lagoon_pad(c, chan, MermaidLagoon.RING_RADIUS)))
 	# A ring of stars over the lagoon itself (the ring's hills are tall).
 	_star_arc(stars, c, MermaidLagoon.RING_RADIUS * 0.5, true)
 
@@ -102,12 +104,12 @@ static func _decorate(node: Node3D, kind: String, c: Vector2, r: float, hf: Call
 	var env := "res://assets/environment/"
 	match kind:
 		"palm":
-			IslandDecor.scatter(node, env + "palm.glb", int(r / 18.0), c, 0.0, r * 0.7, hf, 4.5, 6.0, 3.5, 100.0, seed_value)
+			IslandDecor.scatter(node, env + "palm.glb", int(r / 18.0), c, r * 0.42, r * 0.75, hf, 4.5, 6.0, 3.5, 100.0, seed_value)
 			_crabs(node, c, r, hf, 2, seed_value)
 		"rocky":
 			for k in 6:
 				var a := TAU * k / 6.0 + seed_value
-				var lp := Vector2(cos(a), sin(a)) * r * randf_range(0.2, 0.6)
+				var lp := Vector2(cos(a), sin(a)) * r * randf_range(0.5, 0.72)  # round the landing spot
 				AssetLib.place(node, env + ("rocks.glb" if k % 2 == 0 else "rock.glb"), Vector3(lp.x, IslandDecor.ground(hf, c, lp) - 1.0, lp.y), randf_range(50.0, 90.0), randf() * 360.0)
 			for k in 3:
 				var a := TAU * k / 3.0 + 0.5

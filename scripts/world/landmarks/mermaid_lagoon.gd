@@ -57,7 +57,7 @@ static func height(x: float, z: float, c: Vector2, chan_angle: float) -> float:
 	# Little island in the middle for the clam.
 	var mid := smoothstep(75.0, 42.0, d)
 	h = lerpf(h, maxf(h, 3.2 + 4.0 * smoothstep(46.0, 0.0, d)), mid)
-	return h
+	return LandingPads.flatten(h, x, z, LandingPads.lagoon_pad(c, chan_angle, RING_RADIUS))
 
 
 static func color(_x: float, _z: float, h: float, slope: float) -> Color:

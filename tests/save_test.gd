@@ -101,6 +101,19 @@ func _ready() -> void:
 	_check("playtime autosaves while flying", not SaveManager._save_timer.is_stopped())
 	SaveManager.save_now()
 
+	# 2d. On-foot camera settings
+	SaveManager.use_path(PATH)
+	_check("camera settings default to normal", SaveManager.look_sensitivity == 1.0 and not SaveManager.invert_y)
+	SaveManager.set_look_sensitivity(1.6)
+	SaveManager.set_invert_y(true)
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("camera settings survive reload", is_equal_approx(SaveManager.look_sensitivity, 1.6) and SaveManager.invert_y)
+	_write('[settings]\nlook_sensitivity=99\ninvert_y="yes"\n')
+	SaveManager.use_path(PATH)
+	_check("bad camera settings clamp/fall back", SaveManager.look_sensitivity == SaveManager.LOOK_SENSITIVITY_MAX and not SaveManager.invert_y)
+
+
 	# 3. Corrupt file -> defaults, no crash
 	_write("this is { not [ a config ::: file \u0007\u0001")
 	SaveManager.use_path(PATH)

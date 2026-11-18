@@ -30,7 +30,11 @@ func _process(delta: float) -> void:
 		_plane = get_tree().get_first_node_in_group("aircraft")
 		if _plane == null:
 			return
-	var p := _plane.global_position
+	# Whoever the player is right now: the walker when on foot, else the plane.
+	var who: Node3D = get_tree().get_first_node_in_group("player_focus")
+	if who == null:
+		who = _plane
+	var p := who.global_position
 	var centre := (get_parent() as Node3D).global_position
 	var awake := centre.distance_to(p) < sleep_radius
 	if awake != _awake:
@@ -41,7 +45,7 @@ func _process(delta: float) -> void:
 		return
 	var r2 := wave_radius * wave_radius
 	for m in mermaids:
-		m.look_target = _plane
+		m.look_target = who
 		var near := m.global_position.distance_squared_to(p) < r2
 		if near and not m.get_meta("plane_near", false):
 			m.greet()

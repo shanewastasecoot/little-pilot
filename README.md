@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.3.0 released (the city grows as you play: playtime is saved and the city spreads to an 11x11 grid of blocks over ~22 hours, with buildings rising inside scaffolding, "A new bakery opened!" news, parks, schools and townspeople who walk the streets and go in and out of buildings; calmer dragon, bigger Mermaid Coves); v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
+| **Status** | v1.4.0 released (land anywhere, get out and walk around as your own character: boy or girl, 4 hairstyles, 4 outfits, built in Blender; a picture-only character screen; camera speed and invert-Y for parents); v1.3.0 added the growing city; v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
 
 ## Target Audience
 
@@ -40,7 +40,7 @@ The secondary audience is the parent or developer, who should find the project e
 
 ## Core Gameplay Features
 
-- **Gentle arcade flight.** The plane always moves forward and levels itself. Take off yourself from a long runway; bump into something and it's a soft bonk or splash and back to the runway. Parents can switch crashing off for the uncrashable mode, where the plane steers away from the ground, water and buildings on its own.
+- **Gentle arcade flight.** The plane always moves forward and levels itself. Take off yourself from a long runway; bump into something and it's a soft bonk or splash and back to the runway. **Land anywhere:** come down gently onto flat ground on any island (hold slow to flare and brake), roll to a stop and park; boost to take off again. Windsocks mark landing meadows on the bumpier islands. **Get out and walk:** parked anywhere, press **Y** to climb out and explore on foot (left stick walks, further push = faster; **B** sprints, **A** jumps, right stick turns the camera); walk back to the plane and press **Y** to get in. You walk as your own character (built in Blender: boy or girl, 4 hairstyles, 4 outfits), made on a picture-only screen the first time you press Start (LB/RB change tab, left/right pick, right stick spins your character, A done) and changeable any time from the pause menu (orange person button). Parents can switch crashing off for the uncrashable mode, where the plane steers away from the ground, water and buildings on its own.
 - **Two aircraft:** a cartoon **toy biplane** (with a pilot and spinning propeller) and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
 - **A world of islands to explore** (about 9 km across):
   - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and a **city** (5×5 blocks) with skyscrapers, construction cranes, a park and a big turning **Ferris wheel**
@@ -128,9 +128,10 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 | Command | What it does |
 |---|---|
 | `./dev.sh run` / `./dev.sh run full` | Play in a window / fullscreen |
+| `./dev.sh characters` | Rebuild the player characters in Blender (see `docs/characters.md`) |
 | `./dev.sh city 12` | Play with the city grown 12 hours ahead (a preview: not saved) |
 | `./dev.sh editor` | Open the Godot editor |
-| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), growing city (plan, pacing, construction, people, restart), flight stress test (54 cases across both planes, incl. mountains, lighthouse, turbines and the fully grown city). Exit code 0 = pass. |
+| `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), growing city (plan, pacing, construction, people, restart), landing (soft landings, parking and take-off on every island and islet, what still bumps), walking (getting out and in, analog speed, sprint, jump, shore, slopes, camera, every island), player character (model, all 32 looks, animations, save, the character screen with a controller), flight stress test (54 cases across both planes, incl. mountains, lighthouse, turbines and the fully grown city). Exit code 0 = pass. |
 | `./dev.sh check` | Import the project and report script errors |
 | `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
 

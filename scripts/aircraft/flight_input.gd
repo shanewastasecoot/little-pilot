@@ -22,6 +22,9 @@ var override_stick: Vector2 = Vector2.ZERO
 var override_throttle: float = 0.0
 
 var smoothing: float = 3.0
+## This tick's unsmoothed stick and throttle (for "has it been let go?").
+var raw_stick: Vector2 = Vector2.ZERO
+var raw_throttle: float = 0.0
 
 
 func _physics_process(delta: float) -> void:
@@ -36,6 +39,8 @@ func _physics_process(delta: float) -> void:
 		# Boost wins if both are held, so mashing never feels "stuck slow".
 		raw_throttle = Input.get_action_strength("boost") - Input.get_action_strength("slow") * (1.0 - Input.get_action_strength("boost"))
 
+	raw_stick = raw
+	self.raw_throttle = clampf(raw_throttle, -1.0, 1.0)
 	has_stick_input = raw.length() > 0.05
 	trick_held = not override_enabled and Input.is_action_pressed("trick")
 	var t := 1.0 - exp(-smoothing * delta)

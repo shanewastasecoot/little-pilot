@@ -5,8 +5,16 @@ extends CharacterBody3D
 ## ground, water or buildings: `crashed` fires and the game puts it back on
 ## the runway. With crashes off, FlightSafety steers it away from everything.
 ## Take-off is the player's: from PARKED, boost (or push the stick) to roll
-## down the runway, then pull up once fast enough. Differences between
+## along the ground, then pull up once fast enough. Differences between
 ## planes live in `stats`.
+##
+## Landing: come down gently (not boosting, not diving) onto flat ground
+## anywhere (grass, sand, the runway) and the wheels touch down instead of
+## crashing. In can't-crash mode the plane only lands on purpose: hold slow
+## while low over flat ground and the safety system lets it down. The plane rolls along the ground, slowing by itself (hold slow
+## to brake harder), and parks when it stops. Boost during the roll to go
+## round again. Steep ground, buildings, water, or coming in too fast or
+## too steeply are still a bump (see can_land_on).
 ##
 ## Children it expects: FlightInput, FlightSafety, Sensor (Area3D),
 ## Model (with an AircraftVisuals script). The model is replaced by
@@ -17,6 +25,11 @@ signal stats_changed(stats: AircraftStats)
 @export var stats: AircraftStats
 
 signal takeoff_finished
+## Wheels touched the ground in a landing (the roll-out follows).
+signal touched_down
+## The plane has stopped and parked. after_landing: it just landed (false
+## when placed on the runway by the game).
+signal parked(after_landing: bool)
 ## The plane bumped into something (only when `crashes` is on).
 signal crashed(where: Vector3, into_water: bool)
 
@@ -31,6 +44,21 @@ const ROLL_BRAKE := 8.0
 const ROLL_TURN_DEG := 14.0
 const LIFTOFF_FRACTION := 0.75
 const LIFTOFF_PITCH_DEG := 10.0
+## Landing. Ground steeper than LAND_MAX_SLOPE_DEG, a dive steeper than
+## LAND_MAX_DIVE_DEG or more than LAND_MAX_SPEED x cruise is a bump, not a
+## landing. On the ground: ROLL_FRICTION slows a landing roll on its own,
+## the plane stops for water/cliffs/walls ahead (ROLL_STOP_BRAKE), and
+## won't roll onto ground steeper than ROLL_MAX_SLOPE_DEG.
+const LAND_MAX_SLOPE_DEG := 14.0
+const LAND_MAX_DIVE_DEG := 25.0
+const LAND_MAX_SPEED := 1.12
+const LAND_MIN_HEIGHT := 1.2      # above the waves: no landing in the surf
+const ROLL_FRICTION := 3.0
+const ROLL_STOP_BRAKE := 30.0
+const ROLL_MAX_SLOPE_DEG := 24.0
+const ROLL_SETTLE := 8.0          # m/s the wheels settle onto the ground
+const ROLL_PIVOT_DEG := 55.0      # turn rate when nosing away from a wall
+enum Ahead { CLEAR, EDGE, WALL }
 ## Seconds after lift-off / respawn when touching the ground can't crash.
 const CRASH_GRACE := 1.5
 ## Crashes below this height count as landing in the sea.
@@ -46,6 +74,13 @@ var crashes := true:
 var ground_controls := false
 var mode: Mode = Mode.FLYING
 var _ground_y := 0.0
+## The current ground roll is a landing (slowing down), not a take-off.
+var _landing := false
+## Parked after landing: wait for the stick and triggers to be let go
+## before a push counts as "let's go" (they were still held from flying).
+var _await_release := false
+## Seconds before the release check starts (fresh input after getting in).
+var _release_delay := 0.0
 var _grace := 0.0
 var _crash_spin := Vector3.ZERO
 
@@ -88,8 +123,16 @@ func _physics_process(delta: float) -> void:
 		speed = 0.0
 		boost_amount = 0.0
 		visuals.update_visuals(0.0, 6.0, stats, delta)  # propeller idles
-		if ground_controls and (input.throttle > 0.2 or absf(input.stick.y) > 0.35):
+		var pushing := input.throttle > 0.2 or absf(input.stick.y) > 0.35
+		if _await_release:
+			# Raw input: the smoothed stick starts near zero after a state
+			# change and would look "let go" while it's still held.
+			_release_delay -= delta
+			if _release_delay <= 0.0 and input.raw_stick.length() < 0.25 and absf(input.raw_throttle) < 0.2:
+				_await_release = false
+		elif ground_controls and pushing:
 			mode = Mode.ROLLING  # the player wants to go
+			_landing = false
 			Sfx.play("whoosh", 0.7)
 		return
 	if mode == Mode.ROLLING:
@@ -99,6 +142,11 @@ func _physics_process(delta: float) -> void:
 		_crashed_step(delta)
 		return
 	_grace -= delta
+	# Coming in to land (holding slow, low over landable ground): the safety
+	# system flares the descent and, in can't-crash mode, lets us down.
+	var below := _ground_ray(global_position)
+	safety.landing = input.throttle < -0.2 and not below.is_empty() \
+			and global_position.y - below.position.y < 30.0 and can_land_on(below)
 	safety.evaluate(global_position, velocity, turn)
 
 	# Turning: safety bias overrides the stick in proportion to its strength.
@@ -129,6 +177,8 @@ func _physics_process(delta: float) -> void:
 	boost_amount = clampf((speed - stats.cruise_speed) / (stats.cruise_speed * (stats.boost_multiplier - 1.0)), 0.0, 1.0)
 
 	velocity = _forward() * speed
+	if _grace <= 0.0 and velocity.y <= 0.5 and _try_touch_down(delta):
+		return
 	move_and_slide()
 	if crashes and _grace <= 0.0 and (get_slide_collision_count() > 0 or global_position.y < _water_y()):
 		_crash()
@@ -200,6 +250,9 @@ func park(pos: Vector3, yaw: float) -> void:
 	speed = 0.0
 	teleport(pos + Vector3.UP * stats.ground_offset, yaw)
 	mode = Mode.PARKED
+	_landing = false
+	_await_release = false
+	parked.emit(false)
 
 
 ## True while on the ground (parked or rolling).
@@ -207,33 +260,175 @@ func on_ground() -> bool:
 	return mode == Mode.PARKED or mode == Mode.ROLLING
 
 
-## Player-driven ground roll: boost speeds up, slow brakes, the stick steers
-## a little; pull up once fast enough to lift off (or run off the end of the
-## runway at speed and it lifts off by itself).
+## Is this ground (a _ground_ray hit) somewhere the plane can land? Island
+## terrain only (not roofs), flat enough, and clear of the sea.
+func can_land_on(hit: Dictionary) -> bool:
+	if hit.is_empty() or not (hit.collider as Node).is_in_group("terrain"):
+		return false
+	var n: Vector3 = hit.normal
+	var p: Vector3 = hit.position
+	return n.y >= cos(deg_to_rad(LAND_MAX_SLOPE_DEG)) and p.y > Waves.height(p.x, p.z) + LAND_MIN_HEIGHT
+
+
+## The world straight below `pos` (from a little above it): {} or a ray hit.
+func _ground_ray(pos: Vector3) -> Dictionary:
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 6.0, pos + Vector3.DOWN * 60.0, GameSettings.LAYER_WORLD)
+	q.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_ray(q)
+
+
+## Height of the plane's origin above the ground at which the wheels (or
+## the belly, for low planes) touch.
+func _touch_height() -> float:
+	return maxf(stats.ground_offset, BODY_RADIUS * stats.model_scale) + 0.35
+
+
+## About to meet the ground this tick? Land if it's a fair landing: on
+## landable ground, and (when crashes are on) not diving or boosting in.
+## Anything else is left to the normal collision (bump) or safety system.
+func _try_touch_down(delta: float) -> bool:
+	var next := global_position + velocity * delta
+	var hit := _ground_ray(next)
+	if hit.is_empty() or next.y - hit.position.y > _touch_height() or not can_land_on(hit):
+		return false
+	if crashes and (pitch < -deg_to_rad(LAND_MAX_DIVE_DEG) or speed > stats.cruise_speed * LAND_MAX_SPEED):
+		return false
+	if not crashes and not safety.landing:
+		return false  # can't-crash mode only lands on purpose (holding slow)
+	global_position = next
+	_ground_y = hit.position.y
+	mode = Mode.ROLLING
+	_landing = true
+	boost_amount = 0.0
+	Sfx.play("pop", 0.55)
+	touched_down.emit()
+	return true
+
+
+## What's in the way within `dist` m along the ground: nothing; an EDGE
+## (water, a drop, no ground); or a WALL (a building, a steep bank).
+func _ahead(dir: Vector3, dist: float) -> Ahead:
+	var space := get_world_3d().direct_space_state
+	var from := global_position
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * (dist + BODY_RADIUS * stats.model_scale), GameSettings.LAYER_WORLD)
+	q.exclude = [get_rid()]
+	var wall := space.intersect_ray(q)
+	if not wall.is_empty() and (wall.normal as Vector3).y < cos(deg_to_rad(ROLL_MAX_SLOPE_DEG)):
+		return Ahead.WALL
+	var hit := _ground_ray(from + dir * dist)
+	if hit.is_empty():
+		return Ahead.EDGE
+	var p: Vector3 = hit.position
+	if p.y < Waves.height(p.x, p.z) + LAND_MIN_HEIGHT or p.y < _ground_y - maxf(dist * 0.6, 2.5):
+		return Ahead.EDGE
+	if p.y > _ground_y + maxf(dist * 0.6, 2.5):
+		return Ahead.WALL
+	if (hit.normal as Vector3).y < cos(deg_to_rad(ROLL_MAX_SLOPE_DEG)):
+		# Too steep to roll on: a bank to stop for if it goes up, an edge
+		# to fly off if it falls away.
+		return Ahead.WALL if p.y > _ground_y else Ahead.EDGE
+	return Ahead.CLEAR
+
+
+## Player-driven ground roll, following the ground. Taking off: boost
+## speeds up, slow brakes, the stick steers a little; pull up once fast
+## enough to lift off (off the runway it lifts off by itself at speed, and
+## at water's edge straight away). Landing: it slows down by itself (slow
+## brakes harder) and parks when it stops; boost to take off again, or pull
+## up while still fast for a touch-and-go. It stops for anything in the
+## way, and on take-off noses round away from walls.
 func _roll_step(delta: float) -> void:
 	var lift_speed := stats.cruise_speed * LIFTOFF_FRACTION
-	var accel := ROLL_BOOST_ACCEL if input.throttle > 0.2 else ROLL_ACCEL
-	if input.throttle < -0.2:
+	var boosting := input.throttle > 0.2
+	var braking := input.throttle < -0.2
+	if _landing and boosting:
+		_landing = false  # changed their mind: off we go again
+		Sfx.play("whoosh", 0.7)
+	if braking:
 		speed = maxf(speed - ROLL_BRAKE * delta, 0.0)
+	elif _landing:
+		speed = maxf(speed - ROLL_FRICTION * delta, 0.0)
 	else:
-		speed = minf(speed + accel * delta, stats.cruise_speed * (stats.boost_multiplier if input.throttle > 0.2 else 1.0))
-	heading = wrapf(heading - input.stick.x * deg_to_rad(ROLL_TURN_DEG) * delta * clampf(speed / 10.0, 0.0, 1.0), -PI, PI)
-	pitch = move_toward(pitch, 0.0, deg_to_rad(10.0) * delta)
-	rotation = Vector3(pitch, heading, 0.0)
-	var pos := global_position + _forward() * speed * delta
-	pos.y = _ground_y + stats.ground_offset  # wheels on the ground
+		speed = minf(speed + (ROLL_BOOST_ACCEL if boosting else ROLL_ACCEL) * delta, stats.cruise_speed * (stats.boost_multiplier if boosting else 1.0))
+	var steer := input.stick.x * deg_to_rad(ROLL_TURN_DEG) * clampf(speed / 10.0, 0.0, 1.0)
+	var flat := Vector3(-sin(heading), 0.0, -cos(heading))
+	# Anything in the way within stopping distance?
+	var stop_dist := speed * speed / (2.0 * ROLL_STOP_BRAKE) + 5.0
+	var ahead := _ahead(flat, stop_dist)
+	if ahead != Ahead.CLEAR:
+		if not _landing and ahead == Ahead.EDGE and not braking:
+			speed = maxf(speed, lift_speed * 0.6)
+			lift_off()  # water's edge: up we go, like the end of the runway
+			return
+		speed = maxf(speed - ROLL_STOP_BRAKE * delta, 0.0)
+		if not _landing and ahead == Ahead.WALL and not braking:
+			# Nose round away from the wall (the stick picks the side).
+			steer = deg_to_rad(ROLL_PIVOT_DEG) * (signf(input.stick.x) if absf(input.stick.x) > 0.2 else 1.0)
+			speed = minf(speed, 1.0)
+	heading = wrapf(heading - steer * delta, -PI, PI)
+	flat = Vector3(-sin(heading), 0.0, -cos(heading))
+	var pos := global_position + flat * speed * delta
+	var ground := _ground_ray(pos)
+	var slope_pitch := 0.0
+	if not ground.is_empty() and (ground.position as Vector3).y > _ground_y - 3.0 and (ground.position as Vector3).y < _ground_y + 3.0:
+		_ground_y = ground.position.y
+		slope_pitch = asin(clampf(-flat.dot(ground.normal), -1.0, 1.0))
+	else:
+		pos = global_position  # nothing sensible to roll onto: stay put
+		speed = 0.0
+	# Wheels on the ground (settling down gently right after touchdown).
+	var wheels := _ground_y + stats.ground_offset
+	pos.y = wheels if global_position.y <= wheels else move_toward(global_position.y, wheels, ROLL_SETTLE * delta)
 	global_position = pos
-	velocity = _forward() * speed
+	pitch = move_toward(pitch, slope_pitch, deg_to_rad(40.0) * delta)
+	rotation = Vector3(pitch, heading, 0.0)
+	velocity = flat * speed
 	boost_amount = 0.0
 	visuals.update_visuals(input.stick.x * 0.3, speed + 6.0, stats, delta)
+	if speed <= 0.01 and (_landing or braking):
+		_park_here()
+		return
 	var off_runway := not IslandShape.on_runway(pos.x, pos.z)
-	if speed >= lift_speed and (input.stick.y > 0.2 or off_runway):
+	if speed >= lift_speed and (input.stick.y > 0.2 or (off_runway and not _landing)):
 		lift_off()
+
+
+## Stay parked until the stick and triggers have been let go once (used
+## when the player climbs back in: the stick was pushed to walk here).
+func hold_until_release() -> void:
+	_await_release = true
+	_release_delay = 0.2  # let the input catch up with the real stick first
+
+
+## Where someone getting out would stand: beside the cockpit, on the left
+## (or the right, behind or in front if that's no good). `fits` is asked
+## about each spot (Vector3 on the ground -> bool).
+func exit_spots() -> Array[Vector3]:
+	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
+	var left := Vector3(-cos(heading), 0.0, sin(heading))
+	var reach := BODY_RADIUS * stats.model_scale + 3.5
+	var out: Array[Vector3] = []
+	for off in [left, -left, -fwd, fwd, (left - fwd).normalized(), (-left - fwd).normalized()]:
+		out.append(global_position + off * reach)
+	return out
+
+
+## Stopped: sit here with the engine idling until the player wants to go.
+func _park_here() -> void:
+	var was_landing := _landing
+	speed = 0.0
+	velocity = Vector3.ZERO
+	mode = Mode.PARKED
+	_landing = false
+	_await_release = true
+	_release_delay = 0.2  # the game switching state can blank the input for a tick
+	parked.emit(was_landing)
 
 
 ## Leave the ground: normal flight, nose up, a moment's grace from crashes.
 func lift_off() -> void:
 	mode = Mode.FLYING
+	_landing = false
 	pitch = deg_to_rad(LIFTOFF_PITCH_DEG)
 	_grace = CRASH_GRACE
 	global_position.y += 0.5

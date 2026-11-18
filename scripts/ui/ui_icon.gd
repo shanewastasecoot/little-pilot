@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -104,11 +104,93 @@ func _draw() -> void:
 						draw_rect(Rect2(c + Vector2(t[0] + wx, y) * s, Vector2(0.06, 0.06) * s), Color(0, 0, 0, 0.3))
 					y += 0.13
 			draw_line(c + Vector2(-0.46, 0.37) * s, c + Vector2(0.46, 0.37) * s, color, s * 0.05)
+		Icon.BUTTON_Y:
+			# The Xbox-style Y button: a dark disc with a yellow Y (the Deck's
+			# Y is in the same place).
+			draw_circle(c, s * 0.46, Color(0.12, 0.13, 0.16))
+			draw_arc(c, s * 0.46, 0, TAU, 40, Color(1, 1, 1, 0.85), s * 0.05, true)
+			var yc := Color("ffd23f")
+			var w := s * 0.11
+			draw_line(c + Vector2(-0.19, -0.24) * s, c + Vector2(0, 0.0) * s, yc, w, true)
+			draw_line(c + Vector2(0.19, -0.24) * s, c + Vector2(0, 0.0) * s, yc, w, true)
+			draw_line(c + Vector2(0, -0.02) * s, c + Vector2(0, 0.27) * s, yc, w, true)
+		Icon.BUTTON_A:
+			_face_button(c, s, "A", Color("4cc06a"))
+		Icon.BUTTON_B:
+			_face_button(c, s, "B", Color("ff5a5f"))
+		Icon.BUTTON_LB, Icon.BUTTON_RB:
+			# A shoulder button: a dark rounded bar with LB / RB on it.
+			var r := Rect2(c + Vector2(-0.46, -0.24) * s, Vector2(0.92, 0.48) * s)
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color(0.12, 0.13, 0.16)
+			sb.border_color = Color(1, 1, 1, 0.85)
+			sb.set_border_width_all(maxi(int(s * 0.04), 2))
+			sb.set_corner_radius_all(int(s * 0.2))
+			draw_style_box(sb, r)
+			_letters(c, s * 0.34, "LB" if icon == Icon.BUTTON_LB else "RB", Color.WHITE)
+		Icon.CAMERA:
+			# A little camera (with speed pips drawn under it by `pips`).
+			_poly(PackedVector2Array([c + Vector2(-0.38, -0.2) * s, c + Vector2(0.28, -0.2) * s, c + Vector2(0.28, 0.22) * s, c + Vector2(-0.38, 0.22) * s]))
+			_poly(PackedVector2Array([c + Vector2(0.28, -0.06) * s, c + Vector2(0.44, -0.18) * s, c + Vector2(0.44, 0.2) * s, c + Vector2(0.28, 0.08) * s]))
+			draw_circle(c + Vector2(-0.05, 0.01) * s, s * 0.12, Color(0, 0, 0, 0.35))
+		Icon.INVERT_Y:
+			# Camera body with an up/down arrow beside it.
+			_poly(PackedVector2Array([c + Vector2(-0.42, -0.14) * s, c + Vector2(0.06, -0.14) * s, c + Vector2(0.06, 0.18) * s, c + Vector2(-0.42, 0.18) * s]))
+			var ax := c + Vector2(0.28, 0) * s
+			draw_line(ax + Vector2(0, -0.32) * s, ax + Vector2(0, 0.32) * s, color, s * 0.08, true)
+			_poly(PackedVector2Array([ax + Vector2(0, -0.44) * s, ax + Vector2(0.13, -0.26) * s, ax + Vector2(-0.13, -0.26) * s]))
+			_poly(PackedVector2Array([ax + Vector2(0, 0.44) * s, ax + Vector2(-0.13, 0.26) * s, ax + Vector2(0.13, 0.26) * s]))
+		Icon.JUMP:
+			_person(c + Vector2(0, 0.1) * s, s * 0.8, true)
+			_poly(PackedVector2Array([c + Vector2(0, -0.48) * s, c + Vector2(0.16, -0.3) * s, c + Vector2(-0.16, -0.3) * s]))
+		Icon.RUN:
+			_person(c + Vector2(0.08, 0.02) * s, s * 0.9, false)
+			for k in 3:
+				var y := (-0.12 + k * 0.14) * s
+				draw_line(c + Vector2(-0.46, y / s) * s, c + Vector2(-0.24, y / s) * s, color, s * 0.06, true)
+		Icon.CHECK:
+			draw_polyline(PackedVector2Array([c + Vector2(-0.3, 0.0) * s, c + Vector2(-0.08, 0.24) * s, c + Vector2(0.34, -0.26) * s]),
+				color, s * 0.13, true)
+		Icon.PERSON:
+			# A little walking figure: head, body, arms and striding legs.
+			draw_circle(c + Vector2(0.02, -0.34) * s, s * 0.12, color)
+			var lw := s * 0.11
+			draw_line(c + Vector2(0.02, -0.2) * s, c + Vector2(-0.02, 0.1) * s, color, lw * 1.3, true)
+			draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(0.2, 0.02) * s, color, lw * 0.8, true)
+			draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(-0.2, 0.0) * s, color, lw * 0.8, true)
+			draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(0.17, 0.42) * s, color, lw, true)
+			draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(-0.2, 0.42) * s, color, lw, true)
 		Icon.BATTERY:
 			var body := Rect2(c + Vector2(-0.4, -0.2) * s, Vector2(0.72, 0.4) * s)
 			draw_rect(body, color, false, s * 0.06)
 			draw_rect(Rect2(c + Vector2(0.32, -0.08) * s, Vector2(0.08, 0.16) * s), color)
 			draw_rect(Rect2(body.position + Vector2(0.07, 0.07) * s, Vector2(0.3, 0.26) * s), color)
+
+
+## A stick figure; `arms_up` for jumping.
+func _person(c: Vector2, s: float, arms_up: bool) -> void:
+	draw_circle(c + Vector2(0.02, -0.34) * s, s * 0.12, color)
+	var lw := s * 0.11
+	draw_line(c + Vector2(0.02, -0.2) * s, c + Vector2(-0.02, 0.1) * s, color, lw * 1.3, true)
+	var hand_y := -0.36 if arms_up else 0.02
+	draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(0.22, hand_y) * s, color, lw * 0.8, true)
+	draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(-0.22, hand_y if arms_up else 0.0) * s, color, lw * 0.8, true)
+	draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(0.17, 0.42) * s, color, lw, true)
+	draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(-0.2, 0.42) * s, color, lw, true)
+
+
+## An Xbox-style face button: a dark disc with a coloured letter.
+func _face_button(c: Vector2, s: float, letter: String, col: Color) -> void:
+	draw_circle(c, s * 0.46, Color(0.12, 0.13, 0.16))
+	draw_arc(c, s * 0.46, 0, TAU, 40, Color(1, 1, 1, 0.85), s * 0.05, true)
+	_letters(c, s * 0.55, letter, col)
+
+
+func _letters(c: Vector2, font_size: float, text: String, col: Color) -> void:
+	var font := ThemeDB.fallback_font
+	var fs := int(font_size)
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	draw_string(font, c + Vector2(-w * 0.5, fs * 0.36), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 func _draw_pips(c: Vector2, s: float) -> void:
