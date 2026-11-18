@@ -9,6 +9,8 @@ extends Node
 ##   sea      sprinting at the sea stops at the shore, never in the water
 ##   slopes   it won't climb ground steeper than the limit, and the camera
 ##            stays above the ground
+##   camera   invert-Y flips up/down, camera speed scales turning, and the
+##            parents' settings buttons change both
 ##   pause    pausing on foot resumes on foot
 ##   back     walking back to the plane and pressing Y gets in (LANDED); a
 ##            held stick doesn't set it rolling; then it takes off
@@ -60,6 +62,7 @@ func _run() -> void:
 			and absf(feet.y - _ground(feet)) < 0.3 and _flat_dist(feet, _plane.global_position) < 8.0)
 	_check("walk camera is live", _cam.cam.current and not _main.chase_camera.cam.current)
 	_check("prompt offers to get back in", _main.hud.prompt_kind() == "enter")
+	_check("A / B button hints show after getting out", _main.hud.foot_hints_showing())
 	# --- speeds ---------------------------------------------------------------
 	_cam.yaw = PI  # look (and walk) south, away from the plane's nose
 	var v_full: float = await _walk(Vector2(0, 1), false, 150)
@@ -86,6 +89,43 @@ func _run() -> void:
 	# --- prompt goes away -------------------------------------------------------
 	_check("walked away: no prompt, Y does nothing", _flat_dist(_w.global_position, _plane.global_position) > 20.0
 			and _main.hud.prompt_kind() == "" and not _main.toggle_plane() and _main.state == _main.State.ON_FOOT)
+	# --- camera settings: speed and invert-Y -------------------------------------
+	var pitch0: float = _cam.pitch
+	_cam.override_look = Vector2(0, 1)  # right stick up
+	await _frames(10)
+	var up_normal: float = _cam.pitch - pitch0
+	_cam.pitch = pitch0
+	SaveManager.set_invert_y(true)
+	await _frames(10)
+	var up_inverted: float = _cam.pitch - pitch0
+	SaveManager.set_invert_y(false)
+	_cam.pitch = pitch0
+	_check("invert-Y flips the camera's up/down", signf(up_normal) == -signf(up_inverted) and absf(up_normal) > 0.05)
+	var yaw0: float = _cam.yaw
+	_cam.override_look = Vector2(1, 0)
+	await _frames(10)
+	var turn_normal := absf(wrapf(_cam.yaw - yaw0, -PI, PI))
+	_cam.yaw = yaw0
+	SaveManager.set_look_sensitivity(1.6)
+	await _frames(10)
+	var turn_fast := absf(wrapf(_cam.yaw - yaw0, -PI, PI))
+	SaveManager.set_look_sensitivity(1.0)
+	_cam.override_look = Vector2.ZERO
+	_cam.yaw = yaw0
+	_check("faster camera speed turns faster", turn_fast > turn_normal * 1.4)
+	# The parents' settings buttons change them.
+	var panel: SettingsPanel = _main._settings
+	panel._on_cam_speed()
+	var s1 := SaveManager.look_sensitivity
+	panel._on_cam_speed()
+	var s2 := SaveManager.look_sensitivity
+	panel._on_cam_speed()
+	_check("camera speed button steps fast -> slow -> normal", is_equal_approx(s1, 1.6) and is_equal_approx(s2, 0.6)
+			and is_equal_approx(SaveManager.look_sensitivity, 1.0))
+	panel._invert.toggled.emit(true)
+	var inv_on := SaveManager.invert_y
+	panel._invert.toggled.emit(false)
+	_check("invert button toggles invert-Y", inv_on and not SaveManager.invert_y)
 	# --- pause on foot ------------------------------------------------------------
 	_main._show_pause()
 	var paused_ok: bool = _main.state == _main.State.PAUSED and _w.is_active()
@@ -99,11 +139,11 @@ func _run() -> void:
 	for i in 3000:
 		await get_tree().physics_frame
 		var p := _w.global_position
-		wettest = minf(wettest, _ground(p) - Waves.height(p.x, p.z))
+		wettest = minf(wettest, _ground(p))
 	_w.override_sprint = false
 	var at_shore := _w.global_position
-	print("  note: ran east to %s, lowest ground %.2f m above the waves" % [at_shore.round(), wettest])
-	_check("sprinting at the sea stops at the shore (never in the water)", wettest > 0.0 and at_shore.x > 1250.0)
+	print("  note: ran east to %s, lowest ground %.2f m above sea level" % [at_shore.round(), wettest])
+	_check("sprinting at the sea stops at the shore (never in the water)", wettest > Walker.SHORE_LEVEL - 0.3 and at_shore.x > 1250.0)
 	# --- slopes and camera --------------------------------------------------------
 	var foot := Vector3(195, 0, -640)
 	_w.place(Vector3(foot.x, _ground(foot) + 0.2, foot.z), 0.0)
@@ -163,7 +203,7 @@ func _run() -> void:
 		await _frames(150)
 		_w.override_move = Vector2.ZERO
 		var p := _w.global_position
-		var dry := _ground(p) - Waves.height(p.x, p.z) > 0.3
+		var dry := _ground(p) > Walker.SHORE_LEVEL - 0.3
 		var moved := _flat_dist(p, _plane.global_position) > 10.0
 		# Walk back: face the plane and go.
 		var to := _plane.global_position - p

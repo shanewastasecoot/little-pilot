@@ -361,12 +361,14 @@ func toggle_plane() -> bool:
 		Sfx.play("pop", 1.2)
 		walk_camera.snap_to(aircraft.heading)
 		_enter(State.ON_FOOT)
+		hud.show_foot_hints(true)
 		return true
 	if state == State.ON_FOOT and _near_plane:
 		Sfx.play("pop", 0.9)
 		aircraft.hold_until_release()
 		chase_camera.snap_to_target()
 		_enter(State.LANDED)
+		hud.show_foot_hints(false)
 		return true
 	return false
 
@@ -381,7 +383,7 @@ func _place_walker() -> bool:
 		if hit.is_empty():
 			continue
 		var p: Vector3 = hit.position
-		if p.y < Waves.height(p.x, p.z) + Walker.SHORE_HEIGHT or (hit.normal as Vector3).y < cos(deg_to_rad(Walker.MAX_SLOPE_DEG)):
+		if p.y < Walker.SHORE_LEVEL or (hit.normal as Vector3).y < cos(deg_to_rad(Walker.MAX_SLOPE_DEG)):
 			continue
 		if absf(p.y - (aircraft.global_position.y - aircraft.stats.ground_offset)) > 5.0:
 			continue

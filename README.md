@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.3.0 released (the city grows as you play: playtime is saved and the city spreads to an 11x11 grid of blocks over ~22 hours, with buildings rising inside scaffolding, "A new bakery opened!" news, parks, schools and townspeople who walk the streets and go in and out of buildings; calmer dragon, bigger Mermaid Coves); v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
+| **Status** | v1.4.0 released (land anywhere, get out and walk around as your own character: boy or girl, 4 hairstyles, 4 outfits, built in Blender; a picture-only character screen; camera speed and invert-Y for parents); v1.3.0 added the growing city; v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
 
 ## Target Audience
 

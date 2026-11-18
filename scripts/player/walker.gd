@@ -5,7 +5,9 @@ extends CharacterBody3D
 ## moves relative to the camera, and how far it's pushed sets the speed
 ## (analog walk); B sprints, A jumps. It walks on any ground up to
 ## MAX_SLOPE_DEG, bumps into buildings and the plane, and never goes into
-## the sea: the shore is a soft invisible edge.
+## the sea: the shore is a soft invisible edge at SHORE_LEVEL (a fixed
+## height, not the moving waves: big swells may lap at your feet, but the
+## edge doesn't jump about with every wave).
 ##
 ## Looks: the player's own character (CharacterModel, built in Blender),
 ## dressed from the save (body, hair, outfit). Origin is at the feet.
@@ -20,8 +22,9 @@ const JUMP_SPEED := 11.0
 const GRAVITY := 28.0
 const MAX_SLOPE_DEG := 40.0
 const TURN_RATE := 12.0        # how quickly it turns to face where it's going
-## Keep this far above the waves, checked this far ahead of the feet.
-const SHORE_HEIGHT := 0.9
+## Ground lower than this (m above mean sea level) counts as sea. Checked
+## this far ahead of the feet.
+const SHORE_LEVEL := 1.5
 const SHORE_REACH := 1.6
 
 ## The camera's yaw (set by WalkCamera): the stick moves relative to it.
@@ -39,6 +42,9 @@ var sprinting := false
 
 var _visual: Node3D
 var model: CharacterModel
+## The last spot it stood on dry ground: if it ever ends up over the sea
+## (sliding down a steep bank), it goes back there.
+var _last_dry := Vector3.ZERO
 var _active := false
 
 
@@ -93,6 +99,7 @@ func is_active() -> bool:
 ## Stand at `pos` (feet), facing `yaw`.
 func place(pos: Vector3, yaw: float) -> void:
 	global_position = pos
+	_last_dry = pos
 	facing = yaw
 	_visual.rotation.y = yaw
 	velocity = Vector3.ZERO
@@ -122,6 +129,11 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
+	if _wet(global_position):
+		global_position = _last_dry
+		velocity = Vector3.ZERO
+	elif is_on_floor():
+		_last_dry = global_position
 	if amount > 0.01:
 		facing = lerp_angle(facing, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 		_visual.rotation.y = facing
@@ -152,4 +164,4 @@ func _wet(p: Vector3) -> bool:
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
 	if hit.is_empty():
 		return true
-	return (hit.position as Vector3).y < Waves.height(p.x, p.z) + SHORE_HEIGHT
+	return (hit.position as Vector3).y < SHORE_LEVEL
