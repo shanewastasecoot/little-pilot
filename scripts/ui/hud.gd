@@ -17,6 +17,8 @@ var _news_tween: Tween
 var _prompt: PanelContainer
 var _prompt_icon: UiIcon
 var _prompt_kind := ""
+var _foot_hints: HBoxContainer
+var _hints_tween: Tween
 
 
 func _ready() -> void:
@@ -139,6 +141,28 @@ func _ready() -> void:
 	_prompt.modulate.a = 0.0
 	root.add_child(_prompt)
 
+	# On-foot hints (bottom centre): [A] jump, [B] run. Shown for a few
+	# seconds each time you get out.
+	_foot_hints = HBoxContainer.new()
+	_foot_hints.add_theme_constant_override("separation", 10)
+	_foot_hints.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for pair in [[UiIcon.Icon.BUTTON_A, UiIcon.Icon.JUMP], [UiIcon.Icon.BUTTON_B, UiIcon.Icon.RUN]]:
+		for k in 2:
+			var ic := UiIcon.new()
+			ic.icon = pair[k]
+			ic.custom_minimum_size = Vector2(70, 70)
+			ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_foot_hints.add_child(ic)
+		var gap := Control.new()
+		gap.custom_minimum_size = Vector2(36, 0)
+		_foot_hints.add_child(gap)
+	_foot_hints.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_foot_hints.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_foot_hints.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_foot_hints.position.y -= 40
+	_foot_hints.modulate.a = 0.0
+	root.add_child(_foot_hints)
+
 
 ## The dragon warning: on while it hunts the plane. angle: where it is
 ## relative to the camera (0 ahead, + right); closeness 0..1.
@@ -188,6 +212,21 @@ func set_prompt(kind: String) -> void:
 
 func prompt_kind() -> String:
 	return _prompt_kind
+
+
+## Show the on-foot button hints for a few seconds (or hide them now).
+func show_foot_hints(on: bool) -> void:
+	if _hints_tween:
+		_hints_tween.kill()
+	_hints_tween = create_tween()
+	if on:
+		_hints_tween.tween_property(_foot_hints, "modulate:a", 1.0, 0.3)
+		_hints_tween.tween_interval(5.0)
+	_hints_tween.tween_property(_foot_hints, "modulate:a", 0.0, 0.5)
+
+
+func foot_hints_showing() -> bool:
+	return _foot_hints.modulate.a > 0.01
 
 
 ## City news: a banner at the top for a few seconds, with bells. Several

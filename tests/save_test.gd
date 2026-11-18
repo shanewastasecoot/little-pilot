@@ -113,6 +113,7 @@ func _ready() -> void:
 	SaveManager.use_path(PATH)
 	_check("bad camera settings clamp/fall back", SaveManager.look_sensitivity == SaveManager.LOOK_SENSITIVITY_MAX and not SaveManager.invert_y)
 
+
 	# 3. Corrupt file -> defaults, no crash
 	_write("this is { not [ a config ::: file \u0007\u0001")
 	SaveManager.use_path(PATH)
