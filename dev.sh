@@ -28,11 +28,6 @@ case "${1:-}" in
   props)  flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_props.py" \
             -- "$PWD/assets/characters/props/props.glb" | grep -E "PROPS|tris|BUILT|Error|Traceback"
           $GODOT --headless --path . --import >/dev/null 2>&1 || true ;;
-  characters)
-          flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_characters.py" \
-            -- "$PWD/assets/characters/player/player.glb" | grep -E "BUILT|tris|Error|Traceback"
-          $GODOT --headless --path . --import >/dev/null 2>&1 || true
-          echo "Rebuilt assets/characters/player/player.glb" ;;
   check)  $GODOT --headless --path . --import 2>&1 | grep -E "ERROR|SCRIPT ERROR|WARNING" || echo "No errors." ;;
   export) mkdir -p "$BUILD_DIR"
           $GODOT --headless --path . --export-release Linux "$BUILD_DIR/LittlePilot.x86_64" >/dev/null

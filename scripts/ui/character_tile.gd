@@ -7,7 +7,7 @@ extends Button
 
 enum Kind { BODY, HAIR, OUTFIT, TAB }
 
-## Colours match tools/blender/build_characters.py.
+## Colours match the KayKit heads and the outfits (scripts/player/outfits.gd).
 const SKIN := Color("f2c19e")
 const HAIR_COLOURS := [Color("6b4226"), Color("2a2522"), Color("e8c35a"), Color("3b2418")]
 ## [top, bottoms, shoes] per outfit.

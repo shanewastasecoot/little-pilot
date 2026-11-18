@@ -1,24 +1,28 @@
 extends Node
-## The player character (built in Blender):
-##   model    the .glb has both bodies, 4 hairs, 4 outfits x 2 bodies, all
-##            on ONE skeleton, and Idle / Walk / Run / Jump
-##   combos   every body x hair x outfit (32) shows exactly its 3 parts,
-##            stays within the triangle budget and stands ~5 m tall
-##   anims    standing = Idle, walking = Walk, sprinting = Run, jumping =
-##            Jump, back to Idle when landed; feet speed follows ground speed
+## The player character (KayKit Adventurers base + original outfits):
+##   pack     the KayKit characters are there with their licence, share one
+##            skeleton, and have Idle / Walking_A / Running_A / Jump / Cheer
+##   combos   every hair x outfit (4 x 5 = 20) builds: one body, one head,
+##            the outfit's own props on the right bones (and no others), a
+##            smile, within the triangle budget, about 5 m tall
+##   props    every prop in props.glb is one merged mesh with vertex colours
+##   anims    standing = Idle, gentle push = walk, full stick = jog, jumping
+##            = jump, back to Idle when landed; the screen's wave plays
 ##   save     the chosen looks survive a reload, bad values fall back, and
 ##            the walker wears them (and changes when they change)
 ## Exit code 0 = pass, 1 = fail.
 
 const PATH := "user://test_character.cfg"
-const TRI_BUDGET := 5600
+const TRI_BUDGET := 9000  # one player character (plus a same-size outline pass)
 var _fails := 0
 
 
 func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
 	SaveManager.use_path(PATH)
-	_model_checks()
+	_pack_checks()
+	await _combo_checks()
+	_prop_checks()
 	await _anim_checks()
 	_save_checks()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
@@ -26,65 +30,85 @@ func _ready() -> void:
 	get_tree().quit(1 if _fails else 0)
 
 
-func _model_checks() -> void:
-	var scene: Node3D = (load(CharacterModel.SCENE) as PackedScene).instantiate()
-	add_child(scene)
-	var names := {}
-	var skels := {}
-	var tris := {}
-	for mi: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
-		names[String(mi.name)] = true
-		skels[mi.get_node(mi.skeleton)] = true
-		var t := 0
-		for s in mi.mesh.get_surface_count():
-			var idx = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX]
-			t += (idx as PackedInt32Array).size() / 3 if idx != null else 0
-		tris[String(mi.name)] = t
-	var want := ["Body_M", "Body_F"]
-	for i in range(1, 5):
-		want.append("Hair_%d" % i)
-		want.append("Outfit_%d_M" % i)
-		want.append("Outfit_%d_F" % i)
-	_check("all 14 parts are in the model", want.all(func(n): return names.has(n)) and names.size() == 14)
-	_check("every part is skinned to the same one skeleton", skels.size() == 1)
-	var ap: AnimationPlayer = scene.find_children("*", "AnimationPlayer", true, false)[0]
-	_check("Idle, Walk, Run and Jump animations", ["Idle", "Walk", "Run", "Jump"].all(func(a): return ap.has_animation(a)))
+func _pack_checks() -> void:
+	_check("KayKit licence file is kept with the pack", FileAccess.file_exists(CharacterModel.DIR + "LICENSE.txt"))
+	var bone_lists := {}
+	for who in ["Rogue", "Knight", "Mage"]:
+		var scene: Node3D = (load(CharacterModel.DIR + who + ".glb") as PackedScene).instantiate()
+		var skel: Skeleton3D = scene.find_children("*", "Skeleton3D", true, false)[0]
+		var names := []
+		for b in skel.get_bone_count():
+			names.append(skel.get_bone_name(b))
+		bone_lists[str(names)] = true
+		var ap: AnimationPlayer = scene.find_children("*", "AnimationPlayer", true, false)[0]
+		var ok := ["Idle", "Walking_A", "Running_A", "Jump_Start", "Jump_Idle", "Cheer"].all(func(a): return ap.has_animation(a))
+		_check("%s has the animations we use" % who, ok)
+		scene.free()
+	_check("the base characters share one skeleton", bone_lists.size() == 1)
+
+
+func _combo_checks() -> void:
 	var worst := 0
-	for b in ["M", "F"]:
-		for h in range(1, 5):
-			for o in range(1, 5):
-				worst = maxi(worst, tris["Body_" + b] + tris["Hair_%d" % h] + tris["Outfit_%d_%s" % [o, b]])
-	print("  note: heaviest combination %d triangles" % worst)
-	_check("every combination within %d triangles" % TRI_BUDGET, worst <= TRI_BUDGET)
-	scene.queue_free()
-	# Every combination shows exactly its own three parts.
-	var cm := CharacterModel.new()
-	add_child(cm)
 	var bad := []
-	for b in ["M", "F"]:
-		for h in range(1, 5):
-			for o in range(1, 5):
-				cm.apply(b, h, o)
-				var shown := cm.visible_parts()
-				shown.sort()
-				var expect: Array[String] = ["Body_" + b, "Hair_%d" % h, "Outfit_%d_%s" % [o, b]]
-				expect.sort()
-				if shown != expect:
-					bad.append("%s/%d/%d" % [b, h, o])
-	_check("all 32 combinations show exactly body + hair + outfit", bad.is_empty())
-	cm.apply("Z", 9, -3)
-	_check("bad choices clamp to real ones", cm.body == "M" and cm.hair == 4 and cm.outfit == 1)
-	# Height in the game: ~5 m like the townspeople.
-	var box := AABB()
-	var first := true
-	for mi: MeshInstance3D in cm.find_children("*", "MeshInstance3D", true, false):
-		if mi.visible:
-			var a: AABB = mi.global_transform * mi.get_aabb()
-			box = a if first else box.merge(a)
-			first = false
-	print("  note: standing height %.2f m" % box.size.y)
-	_check("about 5 m tall in the game (storybook size)", absf(box.size.y - Walker.HEIGHT) < 0.6)
-	cm.queue_free()
+	var tallest := 0.0
+	for o in range(1, Outfits.count() + 1):
+		var look := Outfits.get_outfit(o)
+		var want_props := look.props.map(func(p): return p[0])
+		for h in range(1, CharacterModel.HAIRS + 1):
+			var c: CharacterModel = (load("res://scenes/characters/player_character.tscn") as PackedScene).instantiate()
+			c.hair = h
+			c.outfit = o
+			add_child(c)
+			await get_tree().process_frame
+			var shown := c.visible_parts()
+			var heads := shown.filter(func(n): return n.ends_with("_Head"))
+			var bodies := shown.filter(func(n): return n.ends_with("_Body"))
+			var all_props := CharacterLook.prop_names()
+			var props := shown.filter(func(n): return n in all_props and n != "Face_Smile")
+			var props_ok := props.size() == want_props.size() and want_props.all(func(p): return props.has(p))
+			for p in look.props:  # hung on the bones the outfit says
+				var mi: Node = c.find_child(p[0], true, false)
+				if mi == null or not (mi.get_parent() is BoneAttachment3D) or (mi.get_parent() as BoneAttachment3D).bone_name != p[1]:
+					props_ok = false
+			if heads.size() != 1 or bodies.size() != 1 or not props_ok or not shown.has("Face_Smile"):
+				bad.append("outfit %d hair %d: %s" % [o, h, shown])
+			var tris := 0
+			var box := AABB()
+			var first := true
+			for mi in c._parts:
+				for s in mi.mesh.get_surface_count():
+					var idx = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX]
+					tris += (idx as PackedInt32Array).size() / 3 if idx != null else 0
+				if mi.visible and mi.name != "Face_Smile":
+					var a: AABB = mi.global_transform * mi.get_aabb()
+					box = a if first else box.merge(a)
+					first = false
+			worst = maxi(worst, tris)
+			tallest = maxf(tallest, box.size.y)
+			c.queue_free()
+	print("  note: heaviest look %d triangles, tallest %.2f m" % [worst, tallest])
+	_check("all 20 looks: one body, one head, their own props on the right bones, a smile", bad.is_empty())
+	for b in bad:
+		print("    ", b)
+	_check("every look within %d triangles" % TRI_BUDGET, worst <= TRI_BUDGET)
+	_check("about 5 m tall (storybook size, hats included)", tallest > 4.5 and tallest < 7.0)
+
+
+func _prop_checks() -> void:
+	var scene: Node3D = (load(CharacterLook.PROPS) as PackedScene).instantiate()
+	var ok := true
+	var names := []
+	for mi: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+		names.append(String(mi.name))
+		var arr := mi.mesh.surface_get_arrays(0)
+		if mi.mesh.get_surface_count() != 1 or arr[Mesh.ARRAY_COLOR] == null:
+			ok = false
+			print("    ", mi.name, " surfaces ", mi.mesh.get_surface_count())
+	scene.free()
+	var wanted := ["Pilot_Cap", "Pilot_Scarf", "Princess_Gown", "Princess_Tiara", "Astro_Helmet", "Astro_Pack",
+		"Hero_Cape", "Hero_Emblem", "Dino_Hood", "Dino_Tail", "Face_Smile"]
+	_check("all props are there", wanted.all(func(n): return names.has(n)))
+	_check("each prop is one merged mesh with vertex colours", ok)
 
 
 func _anim_checks() -> void:
@@ -104,48 +128,49 @@ func _anim_checks() -> void:
 	main.walk_camera.snap_to(PI)
 	await _frames(30)
 	_check("standing still plays Idle", w.model.anim == "Idle")
+	w.override_move = Vector2(0, 0.25)
+	await _frames(60)
+	_check("a gentle push walks", w.model.anim == "Walking_A")
 	w.override_move = Vector2(0, 1)
 	await _frames(60)
-	var walk_scale: float = w.model._anim.speed_scale
-	_check("walking plays Walk", w.model.anim == "Walk")
-	w.override_move = Vector2(0, 0.5)
-	await _frames(60)
-	_check("slower walking plays the walk slower", w.model.anim == "Walk" and w.model._anim.speed_scale < walk_scale - 0.2)
-	w.override_move = Vector2(0, 1)
-	w.override_sprint = true
-	await _frames(60)
-	_check("sprinting plays Run", w.model.anim == "Run")
+	_check("full stick jogs", w.model.anim == "Running_A")
 	w.override_jump = true
 	await _frames(3)
 	w.override_jump = false
-	_check("jumping plays Jump", w.model.anim == "Jump")
+	_check("jumping plays the jump", w.model.anim.begins_with("Jump"))
 	w.override_move = Vector2.ZERO
-	w.override_sprint = false
 	await _frames(120)
 	_check("landed and stopped: back to Idle", w.model.anim == "Idle" and w.is_on_floor())
 	main.queue_free()
+	var preview: CharacterModel = (load("res://scenes/characters/player_character.tscn") as PackedScene).instantiate()
+	add_child(preview)
+	await get_tree().process_frame
+	preview.wave()
+	await _frames(10)
+	var waving: bool = preview.anim == "Cheer"
+	await get_tree().create_timer(2.5).timeout
+	_check("the screen's wave (cheer) plays, then back to Idle", waving and preview.anim == "Idle")
+	preview.queue_free()
 	await get_tree().process_frame
 
 
 func _save_checks() -> void:
 	SaveManager.use_path(PATH)
-	_check("a new save starts with the first character, not yet made", SaveManager.char_body == "M"
-			and SaveManager.char_hair == 1 and SaveManager.char_outfit == 1 and not SaveManager.char_made)
-	SaveManager.set_character("F", 3, 2)
+	_check("a new save starts with the first look, not yet made", SaveManager.char_hair == 1
+			and SaveManager.char_outfit == 1 and not SaveManager.char_made)
+	SaveManager.set_character("M", 3, 5)
 	SaveManager.save_now()
 	SaveManager.use_path(PATH)
-	_check("character survives reload", SaveManager.char_body == "F" and SaveManager.char_hair == 3
-			and SaveManager.char_outfit == 2 and SaveManager.char_made)
+	_check("look survives reload (hair 3, dino)", SaveManager.char_hair == 3 and SaveManager.char_outfit == 5 and SaveManager.char_made)
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
-	f.store_string('[character]\nbody="X"\nhair=7\noutfit="red"\nmade=1\n')
+	f.store_string("[character]\nbody=\"X\"\nhair=7\noutfit=9\nmade=1\n")
 	f.close()
 	SaveManager.use_path(PATH)
-	_check("bad saved character falls back", SaveManager.char_body == "M" and SaveManager.char_hair == 1
-			and SaveManager.char_outfit == 1 and not SaveManager.char_made)
+	_check("bad saved look falls back", SaveManager.char_hair == 1 and SaveManager.char_outfit == 1 and not SaveManager.char_made)
 	var w := Walker.new()
 	add_child(w)
-	SaveManager.set_character("F", 4, 3)
-	_check("the walker wears the saved looks (and changes with them)", w.model.body == "F" and w.model.hair == 4 and w.model.outfit == 3)
+	SaveManager.set_character("M", 4, 3)
+	_check("the walker wears the saved look (and changes with it)", w.model.hair == 4 and w.model.outfit == 3)
 	w.queue_free()
 
 
