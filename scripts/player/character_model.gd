@@ -151,7 +151,7 @@ static func atlas(who: String, repaint: Dictionary) -> Texture2D:
 
 
 func _attach_props(look: OutfitData) -> void:
-	for p in look.props:
+	for p in look.props + [["Face_Smile", "head"]]:
 		var prop := CharacterLook.prop(p[0])
 		if prop == null:
 			continue

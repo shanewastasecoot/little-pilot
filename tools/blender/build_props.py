@@ -213,18 +213,20 @@ def finish(name, pieces, voxel=0.018, target_tris=1500):
 
 def pilot_cap():
     leather, rim, lens, strap = "6b4226", "c9a14a", "9fd8ff", "4a2e18"
-    cap = shell(HEAD + Vector((0, 0.02, 0.02)), (0.6, 0.6, 0.6), leather,
-                lambda p: p.z > -0.12 or (abs(p.x) > 0.42 and p.z > -0.42 and abs(p.y) < 0.25), thickness=0.06)
+    # Front edge up on the forehead (eyes clear), lower at the sides and back.
+    cap = shell(HEAD + Vector((0, 0.03, 0.06)), (0.65, 0.64, 0.64), leather,
+                lambda p: (p.z > 0.08 if p.y < -0.25 else p.z > -0.14) or (abs(p.x) > 0.45 and p.z > -0.44 and abs(p.y) < 0.25),
+                thickness=0.06)
     parts = [cap]
     for s in (1, -1):  # ear flaps
-        parts.append(sphere(HEAD + Vector((0.6 * s, 0.0, -0.32)), (0.07, 0.17, 0.17), leather, segs=16, rings=10))
+        parts.append(sphere(HEAD + Vector((0.65 * s, 0.0, -0.32)), (0.07, 0.17, 0.17), leather, segs=16, rings=10))
         # goggles up on the forehead: rim and lens
-        g = HEAD + Vector((0.2 * s, -0.5, 0.3))
+        g = HEAD + Vector((0.2 * s, -0.53, 0.38))
         parts.append(torus(g, 0.12, 0.045, rim, axis=Vector((0, -1, 0.35)), segs=24, tube=10))
         parts.append(sphere(g + Vector((0, 0.02, 0)), (0.11, 0.05, 0.11), lens, segs=16, rings=10,
                             rot=Vector((0, -1, 0)).rotation_difference(Vector((0, -1, 0.35))).to_matrix()))
-    parts.append(box(HEAD + Vector((0, -0.55, 0.33)), (0.12, 0.08, 0.07), rim))  # bridge
-    parts.append(torus(HEAD + Vector((0, 0.02, 0.24)), 0.6, 0.035, strap, segs=40, tube=8))  # strap round
+    parts.append(box(HEAD + Vector((0, -0.58, 0.41)), (0.12, 0.08, 0.07), rim))  # bridge
+    parts.append(torus(HEAD + Vector((0, 0.03, 0.32)), 0.64, 0.035, strap, segs=40, tube=8))  # strap round
     return finish("Pilot_Cap", parts, voxel=0.016, target_tris=1800)
 
 
@@ -274,7 +276,7 @@ def princess_gown():
 
 
 def astro_helmet():
-    white, rim, orange = "f4f6f8", "9aa6b4", "ff8c2a"
+    white, rim, orange = "dfe5ec", "8d99a8", "ff8c2a"
     window = lambda p: not (p.y < -0.2 and abs(p.x) < 0.44 and -0.42 < p.z < 0.3)
     parts = [shell(HEAD + Vector((0, 0.02, 0.0)), (0.7, 0.7, 0.68), white,
                    lambda p: window(p) and p.z > -0.55, thickness=0.06)]
@@ -349,11 +351,46 @@ def dino_tail():
     return finish("Dino_Tail", parts, voxel=0.016, target_tris=900)
 
 
+def tube(points, r, colour, tube_segs=10):
+    """A closed tube through `points` (Vector list), radius r."""
+    bm = bmesh.new()
+    loops = []
+    for i, c in enumerate(points):
+        d = (points[min(i + 1, len(points) - 1)] - points[max(i - 1, 0)]).normalized()
+        ref = Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))
+        x = d.cross(ref).normalized()
+        y = d.cross(x).normalized()
+        loops.append([bm.verts.new(c + (x * math.cos(t) + y * math.sin(t)) * r)
+                      for t in [2 * math.pi * k / tube_segs for k in range(tube_segs)]])
+    for i in range(len(loops) - 1):
+        a, b = loops[i], loops[i + 1]
+        for k in range(tube_segs):
+            j = (k + 1) % tube_segs
+            bm.faces.new([a[k], a[j], b[j], b[k]])
+    bm.faces.new(list(reversed(loops[0])))
+    bm.faces.new(loops[-1])
+    return Piece(bm, colour)
+
+
+def face_smile():
+    """A small smile for every KayKit head: an arc that follows the face's
+    curve just in front of the mouth line (face surface ~0.44 m forward at
+    the middle, ~0.41 at the corners; Blender -Y is forward)."""
+    pts = []
+    for k in range(13):
+        a = math.radians(205 + 130 * k / 12)
+        x = math.cos(a) * 0.075
+        z = 1.415 + math.sin(a) * 0.045
+        forward = 0.452 - 5.0 * x * x
+        pts.append(Vector((x, -forward, z)))
+    return finish("Face_Smile", [tube(pts, 0.013, "8a3b3b")], voxel=0.004, target_tris=300)
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     print("PROPS")
     for build in (pilot_cap, pilot_scarf, princess_tiara, princess_gown, astro_helmet, astro_pack,
-                  hero_cape, hero_emblem, dino_hood, dino_tail):
+                  hero_cape, hero_emblem, dino_hood, dino_tail, face_smile):
         build()
     for o in bpy.context.scene.objects:
         o.select_set(True)
