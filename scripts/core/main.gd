@@ -1,11 +1,14 @@
 extends Node3D
-## Game flow: Title -> Plane Select -> Flying <-> Landed, with Paused over
-## either. A small state machine: _enter() is the only place that switches
-## what's visible, who has the controls and what's paused.
+## Game flow: Title -> Plane Select -> Flying <-> Landed <-> On foot, with
+## Paused over any of them. A small state machine: _enter() is the only
+## place that switches what's visible, who has the controls, which camera
+## is live and what's paused.
 ##   FLYING   in the air, or rolling on the ground
 ##   LANDED   the plane has landed and parked somewhere; boost or push the
-##            stick to take off again
-## CHARACTER_CREATE and ON_FOOT are reserved for the walking update.
+##            stick to take off again, or Y to get out
+##   ON_FOOT  walking about (Walker + WalkCamera); the plane waits, parked.
+##            Y near the plane gets back in.
+## CHARACTER_CREATE is reserved for the character update.
 ## The world is always live: on the title and plane-select screens the plane
 ## circles on autopilot behind the menus, so it's flying within seconds.
 
@@ -38,6 +41,13 @@ const CRASH_FADE := 0.45
 var _fade: ColorRect
 var _respawning := false
 var _dragon: Dragon
+## On foot: the character, its camera, and the zone round the parked plane
+## where Y gets back in.
+var walker: Walker
+var walk_camera: WalkCamera
+var _door: Area3D
+var _near_plane := false
+const DOOR_RADIUS := 9.0
 
 @onready var map: GameMap = $Map
 @onready var aircraft: Aircraft = $Aircraft
@@ -56,6 +66,24 @@ func _ready() -> void:
 	chase_camera.snap_to_target()
 	aircraft.crashed.connect(_on_crashed)
 	aircraft.parked.connect(_on_parked)
+	walker = Walker.new()
+	walker.name = "Walker"
+	add_child(walker)
+	walk_camera = WalkCamera.new()
+	walk_camera.name = "WalkCamera"
+	walk_camera.target = walker
+	add_child(walk_camera)
+	_door = Area3D.new()
+	_door.name = "Door"
+	_door.collision_layer = 0
+	_door.collision_mask = GameSettings.LAYER_PLAYER
+	var door_shape := CollisionShape3D.new()
+	door_shape.shape = SphereShape3D.new()
+	(door_shape.shape as SphereShape3D).radius = DOOR_RADIUS
+	_door.add_child(door_shape)
+	aircraft.add_child(_door)
+	_door.body_entered.connect(func(b): if b == walker: _near_plane = true)
+	_door.body_exited.connect(func(b): if b == walker: _near_plane = false)
 	SaveManager.settings_changed.connect(func(): aircraft.crashes = SaveManager.crashes)
 	var fade_layer := CanvasLayer.new()
 	fade_layer.layer = 40
@@ -98,6 +126,11 @@ func _ready() -> void:
 
 ## The player is in the game world (not in a menu).
 func _playing() -> bool:
+	return state == State.FLYING or state == State.LANDED or state == State.ON_FOOT
+
+
+## The player is in the plane (flying it or parked in it).
+func _in_plane() -> bool:
 	return state == State.FLYING or state == State.LANDED
 
 
@@ -109,13 +142,24 @@ func _enter(new_state: State) -> void:
 	plane_select.visible = state == State.SELECT
 	pause_menu.visible = state == State.PAUSED and not plane_select.visible
 	hud.visible = _playing() or state == State.PAUSED
-	var player_flying := _playing()
+	var player_flying := _in_plane()
+	# On foot (also while paused from walking): the walker and its camera.
+	var on_foot := state == State.ON_FOOT or (state == State.PAUSED and _play_state == State.ON_FOOT)
+	if walker.is_active() != on_foot:
+		walker.set_active(on_foot)
+	if on_foot:
+		walk_camera.cam.make_current()
+	else:
+		chase_camera.cam.make_current()
+		_near_plane = false
+	if not _playing():
+		hud.set_prompt("")
 	aircraft.input.override_enabled = not player_flying
-	aircraft.input.override_stick = Vector2.ZERO if player_flying else AUTOPILOT_STICK
+	aircraft.input.override_stick = Vector2.ZERO if _playing() else AUTOPILOT_STICK
 	aircraft.ground_controls = player_flying
 	aircraft.input.override_throttle = 0.0
 	get_tree().paused = state == State.PAUSED
-	Music.set_mood("flight" if player_flying else "menu")
+	Music.set_mood("flight" if _playing() else "menu")
 	_idle_time = 0.0
 	hud.show_idle_hint(false, true)
 	aircraft.get_node("FlightAudio").level = 1.0 if player_flying else 0.4
@@ -131,7 +175,17 @@ func _process(delta: float) -> void:
 		_enter(State.FLYING)
 	# Waiting on the runway: show the hint straight away so they know to go.
 	var waiting := aircraft.mode == Aircraft.Mode.PARKED
-	hud.show_idle_hint(_playing() and (waiting or _idle_time > IDLE_HINT_DELAY))
+	hud.show_idle_hint(_in_plane() and (waiting or _idle_time > IDLE_HINT_DELAY))
+	# Y prompt: get out when parked in the plane, get in when beside it.
+	if _can_exit_plane():
+		hud.set_prompt("exit")
+	elif state == State.ON_FOOT and _near_plane:
+		hud.set_prompt("enter")
+	elif _playing():
+		hud.set_prompt("")
+	# Fell out of the world somehow: back beside the plane.
+	if state == State.ON_FOOT and walker.global_position.y < -30.0:
+		_place_walker()
 	_update_dragon_warning()
 
 
@@ -194,12 +248,20 @@ func _open_settings() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _playing() and event.is_action_pressed("paint_next"):
+	# On foot, the D-pad changes clothes (left/right), hair (up) and body
+	# (down) until the character screen exists.
+	if state == State.ON_FOOT and _restyle(event):
+		get_viewport().set_input_as_handled()
+		return
+	if _in_plane() and event.is_action_pressed("paint_next"):
 		aircraft.cycle_paint(1)
 		get_viewport().set_input_as_handled()
 		return
-	if _playing() and event.is_action_pressed("paint_prev"):
+	if _in_plane() and event.is_action_pressed("paint_prev"):
 		aircraft.cycle_paint(-1)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("interact") and toggle_plane():
 		get_viewport().set_input_as_handled()
 		return
 	if _playing() and event.is_action_pressed("pause"):
@@ -233,7 +295,8 @@ func _on_plane_confirmed(id: String) -> void:
 	aircraft.set_stats(AircraftCatalog.get_stats(id))
 	SaveManager.set_selected_aircraft(id)
 	plane_select.hide()
-	_enter(State.FLYING)
+	# From the pause menu: back to whatever we were doing (maybe on foot).
+	_enter(_play_state if state == State.PAUSED else State.FLYING)
 
 
 func _show_pause() -> void:
@@ -244,6 +307,69 @@ func _show_pause() -> void:
 
 func _resume() -> void:
 	_enter(_play_state)
+
+
+func _restyle(event: InputEvent) -> bool:
+	var b := SaveManager.char_body
+	var h := SaveManager.char_hair
+	var o := SaveManager.char_outfit
+	if event.is_action_pressed("paint_next"):
+		o = o % 4 + 1
+	elif event.is_action_pressed("paint_prev"):
+		o = (o + 2) % 4 + 1
+	elif event.is_action_pressed("hair_next"):
+		h = h % 4 + 1
+	elif event.is_action_pressed("body_next"):
+		b = "F" if b == "M" else "M"
+	else:
+		return false
+	SaveManager.set_character(b, h, o)
+	Sfx.play("pop", 1.1)
+	walker.add_child(PickupBurst.new(20, 7.0, [Color.WHITE, Color("ffd23f")]))
+	return true
+
+
+## Sitting in the parked plane with the controls: can get out.
+func _can_exit_plane() -> bool:
+	return _in_plane() and aircraft.mode == Aircraft.Mode.PARKED and aircraft.ground_controls
+
+
+## Y: get out of the parked plane, or back into it when beside it.
+## Returns true if it did either.
+func toggle_plane() -> bool:
+	if _can_exit_plane():
+		if not _place_walker():
+			return false  # nowhere to stand (shouldn't happen on landable ground)
+		Sfx.play("pop", 1.2)
+		walk_camera.snap_to(aircraft.heading)
+		_enter(State.ON_FOOT)
+		return true
+	if state == State.ON_FOOT and _near_plane:
+		Sfx.play("pop", 0.9)
+		aircraft.hold_until_release()
+		chase_camera.snap_to_target()
+		_enter(State.LANDED)
+		return true
+	return false
+
+
+## Put the walker on the ground beside the plane. False if no spot is dry,
+## on solid ground and not too far above or below the plane.
+func _place_walker() -> bool:
+	var space := get_world_3d().direct_space_state
+	for spot in aircraft.exit_spots():
+		var q := PhysicsRayQueryParameters3D.create(spot + Vector3.UP * 6.0, spot + Vector3.DOWN * 30.0, GameSettings.LAYER_WORLD)
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			continue
+		var p: Vector3 = hit.position
+		if p.y < Waves.height(p.x, p.z) + Walker.SHORE_HEIGHT or (hit.normal as Vector3).y < cos(deg_to_rad(Walker.MAX_SLOPE_DEG)):
+			continue
+		if absf(p.y - (aircraft.global_position.y - aircraft.stats.ground_offset)) > 5.0:
+			continue
+		walker.place(p + Vector3.UP * 0.05, aircraft.heading)
+		return true
+	return false
 
 
 ## The plane stopped and parked. After a landing that's the LANDED state
