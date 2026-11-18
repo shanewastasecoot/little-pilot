@@ -7,13 +7,12 @@ extends CharacterBody3D
 ## MAX_SLOPE_DEG, bumps into buildings and the plane, and never goes into
 ## the sea: the shore is a soft invisible edge.
 ##
-## For now it's a placeholder (a coloured capsule with a face so you can
-## see which way it's looking); the real character replaces `_visual`.
-## Origin is at the feet.
+## Looks: the player's own character (CharacterModel, built in Blender),
+## dressed from the save (body, hair, outfit). Origin is at the feet.
 
 const HEIGHT := 5.0
 const RADIUS := 0.9
-const WALK_SPEED := 8.0        # m/s with the stick fully pushed
+const WALK_SPEED := 6.5        # m/s with the stick fully pushed (a brisk walk)
 const SPRINT_SPEED := 14.0
 const ACCEL := 45.0            # m/s^2 towards the wanted speed
 const AIR_ACCEL := 14.0
@@ -39,6 +38,7 @@ var moving := false
 var sprinting := false
 
 var _visual: Node3D
+var model: CharacterModel
 var _active := false
 
 
@@ -55,21 +55,19 @@ func _ready() -> void:
 	cs.shape = shape
 	cs.position.y = HEIGHT * 0.5
 	add_child(cs)
-	_visual = _placeholder()
+	model = CharacterModel.new()
+	model.body = SaveManager.char_body
+	model.hair = SaveManager.char_hair
+	model.outfit = SaveManager.char_outfit
+	_visual = model
 	add_child(_visual)
+	SaveManager.settings_changed.connect(_dress)
 	set_active(false)
 
 
-## A capsule body, a head and a little nose: enough to see size and facing.
-func _placeholder() -> Node3D:
-	var root := Node3D.new()
-	var body := CapsuleMesh.new()
-	body.radius = RADIUS
-	body.height = HEIGHT * 0.74
-	BuildKit.add(root, body, "ff8c42", Vector3(0, HEIGHT * 0.37, 0))
-	BuildKit.add(root, BuildKit.sphere(0.85, 14), "ffd9b3", Vector3(0, HEIGHT * 0.86, 0))
-	BuildKit.add(root, BuildKit.box(Vector3(0.3, 0.3, 0.5)), "ff5a5f", Vector3(0, HEIGHT * 0.85, -0.9))
-	return root
+## Wear what's saved (the save changes when the player picks new looks).
+func _dress() -> void:
+	model.apply(SaveManager.char_body, SaveManager.char_hair, SaveManager.char_outfit)
 
 
 ## Switch the character on (visible, moving, solid) or away.
@@ -129,6 +127,7 @@ func _physics_process(delta: float) -> void:
 		_visual.rotation.y = facing
 	moving = is_on_floor() and flat.length() > 0.3
 	sprinting = moving and sprint
+	model.animate(flat.length(), is_on_floor(), velocity.y > 0.5, sprinting)
 
 
 ## Don't walk into the sea: if the ground just ahead is under (or nearly
