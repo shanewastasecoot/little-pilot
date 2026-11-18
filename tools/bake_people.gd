@@ -3,8 +3,10 @@ extends SceneTree
 ##
 ## Usage (from the project root):
 ##   flatpak run org.godotengine.Godot --headless --path . -s tools/bake_people.gd
-## Reads assets/characters/people/<name>.glb, writes <name>_crowd.res (a
-## low-poly ArrayMesh) and <name>_vat.res (an Image) next to it.
+## Reads assets/characters/people/townsfolk.glb (the player characters at
+## crowd detail, made by tools/blender/build_characters.py --crowd) and, for
+## each townsperson in PRESETS (a body + hair + outfit), writes
+## <name>_crowd.res (a low-poly ArrayMesh) and <name>_vat.res (an Image).
 ##
 ## Each character's parts are merged into one surface with its material
 ## colours baked into vertex colours, each part simplified to about a
@@ -15,8 +17,13 @@ extends SceneTree
 ## reads them back, so hundreds of walkers draw in one call per character.
 
 const IN_DIR := "res://assets/characters/people/"
-const NAMES := ["worker", "suit", "hoodie", "beach", "woman_a", "woman_b"]
-const ANIMS := ["CharacterArmature|Walk", "CharacterArmature|Idle"]
+const SOURCE := "townsfolk.glb"
+## Townspeople: [name, body, hair, outfit] from the same kit as the player.
+const PRESETS := [
+	["princess_pink", "F", 1, 1], ["princess_blue", "F", 4, 2], ["pilot_boy", "M", 2, 3],
+	["explorer_girl", "F", 3, 4], ["explorer_boy", "M", 2, 4], ["pilot_girl", "F", 3, 3],
+]
+const ANIMS := ["Walk", "Idle"]
 const BAKE_FPS := 12.0
 const KEEP := 0.22
 
@@ -31,13 +38,13 @@ func _process(_d: float) -> bool:
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		dir = args[0]
-	for n in NAMES:
-		_bake(dir, n)
+	for p in PRESETS:
+		_bake(dir, p[0], ["Body_%s" % p[1], "Hair_%d" % p[2], "Outfit_%d_%s" % [p[3], p[1]]])
 	return true
 
 
-func _bake(dir: String, char_name: String) -> void:
-	var path := dir + char_name + ".glb"
+func _bake(dir: String, char_name: String, wear: Array) -> void:
+	var path := dir + SOURCE
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()
 	if doc.append_from_file(path, state) != OK:
@@ -58,6 +65,8 @@ func _bake(dir: String, char_name: String) -> void:
 	var idx := PackedInt32Array()
 	var parts := []                      # [from, to) ranges of idx, one per part
 	for mi: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+		if not String(mi.name) in wear:
+			continue
 		var skin: Skin = mi.skin
 		for s in mi.mesh.get_surface_count():
 			var arr := mi.mesh.surface_get_arrays(s)

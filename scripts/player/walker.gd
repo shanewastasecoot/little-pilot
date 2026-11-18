@@ -14,7 +14,7 @@ extends CharacterBody3D
 
 const HEIGHT := 5.0
 const RADIUS := 0.9
-const WALK_SPEED := 6.5        # m/s with the stick fully pushed (a brisk walk)
+const WALK_SPEED := 5.5        # m/s with the stick fully pushed (a brisk toddle)
 const SPRINT_SPEED := 14.0
 const ACCEL := 45.0            # m/s^2 towards the wanted speed
 const AIR_ACCEL := 14.0

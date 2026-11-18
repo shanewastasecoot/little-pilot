@@ -12,12 +12,13 @@ extends Node3D
 ## over them). A child of CityDistrict, in city space.
 
 const PEOPLE_DIR := "res://assets/characters/people/"
-const CHARACTERS := ["worker", "suit", "hoodie", "beach", "woman_a", "woman_b"]
-const SCALE := 2.8               # storybook size: ~5 m tall
+## Townspeople baked from the player's character kit (tools/bake_people.gd).
+const CHARACTERS := ["princess_pink", "princess_blue", "pilot_boy", "explorer_girl", "explorer_boy", "pilot_girl"]
+const SCALE := Walker.HEIGHT / 1.85  # storybook size: ~5 m, same as the player
 const PITCH := 80.0
 const LOOP := 33.75              # pavement path, from the block centre
 const EDGE := 32.0               # block edge (building fronts)
-const WALK_SPEED := 3.4          # m/s at this scale (matches the walk loop)
+const WALK_SPEED := 3.7          # m/s at this scale (matches the walk loop's stride)
 const PAVEMENT_Y := 0.36
 const DRAW_RADIUS := 300.0       # people further than this from the camera aren't drawn
 const MAX_DRAWN := 50            # per character

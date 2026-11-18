@@ -11,7 +11,7 @@ extends Node
 ## Exit code 0 = pass, 1 = fail.
 
 const PATH := "user://test_character.cfg"
-const TRI_BUDGET := 5600
+const TRI_BUDGET := 18000  # the one player character; townspeople are low-detail
 var _fails := 0
 
 

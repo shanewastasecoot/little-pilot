@@ -8,14 +8,16 @@ extends Button
 enum Kind { BODY, HAIR, OUTFIT, TAB }
 
 ## Colours match tools/blender/build_characters.py.
-const SKIN := Color("f2c19e")
-const HAIR_COLOURS := [Color("6b4226"), Color("2a2522"), Color("e8c35a"), Color("3b2418")]
-## [top, bottoms, shoes] per outfit.
+const SKIN := Color("f7c9a8")
+## Long princess waves, short tousled, ponytail with a bow, bob with a band.
+const HAIR_COLOURS := [Color("f5cf6a"), Color("7a4a2a"), Color("c0602e"), Color("2e2420")]
+## [top, bottoms/skirt, shoes, trim] per outfit: pink gown, blue gown,
+## pilot, explorer.
 const OUTFIT_COLOURS := [
-	[Color("ff5a5f"), Color("2f6fdb"), Color("f4f4f4")],
-	[Color("4cc06a"), Color("3b5b8c"), Color("333a44")],
-	[Color("8b5a2b"), Color("c9b27c"), Color("4a3324")],
-	[Color("4aa8ff"), Color("f2b134"), Color("ffd23f")],
+	[Color("f06aa8"), Color("ffa6d6"), Color("f06aa8"), Color("ffd23f")],
+	[Color("4a9be8"), Color("8fd0ff"), Color("4a9be8"), Color("dfe6f0")],
+	[Color("8b5a2b"), Color("c9b27c"), Color("4a3324"), Color("f1e2c6")],
+	[Color("d8c38a"), Color("a68a52"), Color("6b4a2b"), Color("fafaf5")],
 ]
 const TAB_COLOURS := [Color("ff8c42"), Color("9b5de5"), Color("4cc06a")]
 
@@ -73,7 +75,7 @@ func _draw() -> void:
 
 func _face(c: Vector2, r: float, girl: bool, tint := Color.TRANSPARENT) -> void:
 	var skin := SKIN if tint.a == 0.0 else tint
-	var hair: Color = HAIR_COLOURS[0] if not girl else HAIR_COLOURS[2]
+	var hair: Color = HAIR_COLOURS[1] if not girl else HAIR_COLOURS[0]
 	if tint.a > 0.0:
 		hair = tint.darkened(0.25)
 	if girl:  # ponytail behind
@@ -103,35 +105,45 @@ func _head_with_hair(c: Vector2, r: float, style: int, tint := Color.TRANSPARENT
 	var col: Color = HAIR_COLOURS[style] if tint.a == 0.0 else tint.darkened(0.2)
 	var skin := SKIN if tint.a == 0.0 else tint
 	match style:
-		1:  # bob: hair behind the face down to the chin
-			draw_circle(c + Vector2(0, r * 0.15), r * 1.18, col)
-			draw_rect(Rect2(c + Vector2(-r * 1.18, r * 0.15), Vector2(r * 2.36, r * 0.75)), col)
-		2:  # ponytail
+		0:  # long waves: ringlets down both sides and behind
+			for sx in [-1.0, 1.0]:
+				for k in 3:
+					draw_circle(c + Vector2(sx * r * 0.98, r * (0.1 + k * 0.45)), r * 0.3, col)
+		2:  # ponytail with a pink bow
 			draw_circle(c + Vector2(r * 1.05, r * 0.1), r * 0.4, col)
 			draw_circle(c + Vector2(r * 1.3, r * 0.55), r * 0.32, col)
-			draw_circle(c + Vector2(r * 0.85, -r * 0.35), r * 0.2, Color("e63946"))
-		3:  # puffs
-			for sx in [-1.0, 1.0]:
-				draw_circle(c + Vector2(sx * r * 0.9, -r * 0.75), r * 0.62, col)
+		3:  # bob
+			draw_circle(c + Vector2(0, r * 0.1), r * 1.16, col)
+			draw_rect(Rect2(c + Vector2(-r * 1.16, r * 0.1), Vector2(r * 2.32, r * 0.55)), col)
 	draw_circle(c, r, skin)
 	var pts := PackedVector2Array()
-	var low := 0.15 if style != 1 else 0.35
+	var low := 0.1 if style != 3 else 0.3
 	for k in 13:
 		var a := PI + PI * k / 12.0
 		pts.append(c + Vector2(cos(a), sin(a)) * r * 1.08)
 	pts.append(c + Vector2(r * 1.06, r * low))
-	pts.append(c + Vector2(r * 0.6, -r * 0.25))
-	pts.append(c + Vector2(-r * 0.6, -r * 0.25))
+	pts.append(c + Vector2(r * 0.6, -r * 0.42))
+	pts.append(c + Vector2(-r * 0.6, -r * 0.42))
 	pts.append(c + Vector2(-r * 1.06, r * low))
 	draw_colored_polygon(pts, col)
-	if style == 0:  # tousled tufts
+	if style == 0:  # side-swept fringe
+		draw_circle(c + Vector2(-r * 0.25, -r * 0.62), r * 0.38, col)
+	if style == 1:  # tousled tufts and a cowlick
 		for k in 4:
 			draw_circle(c + Vector2((k - 1.5) * r * 0.42, -r * 0.95), r * 0.24, col)
+		draw_line(c + Vector2(r * 0.1, -r * 1.1), c + Vector2(r * 0.25, -r * 1.4), col, r * 0.14)
+	if style == 2 and tint.a == 0.0:  # bow
+		for sx in [-1.0, 1.0]:
+			draw_circle(c + Vector2(r * 0.85 + sx * r * 0.22, -r * 0.55), r * 0.2, Color("ff6fae"))
+	if style == 3:  # red headband
+		draw_arc(c, r * 1.12, PI + 0.35, TAU - 0.35, 16, Color("e63946") if tint.a == 0.0 else tint, r * 0.16)
 	if tint.a > 0.0:
 		return
 	for sx in [-1.0, 1.0]:
-		draw_circle(c + Vector2(sx * r * 0.36, r * 0.22), r * 0.12, Color("2b2622"))
-	draw_arc(c + Vector2(0, r * 0.45), r * 0.22, 0.3, PI - 0.3, 10, Color("9e3b3b"), r * 0.08)
+		draw_circle(c + Vector2(sx * r * 0.36, r * 0.2), r * 0.17, Color.WHITE)
+		draw_circle(c + Vector2(sx * r * 0.37, r * 0.22), r * 0.12, Color("3a8fd9"))
+		draw_circle(c + Vector2(sx * r * 0.37, r * 0.23), r * 0.06, Color("1c1a24"))
+	draw_arc(c + Vector2(0, r * 0.45), r * 0.24, 0.3, PI - 0.3, 10, Color("c2454e"), r * 0.08)
 
 
 func _outfit(c: Vector2, s: float, n: int) -> void:
@@ -139,23 +151,44 @@ func _outfit(c: Vector2, s: float, n: int) -> void:
 	var top: Color = cols[0]
 	var bottom: Color = cols[1]
 	var shoe: Color = cols[2]
-	# bottoms: shorts for outfit 1, long otherwise
-	var leg_len := s * (0.2 if n == 0 else 0.34)
+	var trim: Color = cols[3]
+	if n <= 1:  # ball gown: bell skirt, puffed sleeves, crown above
+		var skirt := PackedVector2Array([c + Vector2(-s * 0.12, -s * 0.02), c + Vector2(s * 0.12, -s * 0.02),
+			c + Vector2(s * 0.36, s * 0.4), c + Vector2(-s * 0.36, s * 0.4)])
+		draw_colored_polygon(skirt, bottom)
+		draw_rect(Rect2(c + Vector2(-s * 0.37, s * 0.37), Vector2(s * 0.74, s * 0.05)), trim)
+		draw_rect(Rect2(c + Vector2(-s * 0.13, -s * 0.28), Vector2(s * 0.26, s * 0.28)), top)
+		draw_rect(Rect2(c + Vector2(-s * 0.13, -s * 0.04), Vector2(s * 0.26, s * 0.04)), trim)
+		for sx in [-1.0, 1.0]:
+			draw_circle(c + Vector2(sx * s * 0.17, -s * 0.24), s * 0.08, top)
+		# crown / tiara
+		var cy := -s * 0.38
+		var pts := PackedVector2Array([c + Vector2(-s * 0.12, cy + s * 0.06), c + Vector2(-s * 0.12, cy - s * 0.03),
+			c + Vector2(-s * 0.06, cy + s * 0.02), c + Vector2(0, cy - s * 0.06), c + Vector2(s * 0.06, cy + s * 0.02),
+			c + Vector2(s * 0.12, cy - s * 0.03), c + Vector2(s * 0.12, cy + s * 0.06)])
+		draw_colored_polygon(pts, trim if n == 0 else Color("dfe6f0"))
+		draw_circle(c + Vector2(0, cy + s * 0.025), s * 0.022, Color("e63946") if n == 0 else Color("3aa0ff"))
+		return
+	var leg_len := s * (0.34 if n == 2 else 0.18)
 	for sx in [-1.0, 1.0]:
-		if n == 0:
-			draw_rect(Rect2(c + Vector2(sx * s * 0.11 - s * 0.09, s * 0.02), Vector2(s * 0.18, s * 0.34)), SKIN)
+		if n == 3:
+			draw_rect(Rect2(c + Vector2(sx * s * 0.11 - s * 0.08, s * 0.02), Vector2(s * 0.16, s * 0.34)), SKIN)
+			draw_rect(Rect2(c + Vector2(sx * s * 0.11 - s * 0.08, s * 0.24), Vector2(s * 0.16, s * 0.1)), trim)
 		draw_rect(Rect2(c + Vector2(sx * s * 0.11 - s * 0.09, s * 0.02), Vector2(s * 0.18, leg_len)), bottom)
-		draw_rect(Rect2(c + Vector2(sx * s * 0.11 - s * 0.1, s * 0.36), Vector2(s * 0.2, s * 0.08)), shoe)
-	if n == 3:  # dungarees bib over a stripy top
-		_shirt(c + Vector2(0, -s * 0.18), s * 0.7, top, true)
-		draw_rect(Rect2(c + Vector2(-s * 0.15, -s * 0.2), Vector2(s * 0.3, s * 0.26)), bottom)
-	else:
-		_shirt(c + Vector2(0, -s * 0.18), s * 0.7, top)
-		if n == 2:  # scarf
-			draw_rect(Rect2(c + Vector2(-s * 0.12, -s * 0.38), Vector2(s * 0.24, s * 0.06)), Color("f8f8f2"))
-			draw_rect(Rect2(c + Vector2(s * 0.02, -s * 0.36), Vector2(s * 0.07, s * 0.16)), Color("f8f8f2"))
-		if n == 1:  # pocket
-			draw_rect(Rect2(c + Vector2(-s * 0.1, -s * 0.1), Vector2(s * 0.2, s * 0.07)), top.darkened(0.15))
+		draw_rect(Rect2(c + Vector2(sx * s * 0.11 - s * 0.11, s * 0.34), Vector2(s * 0.22, s * 0.1)), shoe)
+	_shirt(c + Vector2(0, -s * 0.18), s * 0.7, top)
+	if n == 2:  # fur collar, scarf, goggles
+		draw_rect(Rect2(c + Vector2(-s * 0.16, -s * 0.4), Vector2(s * 0.32, s * 0.07)), trim)
+		draw_rect(Rect2(c + Vector2(s * 0.04, -s * 0.36), Vector2(s * 0.07, s * 0.18)), Color("fafaf5"))
+		for sx in [-1.0, 1.0]:
+			draw_circle(c + Vector2(sx * s * 0.08, -s * 0.5), s * 0.06, Color("b8860b"))
+			draw_circle(c + Vector2(sx * s * 0.08, -s * 0.5), s * 0.04, Color("9fd8ff"))
+	else:  # explorer: pockets, belt, satchel strap
+		for sx in [-1.0, 1.0]:
+			draw_rect(Rect2(c + Vector2(sx * s * 0.1 - s * 0.05, -s * 0.28), Vector2(s * 0.1, s * 0.07)), top.darkened(0.12))
+		draw_rect(Rect2(c + Vector2(-s * 0.17, -s * 0.02), Vector2(s * 0.34, s * 0.04)), Color("5b3a1e"))
+		draw_line(c + Vector2(s * 0.16, -s * 0.4), c + Vector2(-s * 0.2, s * 0.02), Color("8b5a2b"), s * 0.04)
+		draw_rect(Rect2(c + Vector2(-s * 0.3, -s * 0.02), Vector2(s * 0.13, s * 0.11)), Color("8b5a2b"))
 
 
 func _shirt(c: Vector2, s: float, col: Color, stripes := false) -> void:

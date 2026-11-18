@@ -1,7 +1,11 @@
-# Player characters
+# Characters
 
-The player's on-foot character is built in **Blender, from code**:
-`tools/blender/build_characters.py` makes `assets/characters/player/player.glb`.
+The player's character and the townspeople are built in **Blender, from code**,
+in a rounded toy style (big round head and glossy eyes, short soft body, chunky
+shoes): `tools/blender/build_characters.py` makes
+`assets/characters/player/player.glb`, and the same script with `--crowd` makes a
+low-detail `assets/characters/people/townsfolk.glb` that `tools/bake_people.gd`
+bakes into the six townspeople (vertex animation textures for the crowd).
 Rebuild it after changing the script with:
 
 ```
@@ -20,8 +24,8 @@ plays the animations.
 |---|---|
 | Armature (one, shared by everything) | `Rig`: hips, spine, chest, neck, head, upperarm/forearm, thigh/shin/foot (`.L`/`.R`) |
 | Bodies | `Body_M`, `Body_F` |
-| Hair (fits both heads) | `Hair_1` short brown, `Hair_2` black bob, `Hair_3` blonde ponytail, `Hair_4` curly puffs |
-| Outfits (one per body) | `Outfit_1_M/F` T-shirt + shorts, `Outfit_2_M/F` hoodie + jeans, `Outfit_3_M/F` pilot jacket + scarf, `Outfit_4_M/F` dungarees + stripy top |
+| Hair (fits both heads) | `Hair_1` long golden princess waves, `Hair_2` short tousled brown, `Hair_3` auburn ponytail with a bow, `Hair_4` black bob with a red headband |
+| Outfits (one per body) | `Outfit_1_M/F` pink ball gown + gold crown, `Outfit_2_M/F` blue ball gown + silver tiara, `Outfit_3_M/F` pilot (flight jacket, scarf, goggles), `Outfit_4_M/F` explorer (safari shirt, shorts, satchel) |
 | Animations | `Idle`, `Walk`, `Run` (loops, in place), `Jump` |
 
 ## Replacing it with hand-made art
@@ -39,7 +43,8 @@ Any model that follows the same rules drops straight in (same file path, or chan
 - **Animations named `Idle`, `Walk`, `Run`, `Jump`**, in place (no root motion).
   Walk and Run should loop. If your walk or run stride differs from ours, change
   `WALK_NATURAL` / `RUN_NATURAL` in `character_model.gd` so the feet don't slide.
-- **Budget:** about 5,000 triangles for the heaviest body + hair + outfit (only one
-  player is ever on screen). Flat colours or a small palette texture.
+- **Budget:** about 18,000 triangles for the heaviest body + hair + outfit (only one
+  player is ever on screen); the townspeople need a low-detail version of about
+  2,000. Flat colours or a small palette texture.
 
 `./dev.sh test` (the `character_test` suite) checks all of these.

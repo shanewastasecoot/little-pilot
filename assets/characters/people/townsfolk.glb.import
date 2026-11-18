@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ckp4dr4uc3c71"
-path="res://.godot/imported/hoodie.glb-c2c6d569a95491f9c537ff264de7e922.scn"
+uid="uid://babofrj4wmdbn"
+path="res://.godot/imported/townsfolk.glb-789df25ff48fbd4eb6bd46d672fed14b.scn"
 
 [deps]
 
-source_file="res://assets/characters/people/hoodie.glb"
-dest_files=["res://.godot/imported/hoodie.glb-c2c6d569a95491f9c537ff264de7e922.scn"]
+source_file="res://assets/characters/people/townsfolk.glb"
+dest_files=["res://.godot/imported/townsfolk.glb-789df25ff48fbd4eb6bd46d672fed14b.scn"]
 
 [params]
 

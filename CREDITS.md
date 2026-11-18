@@ -93,22 +93,16 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Small shop | `assets/environment/shop_small_b.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/Rq572hdKEz) |
 | Schoolhouse ("Schoolhouse") | `assets/environment/school_a.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/ftnL_OvlkCx) |
 | Schoolhouse ("Schoolhouse") | `assets/environment/school_b.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/5uBxCBp0os0) |
-| Townsperson: worker ("Worker") | `assets/characters/people/worker.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/E8079Ahx7k) |
-| Townsperson: suit ("Suit") | `assets/characters/people/suit.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/sOUciDsoVV) |
-| Townsperson: hoodie ("Hoodie Character") | `assets/characters/people/hoodie.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/gKLBoRsyKe) |
-| Townsperson: beach ("Beach Character") | `assets/characters/people/beach.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/DojKLcO34E) |
-| Townsperson: woman ("Animated Woman") | `assets/characters/people/woman_a.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/qJ2gsTUBHL) |
-| Townsperson: woman ("Animated Woman") | `assets/characters/people/woman_b.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/nIItLV9nxS) |
 
 CC0 assets need no credit; they're listed here so their origin is recorded.
 
-Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs (including the Kenney houses' teal roofs) are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin. The townspeople are simplified to about 40% of their triangles and their walk and idle animations baked into vertex animation textures for the city crowd (`tools/bake_people.gd`, `*_crowd.res` / `*_vat.res`).
+Changes: the biplane's propeller is cut out of the body mesh at load time so it can spin (`scripts/aircraft/prop_splitter.gd`); the biplane and the jet (red recoloured to the chosen paint) are repainted by a hue-swap shader for paint jobs (`scripts/aircraft/model_recolor.gd`) and are rescaled and reoriented in their model scenes. The mermaid's sample backdrop, bubbles and animation are removed, two skinning faults are repaired, her tail is hue-shifted per mermaid in a shader, and her poses (sitting, waving, diving) are new bone animations made in code. House roofs (including the Kenney houses' teal roofs) are recoloured at load time for variety; the three balloons are split out of their pack. The wind turbine's blades are regrouped around the hub at load time so they can spin.
 
 ## Generated in code
 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 
 - **3D art:** island and islet terrain, the ocean shader (`shaders/ocean.gdshader`), runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), tower cranes, city streets and fountain, windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
-- **Player characters:** bodies, hair, outfits, skeleton and animations are built in Blender by `tools/blender/build_characters.py` (see `docs/characters.md`).
+- **Characters (player and townspeople):** bodies, faces, hair, gowns, outfits, skeleton and animations are built in Blender by `tools/blender/build_characters.py` (see `docs/characters.md`); the townspeople are a low-detail version baked into vertex animation textures for the crowd by `tools/bake_people.gd`.
 - **Sound effects and music:** synthesised at startup by `scripts/core/sfx.gd` and `scripts/core/music.gd`.
 - **Font:** Godot's built-in default font.

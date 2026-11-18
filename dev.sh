@@ -28,6 +28,10 @@ case "${1:-}" in
   characters)
           flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_characters.py" \
             -- "$PWD/assets/characters/player/player.glb" | grep -E "BUILT|tris|Error|Traceback"
+          flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_characters.py" \
+            -- "$PWD/assets/characters/people/townsfolk.glb" --crowd | grep -E "BUILT|Error|Traceback"
+          $GODOT --headless --path . --import >/dev/null 2>&1 || true
+          $GODOT --headless --path . -s tools/bake_people.gd | grep -vE "^Godot|^$|Vulkan"
           $GODOT --headless --path . --import >/dev/null 2>&1 || true
           echo "Rebuilt assets/characters/player/player.glb" ;;
   check)  $GODOT --headless --path . --import 2>&1 | grep -E "ERROR|SCRIPT ERROR|WARNING" || echo "No errors." ;;
