@@ -3,7 +3,7 @@ extends Node
 ##   first    a fresh save: Start opens the screen; B goes back to the title
 ##            and saves nothing; Start, pick, A saves and goes on to the
 ##            plane select; the next Start skips the screen
-##   pad      LB / RB (and D-pad up / down) change tab and wrap round;
+##   pad      LB / RB (and D-pad up / down) change tab (hair, outfit) and wrap;
 ##            D-pad and left stick pick, the preview changes at once; the
 ##            right stick spins the preview; tiles can be tapped
 ##   pause    from the pause menu: B undoes the changes and returns to the
@@ -40,36 +40,34 @@ func _run() -> void:
 	await _press(JOY_BUTTON_DPAD_RIGHT)
 	await _press(JOY_BUTTON_B)
 	_check("B goes back to the title and saves nothing", _main.state == _main.State.TITLE and not _cs.visible
-			and not SaveManager.char_made and SaveManager.char_body == "M")
+			and not SaveManager.char_made and SaveManager.char_hair == 1)
 	_main._on_start()
 	await _frames(2)
-	_check("the screen opens on the body tab with the saved look", _cs.tab == 0 and _cs.current_look() == ["M", 1, 1])
-	# --- tabs ----------------------------------------------------------------------
+	_check("the screen opens on the hair tab with the saved look", _cs.tab == 0 and _cs.current_look().slice(1) == [1, 1])
+	# --- tabs (hair, outfit) ---------------------------------------------------------
 	await _press(JOY_BUTTON_RIGHT_SHOULDER)
-	_check("RB: next tab (hair)", _cs.tab == 1)
-	await _press(JOY_BUTTON_RIGHT_SHOULDER)
+	_check("RB: next tab (outfit)", _cs.tab == 1)
 	await _press(JOY_BUTTON_RIGHT_SHOULDER)
 	_check("RB wraps round to the first tab", _cs.tab == 0)
 	await _press(JOY_BUTTON_LEFT_SHOULDER)
-	_check("LB wraps back to the last tab (clothes)", _cs.tab == 2)
+	_check("LB wraps back to the last tab (outfit)", _cs.tab == 1)
 	await _press(JOY_BUTTON_DPAD_UP)
-	_check("D-pad up: previous tab", _cs.tab == 1)
+	_check("D-pad up: previous tab", _cs.tab == 0)
 	await _press(JOY_BUTTON_DPAD_DOWN)
 	await _press(JOY_BUTTON_DPAD_DOWN)
-	_check("D-pad down: next tab", _cs.tab == 0)
+	_check("D-pad down: next tab (wraps)", _cs.tab == 0)
 	# --- picking ----------------------------------------------------------------------
 	await _press(JOY_BUTTON_DPAD_RIGHT)
-	_check("D-pad right picks girl, and the preview changes at once", _cs.current_look()[0] == "F" and _cs.preview().body == "F")
-	await _press(JOY_BUTTON_RIGHT_SHOULDER)
 	await _stick(JOY_AXIS_LEFT_X, 1.0)
-	await _stick(JOY_AXIS_LEFT_X, 1.0)
-	_check("left stick picks too (ponytail)", _cs.current_look()[1] == 3 and _cs.preview().hair == 3)
+	_check("D-pad and left stick pick hair; the preview changes at once", _cs.current_look()[1] == 3 and _cs.preview().hair == 3)
 	await _press(JOY_BUTTON_RIGHT_SHOULDER)
+	_check("the outfit tab shows all %d outfits" % Outfits.count(), _cs._tiles.size() == Outfits.count())
 	await _press(JOY_BUTTON_DPAD_LEFT)
-	_check("picking left from the first wraps to the last (dungarees)", _cs.current_look()[2] == 4 and _cs.preview().outfit == 4)
+	_check("picking left from the first wraps to the last (dino)", _cs.current_look()[2] == 5 and _cs.preview().outfit == 5
+			and _cs.preview().visible_parts().has("Dino_Hood"))
 	_cs._tiles[1].pressed.emit()
 	await _frames(1)
-	_check("tapping a tile picks it", _cs.current_look()[2] == 2)
+	_check("tapping a tile picks it (princess)", _cs.current_look()[2] == 2 and _cs.preview().visible_parts().has("Princess_Tiara"))
 	await _press(JOY_BUTTON_DPAD_RIGHT)
 	await _press(JOY_BUTTON_DPAD_RIGHT)
 	var before: float = _cs._turntable.rotation.y
@@ -77,7 +75,7 @@ func _run() -> void:
 	_check("right stick spins the character", absf(_cs._turntable.rotation.y - before) > 0.5)
 	_check("nothing is saved until A", not SaveManager.char_made)
 	await _press(JOY_BUTTON_A)
-	_check("A saves the look", SaveManager.char_made and SaveManager.char_body == "F" and SaveManager.char_hair == 3 and SaveManager.char_outfit == 4)
+	_check("A saves the look (hair 3, superhero)", SaveManager.char_made and SaveManager.char_hair == 3 and SaveManager.char_outfit == 4)
 	_check("and goes on to the plane select", _main.state == _main.State.SELECT and not _cs.visible)
 	_main._on_plane_confirmed("prop")
 	await _frames(2)
@@ -92,19 +90,19 @@ func _run() -> void:
 	_main.pause_menu.character_requested.emit()
 	await _frames(2)
 	_check("pause menu person button opens the screen", _cs.visible and not _main.pause_menu.visible and _main.state == _main.State.PAUSED)
-	await _press(JOY_BUTTON_DPAD_LEFT)  # body: girl -> boy
+	await _press(JOY_BUTTON_DPAD_LEFT)  # hair 3 -> 2
 	await _press(JOY_BUTTON_B)
 	_check("B undoes the changes and returns to the pause menu", not _cs.visible and _main.pause_menu.visible
-			and SaveManager.char_body == "F" and _cs.preview().body == "F")
+			and SaveManager.char_hair == 3 and _cs.preview().hair == 3)
 	_main.pause_menu.character_requested.emit()
 	await _frames(2)
-	await _press(JOY_BUTTON_DPAD_LEFT)  # boy
-	await _press(JOY_BUTTON_RIGHT_SHOULDER)
 	await _press(JOY_BUTTON_DPAD_RIGHT)  # hair 4
+	await _press(JOY_BUTTON_RIGHT_SHOULDER)
+	await _press(JOY_BUTTON_DPAD_RIGHT)  # outfit 5 (dino)
 	await _press(JOY_BUTTON_A)
 	_check("A saves and returns to the pause menu", not _cs.visible and _main.pause_menu.visible
-			and SaveManager.char_body == "M" and SaveManager.char_hair == 4)
-	_check("the walker wears the new look", _main.walker.model.body == "M" and _main.walker.model.hair == 4)
+			and SaveManager.char_hair == 4 and SaveManager.char_outfit == 5)
+	_check("the walker wears the new look", _main.walker.model.hair == 4 and _main.walker.model.outfit == 5)
 	_main._resume()
 
 

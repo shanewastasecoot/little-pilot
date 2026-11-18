@@ -3,7 +3,7 @@
 #   editor   open the project in the Godot editor
 #   run      play the game in a window        (add "full" for fullscreen)
 #   city N   play with the city grown N hours ahead (preview only, not saved)
-#   characters  rebuild the player characters in Blender (Flatpak)
+#   props    rebuild the outfit props in Blender (Flatpak)
 #   test     run all headless tests (exit code 0 = all pass)
 #   check    import the project and report script errors, no window
 #   export   build ../LittlePilot-builds/LittlePilot.x86_64 (release)
@@ -25,11 +25,9 @@ case "${1:-}" in
           done
           [[ $fail -eq 0 ]] && echo "ALL TESTS PASSED" || { echo "SOME TESTS FAILED"; exit 1; } ;;
   city)   $GODOT --path . -- "--city-hours=${2:-12}" ;;
-  characters)
-          flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_characters.py" \
-            -- "$PWD/assets/characters/player/player.glb" | grep -E "BUILT|tris|Error|Traceback"
-          $GODOT --headless --path . --import >/dev/null 2>&1 || true
-          echo "Rebuilt assets/characters/player/player.glb" ;;
+  props)  flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_props.py" \
+            -- "$PWD/assets/characters/props/props.glb" | grep -E "PROPS|tris|BUILT|Error|Traceback"
+          $GODOT --headless --path . --import >/dev/null 2>&1 || true ;;
   check)  $GODOT --headless --path . --import 2>&1 | grep -E "ERROR|SCRIPT ERROR|WARNING" || echo "No errors." ;;
   export) mkdir -p "$BUILD_DIR"
           $GODOT --headless --path . --export-release Linux "$BUILD_DIR/LittlePilot.x86_64" >/dev/null

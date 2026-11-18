@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://ckggeciih1njm"
-path="res://.godot/imported/player.glb-2be28a703e577fd56a38ef1145ea2833.scn"
+uid="uid://drxdrkbt7s0t3"
+path="res://.godot/imported/Mage.glb-0b645cd28692040bdbfd1ff998888bf7.scn"
 
 [deps]
 
-source_file="res://assets/characters/player/player.glb"
-dest_files=["res://.godot/imported/player.glb-2be28a703e577fd56a38ef1145ea2833.scn"]
+source_file="res://assets/characters/kaykit_adventurers/Mage.glb"
+dest_files=["res://.godot/imported/Mage.glb-0b645cd28692040bdbfd1ff998888bf7.scn"]
 
 [params]
 

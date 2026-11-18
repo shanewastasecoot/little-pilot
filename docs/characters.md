@@ -1,45 +1,49 @@
-# Player characters
+# Player character
 
-The player's on-foot character is built in **Blender, from code**:
-`tools/blender/build_characters.py` makes `assets/characters/player/player.glb`.
-Rebuild it after changing the script with:
+The character you make and walk around as is built from **KayKit Character Pack:
+Adventurers 1.0** by Kay Lousberg (CC0; `assets/characters/kaykit_adventurers/`, licence
+file included), dressed in five original outfits whose props are built in Blender.
 
-```
-./dev.sh characters
-```
+## How it fits together
 
-(needs the Blender Flatpak: `flatpak install --user flathub org.blender.Blender`).
+- `scenes/characters/player_character.tscn` (`scripts/player/character_model.gd`) is the
+  one reusable character: the character screen's preview and the walker both use it.
+- Every KayKit character shares one 41-bone rig, so parts mix freely. The **outfit**
+  picks a base character (body, arms, legs and its 76 animations); the **hair** choice
+  picks a head (moved onto that skeleton):
+  `1` Rogue long auburn, `2` Knight short sandy, `3` Mage short black, `4` Rogue repainted golden.
+- KayKit parts are coloured by a palette texture: an 8×4 grid of colour swatches. An
+  outfit repaints cells of it (`"r<row>c<col>"`), so a tunic can become a bomber jacket.
+- `scripts/player/outfits.gd` lists the outfits (`OutfitData`: base, palette repaints,
+  props on bones, hidden parts, icon colours):
 
-`scripts/player/character_model.gd` loads the file, shows one body + one hair +
-the matching outfit, scales it to storybook size (~5 m, like the townspeople) and
-plays the animations.
+| # | Outfit | Base | Props (bone) |
+|---|---|---|---|
+| 1 | Pilot: brown bomber jacket, cream scarf, boots | Rogue | `Pilot_Cap` with goggles (head), `Pilot_Scarf` (chest) |
+| 2 | Princess: lilac gown, mint sash and bow | Mage | `Princess_Gown` (hips), `Princess_Tiara` (head) |
+| 3 | Astronaut: white and orange suit | Knight | `Astro_Helmet` (head), `Astro_Pack` (chest) |
+| 4 | Superhero: blue suit, red boots and gloves | Rogue | `Hero_Cape`, `Hero_Emblem` (chest) |
+| 5 | Dino costume | Rogue | `Dino_Hood` (head), `Dino_Tail` (hips) |
 
-## What's in the file
+  Every look also gets `Face_Smile` (head): a small smile on KayKit's simple oval-eyed faces.
 
-| Part | Names |
-|---|---|
-| Armature (one, shared by everything) | `Rig`: hips, spine, chest, neck, head, upperarm/forearm, thigh/shin/foot (`.L`/`.R`) |
-| Bodies | `Body_M`, `Body_F` |
-| Hair (fits both heads) | `Hair_1` short brown, `Hair_2` black bob, `Hair_3` blonde ponytail, `Hair_4` curly puffs |
-| Outfits (one per body) | `Outfit_1_M/F` T-shirt + shorts, `Outfit_2_M/F` hoodie + jeans, `Outfit_3_M/F` pilot jacket + scarf, `Outfit_4_M/F` dungarees + stripy top |
-| Animations | `Idle`, `Walk`, `Run` (loops, in place), `Jump` |
+## Props
 
-## Replacing it with hand-made art
+`tools/blender/build_props.py` builds every prop in Blender; rebuild with `./dev.sh props`
+(needs the Blender Flatpak: `flatpak install --user flathub org.blender.Blender`). Each
+prop starts as a few rough primitives and becomes **one smooth merged mesh**: Voxel
+Remesh → Subdivision Surface → Decimate (to a budget), then the primitives' colours are
+copied onto it as vertex colours. Props are modelled in the character's own space (feet at
+the origin, ~2.2 m tall), so the game hangs them on a bone and they sit where they were made.
 
-Any model that follows the same rules drops straight in (same file path, or change
-`CharacterModel.SCENE`):
+## Look
 
-- **glTF 2.0 binary (`.glb`)**, Y-up, metres, about **1.85 m** tall at scale 1,
-  standing at the origin, facing **+Z** in glTF (−Y in Blender), transforms applied.
-- **One armature.** Every body, hair and outfit mesh is skinned to it (bone names
-  can differ from ours, but all parts must use the same armature), at most
-  4 bone weights per vertex.
-- **Mesh object names exactly as in the table above.** Outfits need one version
-  per body so nothing pokes through.
-- **Animations named `Idle`, `Walk`, `Run`, `Jump`**, in place (no root motion).
-  Walk and Run should loop. If your walk or run stride differs from ours, change
-  `WALK_NATURAL` / `RUN_NATURAL` in `character_model.gd` so the feet don't slide.
-- **Budget:** about 5,000 triangles for the heaviest body + hair + outfit (only one
-  player is ever on screen). Flat colours or a small palette texture.
+`shaders/toon.gdshader` gives every part and prop the same toon look (two soft cel
+bands, a gentle rim light) and `shaders/toon_outline.gdshader` adds a soft outline in a
+darkened version of each part's own colour.
 
-`./dev.sh test` (the `character_test` suite) checks all of these.
+## Budget
+
+The heaviest look (dino, long hair) is about 7,700 triangles in 9 surfaces (twice that
+with the outline pass), and only one player is ever on screen. `./dev.sh test`
+(`character_test`) checks every look, the props, the animations and the save.
