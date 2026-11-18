@@ -9,6 +9,9 @@ signal milestone_reached(count: int)
 signal all_collected
 ## Every `party_every` stars (counted across respawns): the city celebrates.
 signal city_party_due
+## Reward stars (from deliveries): they go into the lifetime total and count
+## towards city parties, but not towards the floating stars' "all found".
+signal bonus_stars(n: int)
 
 ## Session counts that trigger a small celebration.
 @export var milestones: Array[int] = [10, 25]
@@ -53,6 +56,17 @@ func _on_star_collected(_star: Star) -> void:
 	elif count in milestones:
 		milestone_reached.emit(count)
 		Sfx.play("jingle")
+
+
+## Give `n` reward stars (a delivery): lifetime total and city-party
+## progress; the HUD shows them flying into the jar.
+func add_bonus(n: int) -> void:
+	for i in n:
+		SaveManager.add_lifetime_star()
+		session_count += 1
+		if session_count % party_every == 0:
+			city_party_due.emit()
+	bonus_stars.emit(n)
 
 
 func _celebrate_all() -> void:

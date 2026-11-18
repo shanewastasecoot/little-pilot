@@ -6,6 +6,8 @@ extends CanvasLayer
 var _count_label: Label
 var _counter: Control
 var _jar: StarJar
+var _delivery: DeliveryBubble
+var _root: Control
 var _party: Celebration
 var _hint: StickHint
 var _city_pointer: CityPointer
@@ -71,6 +73,9 @@ func _ready() -> void:
 	_jar.position = Vector2(-112, 22)
 	_jar.size = Vector2(80, 112)
 	root.add_child(_jar)
+	_delivery = DeliveryBubble.new()
+	root.add_child(_delivery)
+	_root = root
 
 	_party = Celebration.new()
 	root.add_child(_party)
@@ -193,7 +198,54 @@ func show_idle_hint(on: bool, instant := false) -> void:
 		_hint.showing = on
 
 
+## The delivery bubble: who the parcel is for (null hides it).
+func show_delivery(who: RecipientData) -> void:
+	_delivery.set_recipient(who)
+
+
+func delivery_showing() -> bool:
+	return _delivery.visible
+
+
+## Where the parcel's recipient is, relative to the camera (0 = ahead).
+func set_delivery_angle(angle: float) -> void:
+	_delivery.angle = angle
+	_delivery.show_arrow = SaveManager.delivery_arrow
+
+
+## Reward stars fly up from the middle of the screen into the jar, chiming.
+func fly_bonus_stars(n: int) -> void:
+	var view := get_viewport().get_visible_rect().size
+	var to := _jar.get_global_rect().get_center()
+	for i in n:
+		var st := UiIcon.new()
+		st.icon = UiIcon.Icon.STAR
+		st.color = Color("ffd23f")
+		st.size = Vector2(70, 70)
+		st.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		st.position = view * 0.5 + Vector2((i - n * 0.5) * 60.0, 40.0) - st.size * 0.5
+		st.scale = Vector2.ZERO
+		st.pivot_offset = st.size * 0.5
+		_root.add_child(st)
+		var tw := create_tween()
+		tw.tween_interval(i * 0.16)
+		tw.tween_property(st, "scale", Vector2.ONE * 1.2, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_interval(0.35)
+		tw.set_parallel(true)
+		tw.tween_property(st, "position", to - st.size * 0.5, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tw.tween_property(st, "scale", Vector2.ONE * 0.4, 0.55)
+		tw.set_parallel(false)
+		var pitch := pow(2.0, [0, 2, 4, 5, 7, 9, 11, 12][i % 8] / 12.0)
+		tw.tween_callback(func():
+			Sfx.play("chime", pitch)
+			var pop := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			_jar.scale = Vector2.ONE * 1.15
+			pop.tween_property(_jar, "scale", Vector2.ONE, 0.25)
+			st.queue_free())
+
+
 func bind(stars: StarManager) -> void:
+	stars.bonus_stars.connect(fly_bonus_stars)
 	stars.star_collected.connect(_on_star_collected)
 	stars.milestone_reached.connect(func(_n): _party.play(false))
 	stars.all_collected.connect(func(): _party.play(true))
@@ -261,6 +313,11 @@ func _show_next_news() -> void:
 ## Small party when a new landmark is found (doesn't interrupt flying).
 func celebrate_discovery() -> void:
 	_party.play(false)
+
+
+## A parcel delivered: the big confetti celebration.
+func celebrate_delivery() -> void:
+	_party.play(true)
 
 
 func _on_star_collected(count: int, total: int) -> void:

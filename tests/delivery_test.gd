@@ -1,0 +1,218 @@
+extends Node
+## Deliveries (phase 1), in the real game, driven like a child would:
+##   world    the airport post office with its postie and a waiting parcel;
+##            every recipient stands on dry, walkable ground
+##   pick up  walking into the parcel picks it up (no button): it's in your
+##            arms, the bubble shows who it's for, a beacon shines over
+##            them, the post office's parcel is gone, the save knows
+##   carry    walking past someone else delivers nothing; the parcel stays
+##            through getting in the plane, a crash, and a restart (saved)
+##   deliver  walking up to them: they cheer, confetti, reward stars go to
+##            the lifetime total (not the floating stars' count), the count
+##            and "met" list save, a new parcel waits at the post office
+##   order    the two lesson people first, then everyone, never the same
+##            person twice in a row
+##   reach    every recipient can be walked up to
+##   arrow    the parents' setting hides the arrow and survives a reload
+## Exit code 0 = pass, 1 = fail.
+
+const PATH := "user://test_delivery.cfg"
+
+var _main: Node
+var _plane: Aircraft
+var _w: Walker
+var _cam: WalkCamera
+var _dm: DeliveryManager
+var _fails := 0
+
+
+func _ready() -> void:
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
+	SaveManager.use_path(PATH)
+	SaveManager.dragon = false
+	await _boot()
+	await _run()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
+	print("\nDELIVERY TEST %s" % ("PASSED" if _fails == 0 else "FAILED (%d)" % _fails))
+	get_tree().quit(1 if _fails else 0)
+
+
+func _boot() -> void:
+	_main = load("res://scenes/main/main.tscn").instantiate()
+	add_child(_main)
+	_plane = _main.get_node("Aircraft")
+	_w = _main.walker
+	_cam = _main.walk_camera
+	_dm = _main.delivery
+	_main.title.hide()
+	_main._enter(_main.State.FLYING)
+	_w.override_enabled = true
+	_cam.override_enabled = true
+	await _frames(5)
+
+
+func _run() -> void:
+	# --- the world ------------------------------------------------------------------
+	var po: PostOffice = _dm.post_offices[0]
+	_check("the airport post office is there with a parcel waiting", po.available and _dm.job == "")
+	_check("the postie is there (and gets no parcels)", _dm.recipients.has("postie")
+			and not Recipients.get_recipient("postie").deliverable)
+	var dry := true
+	for r: RecipientData in Recipients.all():
+		var g := _ground(Vector3(r.spot.x, 0, r.spot.y))
+		if g < Walker.SHORE_LEVEL + 0.5 or absf(_dm.recipients[r.id].global_position.y - g) > 1.0:
+			dry = false
+			print("    not on dry ground: ", r.id, " ground ", g)
+	_check("everyone stands on dry ground", dry)
+	_check("nothing showing before a pick-up", not _main.hud.delivery_showing() and not _dm.beacon.visible)
+	# --- pick up ------------------------------------------------------------------
+	await _get_out_near(po.pickup_point() + Vector3(-30, 0, 25))
+	var lifetime0 := SaveManager.lifetime_stars
+	var trail0: int = _main.stars.count
+	await _walk_to(po.pickup_point(), 1.0, 900)
+	await _frames(10)
+	var first := _dm.job
+	_check("walking into the parcel picks it up (a lesson person first)", first != ""
+			and Recipients.get_recipient(first).lesson)
+	_check("it's in your arms", _w.model.carrying and _w.model.parcel() != null)
+	_check("the bubble shows who it's for", _main.hud.delivery_showing())
+	_check("a beacon shines over them", _dm.beacon.visible
+			and _flat_dist(_dm.beacon.global_position, _dm.target().global_position) < 0.5)
+	_check("the post office's parcel is gone", not po.available)
+	_check("the save knows", SaveManager.delivery_job == first)
+	# --- walking past someone else -----------------------------------------------------
+	var other: Recipient = _dm.recipients["postie"]
+	await _walk_to(other.global_position, 4.0, 600)
+	await _frames(10)
+	_check("walking up to someone else delivers nothing", _dm.job == first and _w.model.carrying)
+	# --- carry through the plane and a crash --------------------------------------------
+	await _walk_to(_plane.global_position, 6.0, 900)
+	await _frames(5)
+	_check("Y gets back in the plane with the parcel", _main.toggle_plane() and _main.state == _main.State.LANDED)
+	var crashes := [0]
+	_plane.crashed.connect(func(_a, _b): crashes[0] += 1)
+	_main._enter(_main.State.FLYING)
+	_plane.explode()
+	await _frames(240)
+	_check("after a crash the parcel is still yours", crashes[0] > 0 and _dm.job == first and _w.model.carrying
+			and _main.hud.delivery_showing())
+	# --- restart mid-delivery -----------------------------------------------------------
+	SaveManager.save_now()
+	_main.queue_free()
+	await _frames(3)
+	SaveManager.use_path(PATH)
+	await _boot()
+	_check("after a restart the parcel is still yours", _dm.job == first and _w.model.carrying
+			and _main.hud.delivery_showing() and _dm.beacon.visible and not _dm.post_offices[0].available)
+	# --- deliver --------------------------------------------------------------------
+	var who := _dm.target()
+	await _get_out_near(who.global_position + _front(who) * 35.0)
+	await _walk_to(who.global_position, 3.0, 1200)
+	await _frames(10)
+	_check("walking up to them delivers it", _dm.job == "" and not _w.model.carrying and who.is_celebrating())
+	_check("they cheer", who.model.anim in ["Interact", "Cheer"])
+	_check("bubble and beacon go away", not _main.hud.delivery_showing() and not _dm.beacon.visible)
+	_check("reward stars go into the lifetime total", SaveManager.lifetime_stars == lifetime0 + DeliveryManager.REWARD_STARS)
+	_check("but not the floating stars' count", _main.stars.count == trail0)
+	_check("the count and who's had one are saved", SaveManager.deliveries == 1 and SaveManager.delivered_to == [first]
+			and SaveManager.delivery_job == "")
+	await _frames(int(DeliveryManager.REFILL_DELAY * 60) + 20)
+	_check("a new parcel waits at the post office", _dm.post_offices[0].available)
+	# --- order --------------------------------------------------------------------
+	var second := _dm.next_recipient()
+	_check("the other lesson person is next", second != first and Recipients.get_recipient(second).lesson)
+	SaveManager.delivered_to.append(second)
+	var seen := {}
+	for i in 60:
+		seen[_dm.next_recipient()] = true
+	_check("then people who haven't had one", not seen.has(first) and not seen.has(second) and seen.size() >= 2)
+	for r in Recipients.deliverable():
+		if not SaveManager.delivered_to.has(r.id):
+			SaveManager.delivered_to.append(r.id)
+	var repeat := false
+	for i in 60:
+		if _dm.next_recipient() == first:  # first was the last one delivered
+			repeat = true
+	_check("never the same person twice in a row", not repeat)
+	# --- everyone can be reached --------------------------------------------------------
+	var unreached := []
+	for r: RecipientData in Recipients.deliverable():
+		var rec: Recipient = _dm.recipients[r.id]
+		await _get_out_near(rec.global_position + _front(rec) * 30.0)
+		if not await _walk_to(rec.global_position, GiveRadius.REACH, 900):
+			unreached.append(r.id)
+	_check("every recipient can be walked up to", unreached.is_empty())
+	for u in unreached:
+		print("    unreached: ", u)
+	# --- arrow setting ---------------------------------------------------------------
+	SaveManager.set_delivery_arrow(false)
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("the arrow setting survives a reload", not SaveManager.delivery_arrow)
+	var f := FileAccess.open(PATH, FileAccess.WRITE)
+	f.store_string("[delivery]\njob=5\ncount=-3\ndelivered_to=\"x\"\n")
+	f.close()
+	SaveManager.use_path(PATH)
+	_check("bad saved delivery values fall back", SaveManager.delivery_job == "" and SaveManager.deliveries == 0
+			and SaveManager.delivered_to.is_empty())
+
+
+class GiveRadius:
+	const REACH := 7.0
+
+
+func _front(r: Recipient) -> Vector3:
+	var y := r.model.rotation.y
+	return Vector3(-sin(y), 0, -cos(y))
+
+
+## Park the plane at `at` and get out there.
+func _get_out_near(at: Vector3) -> void:
+	if _w.is_active():
+		_main._enter(_main.State.FLYING)
+	_plane.park(Vector3(at.x, _ground(at), at.z), 0.0)
+	_main._enter(_main.State.FLYING)
+	_plane.input.stick = Vector2.ZERO
+	_plane.input.throttle = 0.0
+	await _frames(3)
+	_main.toggle_plane()
+	await _frames(10)
+
+
+## Walk (sprinting) towards `p` until within `radius`; false if it never got there.
+func _walk_to(p: Vector3, radius: float, max_frames: int) -> bool:
+	for i in max_frames:
+		var d := p - _w.global_position
+		d.y = 0.0
+		if d.length() < radius:
+			_w.override_move = Vector2.ZERO
+			_w.override_sprint = false
+			return true
+		_cam.snap_to(atan2(-d.x, -d.z))
+		_w.override_move = Vector2(0, 1)
+		_w.override_sprint = true
+		await get_tree().physics_frame
+	_w.override_move = Vector2.ZERO
+	_w.override_sprint = false
+	return false
+
+
+func _ground(p: Vector3) -> float:
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, 800, p.z), Vector3(p.x, -60, p.z), GameSettings.LAYER_WORLD)
+	var hit: Dictionary = _main.get_world_3d().direct_space_state.intersect_ray(q)
+	return hit.position.y if not hit.is_empty() else -100.0
+
+
+static func _flat_dist(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z))
+
+
+func _frames(n: int) -> void:
+	for i in n:
+		await get_tree().physics_frame
+
+
+func _check(name: String, ok: bool) -> void:
+	print(("PASS  " if ok else "FAIL  ") + name)
+	if not ok:
+		_fails += 1

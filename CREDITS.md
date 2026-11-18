@@ -110,6 +110,6 @@ Changes: the biplane's propeller is cut out of the body mesh at load time so it 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 
 - **3D art:** island and islet terrain, the ocean shader (`shaders/ocean.gdshader`), runway, the arched hangar (`scripts/world/landmarks/hangar.gd`), tower cranes, city streets and fountain, windsock, fields and stars are built from Godot primitives and generated meshes. Distant trees use generated cones.
-- **Player character outfit props** (pilot cap and scarf, princess gown and tiara, astronaut helmet and pack, superhero cape and star, dino hood and tail, the smile): built in Blender by `tools/blender/build_props.py` (see `docs/characters.md`); the toon shaders are in `shaders/`.
+- **Player character outfit props** (pilot cap and scarf, princess gown and tiara, astronaut helmet and pack, superhero cape and star, dino hood and tail, the smile) and **delivery props** (the parcel, straw hat, sun hat, mechanic's cap, bobble hat, postie's cap and mail bag, balloon): built in Blender by `tools/blender/build_props.py` (see `docs/characters.md`); the toon shaders are in `shaders/`.
 - **Sound effects and music:** synthesised at startup by `scripts/core/sfx.gd` and `scripts/core/music.gd`.
 - **Font:** Godot's built-in default font.
