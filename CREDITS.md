@@ -93,6 +93,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Small shop | `assets/environment/shop_small_b.glb` | Kenney | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/Rq572hdKEz) |
 | Schoolhouse ("Schoolhouse") | `assets/environment/school_a.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/ftnL_OvlkCx) |
 | Schoolhouse ("Schoolhouse") | `assets/environment/school_b.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/5uBxCBp0os0) |
+| Player character bodies, heads and animations ("KayKit Character Pack: Adventurers 1.0": Rogue, Knight, Mage, Barbarian) | `assets/characters/kaykit_adventurers/` (licence file included) | Kay Lousberg ([kaylousberg.com](https://www.kaylousberg.com)) | CC0 1.0 | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0) |
 | Townsperson: worker ("Worker") | `assets/characters/people/worker.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/E8079Ahx7k) |
 | Townsperson: suit ("Suit") | `assets/characters/people/suit.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/sOUciDsoVV) |
 | Townsperson: hoodie ("Hoodie Character") | `assets/characters/people/hoodie.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/gKLBoRsyKe) |
