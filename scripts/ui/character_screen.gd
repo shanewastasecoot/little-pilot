@@ -138,8 +138,8 @@ func _build_stage(vp: SubViewport) -> void:
 	sun.light_energy = 1.1
 	vp.add_child(sun)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 2.9, 11.0)
-	cam.rotation_degrees = Vector3(-6, 0, 0)
+	cam.position = Vector3(0, 2.8, 13.0)
+	cam.rotation_degrees = Vector3(-4, 0, 0)
 	cam.fov = 40
 	vp.add_child(cam)
 	var disc := MeshInstance3D.new()
@@ -156,7 +156,7 @@ func _build_stage(vp: SubViewport) -> void:
 	_turntable = Node3D.new()
 	_turntable.rotation.y = PI + 0.35  # facing the camera, a little turned
 	vp.add_child(_turntable)
-	_preview = CharacterModel.new()
+	_preview = (load("res://scenes/characters/player_character.tscn") as PackedScene).instantiate() as CharacterModel
 	_turntable.add_child(_preview)
 
 
@@ -250,6 +250,11 @@ func _process(delta: float) -> void:
 		_spin_t = 0.0
 	else:
 		_spin_t += delta
+		# Left alone: a slow turntable, and a little wave now and then.
+		if _spin_t > 1.5:
+			_turntable.rotation.y += 0.35 * delta
+		if fmod(_spin_t, 7.0) < delta and _spin_t > 3.0:
+			_preview.wave()
 
 
 func _unhandled_input(event: InputEvent) -> void:
