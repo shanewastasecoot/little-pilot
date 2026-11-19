@@ -19,6 +19,8 @@ const SITES := [
 	["main island meadow", 1200.0, 40.0], ["runway", -100.0, 0.0], ["palm island", 2240.0, 440.0],
 	["volcano beach", -1514.0, -1021.0], ["ice island", 620.0, -3280.0], ["dino meadow", 2650.0, 2080.0],
 	["castle island", -440.0, 3520.0], ["town island", -3060.0, 580.0],
+	# Where you land for deliveries (scripts/delivery/recipients.gd land_at).
+	["city meadow", -160.0, 450.0], ["lighthouse meadow", 950.0, 560.0], ["farm meadow", -560.0, 380.0],
 ]
 
 var _main: Node

@@ -20,6 +20,7 @@ var _music: VolumeBar
 var _sounds: VolumeBar
 var _battery: BigButton
 var _arrow: BigButton
+var _parcel_arrow: BigButton
 var _crash: BigButton
 var _dragon: BigButton
 var _level: BigButton
@@ -135,6 +136,13 @@ func _ready() -> void:
 	_invert.toggle_mode = true
 	_invert.toggled.connect(func(on): SaveManager.set_invert_y(on); _tint_battery())
 	row2.add_child(_invert)
+	# The delivery arrow on or off (the picture of who it's for still shows).
+	_parcel_arrow = BigButton.new()
+	_parcel_arrow.icon_type = UiIcon.Icon.PARCEL
+	_parcel_arrow.button_size = Vector2(130, 130)
+	_parcel_arrow.toggle_mode = true
+	_parcel_arrow.toggled.connect(func(on): SaveManager.set_delivery_arrow(on); _tint_battery())
+	row2.add_child(_parcel_arrow)
 
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
@@ -173,6 +181,7 @@ func _on_visibility_changed() -> void:
 	_dragon.set_pressed_no_signal(SaveManager.dragon)
 	_played.text = SaveManager.format_duration(SaveManager.playtime)
 	_invert.set_pressed_no_signal(SaveManager.invert_y)
+	_parcel_arrow.set_pressed_no_signal(SaveManager.delivery_arrow)
 	_city_armed = 0.0
 	_tint(_city, CITY_BLUE)
 	_tint_battery()
@@ -226,7 +235,7 @@ func _tint_battery() -> void:
 	_cam_speed._icon.pips = CAMERA_SPEEDS.find(_nearest_speed()) + 1
 	_tint(_cam_speed, Color("4aa8ff"))
 	for pair in [[_battery, SaveManager.battery_saver], [_arrow, SaveManager.city_arrow], [_crash, SaveManager.crashes], [_dragon, SaveManager.dragon],
-			[_invert, SaveManager.invert_y]]:
+			[_invert, SaveManager.invert_y], [_parcel_arrow, SaveManager.delivery_arrow]]:
 		var b: BigButton = pair[0]
 		var c := Color("4cc06a") if pair[1] else Color("8a94a6")
 		b.add_theme_stylebox_override("normal", b._style(c, Color(0, 0, 0, 0)))

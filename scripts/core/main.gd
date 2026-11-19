@@ -59,6 +59,8 @@ const DOOR_RADIUS := 9.0
 @onready var plane_select: PlaneSelect = $PlaneSelect
 @onready var pause_menu: PauseMenu = $PauseMenu
 var character_screen: CharacterScreen
+## The delivery game: post office, people, the parcel you carry.
+var delivery: DeliveryManager
 
 
 func _ready() -> void:
@@ -111,6 +113,11 @@ func _ready() -> void:
 	_dragon = get_tree().get_first_node_in_group("dragon") as Dragon
 	if _dragon:
 		_dragon.plane_hit.connect(func(_where, _fire): aircraft.explode())
+
+	delivery = DeliveryManager.new()
+	delivery.name = "Delivery"
+	add_child(delivery)
+	delivery.setup(self, map)
 
 	character_screen = CharacterScreen.new()
 	add_child(character_screen)

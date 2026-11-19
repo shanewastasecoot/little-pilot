@@ -36,6 +36,15 @@ Remesh → Subdivision Surface → Decimate (to a budget), then the primitives' 
 copied onto it as vertex colours. Props are modelled in the character's own space (feet at
 the origin, ~2.2 m tall), so the game hangs them on a bone and they sit where they were made.
 
+## Delivery people
+
+The people you deliver parcels to (and the airport's postie) use the same parts:
+`scripts/delivery/recipients.gd` gives each a base, a palette, props and a head
+(any KayKit head, including the bearded Barbarian), and `CharacterModel.look_override` /
+`head_override` dress them. `CarryPose` (a SkeletonModifier3D) bends the arms round a
+parcel on top of any animation. They use KayKit's `Interact` (taking the parcel) and
+`Cheer`.
+
 ## Look
 
 `shaders/toon.gdshader` gives every part and prop the same toon look (two soft cel

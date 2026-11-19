@@ -386,11 +386,129 @@ def face_smile():
     return finish("Face_Smile", [tube(pts, 0.013, "8a3b3b")], voxel=0.004, target_tris=300)
 
 
+# --- Delivery props (packages, and what the people you deliver to wear) ----------
+
+def package():
+    """A parcel with a red ribbon and bow, centred on the origin (the game
+    places it in arms, on the plane and on the post office pad)."""
+    kraft, ribbon = "d9a066", "e63946"
+    w, d, h = 0.62, 0.52, 0.46
+    parts = [box(Vector((0, 0, 0)), (w, d, h), kraft)]
+    parts.append(box(Vector((0, 0, 0)), (w + 0.03, 0.1, h + 0.03), ribbon))
+    parts.append(box(Vector((0, 0, 0)), (0.1, d + 0.03, h + 0.03), ribbon))
+    top = Vector((0, 0, h * 0.5 + 0.02))
+    for s in (1, -1):  # bow loops
+        parts.append(torus(top + Vector((0.11 * s, 0, 0.06)), 0.09, 0.035, ribbon, axis=Vector((0, 1, 0)), segs=20, tube=8))
+    parts.append(sphere(top + Vector((0, 0, 0.03)), (0.06, 0.06, 0.05), ribbon, segs=12, rings=8))
+    return finish("Package", parts, voxel=0.012, target_tris=900)
+
+
+def _brim_hat(name, crown, band, brim_major, brim_minor, flower=None):
+    parts = [shell(HEAD + Vector((0, 0.02, 0.26)), (0.6, 0.6, 0.48), crown, lambda p: p.z > -0.02, thickness=0.06)]
+    parts.append(torus(HEAD + Vector((0, 0.02, 0.27)), brim_major, brim_minor, crown, segs=40, tube=10, squash=0.14))
+    parts.append(torus(HEAD + Vector((0, 0.02, 0.31)), 0.6, 0.05, band, segs=40, tube=8))
+    if flower:
+        c = HEAD + Vector((0.5, -0.32, 0.36))
+        for k in range(5):
+            a = 2 * math.pi * k / 5
+            parts.append(sphere(c + Vector((math.cos(a) * 0.08, -0.02, math.sin(a) * 0.08)), (0.07, 0.04, 0.07), flower[0], segs=12, rings=8))
+        parts.append(sphere(c + Vector((0, -0.05, 0)), (0.05, 0.04, 0.05), flower[1], segs=10, rings=6))
+    return finish(name, parts, voxel=0.016, target_tris=1300)
+
+
+def straw_hat():
+    return _brim_hat("Straw_Hat", "e9c46a", "d64545", 0.78, 0.3)
+
+
+def sun_hat():
+    return _brim_hat("Sun_Hat", "f7a8c4", "ffffff", 0.74, 0.32, flower=("ffffff", "ffd23f"))
+
+
+def flat_cap():
+    """A mechanic's peaked cap."""
+    red, peak = "e63946", "b8232f"
+    parts = [shell(HEAD + Vector((0, 0.03, 0.08)), (0.64, 0.64, 0.62), red, lambda p: p.z > 0.14, thickness=0.06)]
+    parts.append(sphere(HEAD + Vector((0, -0.55, 0.3)), (0.36, 0.26, 0.045), peak, segs=20, rings=10))
+    parts.append(sphere(HEAD + Vector((0, 0.03, 0.7)), (0.06, 0.06, 0.04), peak, segs=10, rings=6))
+    return finish("Flat_Cap", parts, voxel=0.016, target_tris=1000)
+
+
+def beanie():
+    """A lighthouse keeper's woolly hat with a bobble."""
+    navy, cuff, bobble = "1d4e89", "2a63a8", "ffffff"
+    parts = [shell(HEAD + Vector((0, 0.02, 0.06)), (0.65, 0.64, 0.66), navy, lambda p: p.z > 0.12, thickness=0.07)]
+    parts.append(torus(HEAD + Vector((0, 0.02, 0.2)), 0.62, 0.075, cuff, segs=40, tube=10))
+    parts.append(sphere(HEAD + Vector((0, 0.02, 0.76)), (0.16, 0.16, 0.15), bobble, segs=16, rings=10))
+    return finish("Beanie", parts, voxel=0.016, target_tris=1100)
+
+
+def postie_cap():
+    """The post office's peaked cap with a gold badge."""
+    blue, peak, gold = "2f6fdb", "1b2440", "ffd23f"
+    parts = [shell(HEAD + Vector((0, 0.03, 0.08)), (0.64, 0.64, 0.62), blue, lambda p: p.z > 0.14, thickness=0.06)]
+    parts.append(loft([(HEAD + Vector((0, 0.03, 0.42)), 0.6, 0.6), (HEAD + Vector((0, 0.03, 0.62)), 0.7, 0.7),
+                       (HEAD + Vector((0, 0.03, 0.66)), 0.68, 0.68)], blue, segs=32))
+    parts.append(sphere(HEAD + Vector((0, -0.55, 0.3)), (0.36, 0.26, 0.045), peak, segs=20, rings=10))
+    parts.append(star(HEAD + Vector((0, -0.66, 0.5)), 0.1, 0.045, 0.04, gold))
+    return finish("Postie_Cap", parts, voxel=0.016, target_tris=1300)
+
+
+def mail_bag():
+    """A satchel on the right hip, its strap over the left shoulder."""
+    leather, flap, red = "8b5a2b", "a86f3a", "e63946"
+    bag = Vector((-0.5, -0.06, 0.82))
+    parts = [box(bag, (0.2, 0.42, 0.34), leather)]
+    parts.append(box(bag + Vector((-0.02, 0, 0.1)), (0.2, 0.44, 0.16), flap))
+    parts.append(box(bag + Vector((-0.12, 0, 0.02)), (0.04, 0.2, 0.12), red))  # envelope badge
+    pts = [Vector((-0.44, -0.06, 0.98)), Vector((-0.2, -0.36, 1.16)), Vector((0.2, -0.33, 1.4)),
+           Vector((0.33, -0.05, 1.5)), Vector((0.26, 0.28, 1.36)), Vector((-0.12, 0.33, 1.12)), Vector((-0.44, 0.12, 0.98))]
+    parts.append(tube(pts, 0.04, leather))
+    return finish("Mail_Bag", parts, voxel=0.016, target_tris=900)
+
+
+def balloon():
+    """A red balloon floating above the right hand (hung on the root bone)."""
+    red, string = "ff4d6d", "ffffff"
+    top = Vector((-0.95, 0.15, 3.55))
+    parts = [sphere(top, (0.4, 0.4, 0.48), red, segs=24, rings=16)]
+    parts.append(cone(top + Vector((0, 0, -0.5)), top + Vector((0, 0, -0.42)), 0.07, 0.02, red, segs=10))
+    pts = [top + Vector((0, 0, -0.52)), Vector((-0.92, 0.1, 2.6)), Vector((-0.86, 0.04, 1.8)), Vector((-0.78, 0.0, 1.05))]
+    parts.append(tube(pts, 0.015, string, tube_segs=6))
+    return finish("Balloon", parts, voxel=0.012, target_tris=900)
+
+
+def chef_hat():
+    """A baker's tall puffy white hat."""
+    white, band = "ffffff", "eef1f5"
+    parts = [shell(HEAD + Vector((0, 0.03, 0.1)), (0.63, 0.63, 0.6), band, lambda p: p.z > 0.16, thickness=0.06)]
+    parts.append(loft([(HEAD + Vector((0, 0.03, 0.4)), 0.56, 0.56), (HEAD + Vector((0, 0.03, 0.7)), 0.6, 0.6)], white, segs=32))
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        parts.append(sphere(HEAD + Vector((math.cos(a) * 0.34, 0.03 + math.sin(a) * 0.34, 0.88)), (0.3, 0.3, 0.26), white, segs=16, rings=10))
+    parts.append(sphere(HEAD + Vector((0, 0.03, 0.95)), (0.36, 0.36, 0.3), white, segs=18, rings=12))
+    return finish("Chef_Hat", parts, voxel=0.016, target_tris=1300)
+
+
+def ranger_hat():
+    return _brim_hat("Ranger_Hat", "c2a36b", "6b4e2e", 0.76, 0.26)
+
+
+def beret():
+    """A painter's floppy beret, tipped to one side."""
+    red, stalk = "d64545", "a83232"
+    parts = [shell(HEAD + Vector((0, 0.03, 0.1)), (0.63, 0.63, 0.6), red, lambda p: p.z > 0.2, thickness=0.06)]
+    parts.append(sphere(HEAD + Vector((0.12, 0.03, 0.58)), (0.72, 0.68, 0.16), red, segs=24, rings=12))
+    parts.append(cone(HEAD + Vector((0.12, 0.03, 0.7)), HEAD + Vector((0.12, 0.03, 0.82)), 0.04, 0.02, stalk, segs=8))
+    return finish("Beret", parts, voxel=0.016, target_tris=1000)
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     print("PROPS")
     for build in (pilot_cap, pilot_scarf, princess_tiara, princess_gown, astro_helmet, astro_pack,
-                  hero_cape, hero_emblem, dino_hood, dino_tail, face_smile):
+                  hero_cape, hero_emblem, dino_hood, dino_tail, face_smile,
+                  package, straw_hat, sun_hat, flat_cap, beanie, postie_cap, mail_bag, balloon,
+                  chef_hat, ranger_hat, beret):
         build()
     for o in bpy.context.scene.objects:
         o.select_set(True)

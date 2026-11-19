@@ -92,7 +92,16 @@ func _physics_process(delta: float) -> void:
 				var d := _dragon
 				var fwd := d._forward()
 				fwd.y = 0.0
+				# Its patrol route is random: pick a spot ahead that it can
+				# really see (not behind a hill, not over the safe airport).
 				var p := d.global_position + fwd.normalized() * 180.0 + Vector3.UP * 5.0
+				for turn in [0.0, 0.3, -0.3, 0.6, -0.6]:
+					var dir := fwd.normalized().rotated(Vector3.UP, turn)
+					var q := d.global_position + dir * 180.0 + Vector3.UP * 5.0
+					if d._clear_line(d.global_position, q) and not d._in_sanctuary(q):
+						p = q
+						fwd = dir
+						break
 				# Flying away from the dragon, so it has to chase.
 				_plane.teleport(p, atan2(-fwd.x, -fwd.z))
 			if _dragon.state == Dragon.State.HUNT or _dragon.state == Dragon.State.BREATHE:
