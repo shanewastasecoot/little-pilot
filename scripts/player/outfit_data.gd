@@ -17,8 +17,14 @@ extends Resource
 @export var icon: Array = []
 
 
-static func make(p_id: String, p_base: String, p_palette := {}, p_props: Array = [], p_hide: Array = [], p_icon: Array = []) -> OutfitData:
+## Extra parts of the base character to keep showing (e.g. "Knight_Helmet").
+@export var keep: Array = []
+
+
+static func make(p_id: String, p_base: String, p_palette := {}, p_props: Array = [], p_hide: Array = [], p_icon: Array = [],
+		p_keep: Array = []) -> OutfitData:
 	var o := OutfitData.new()
+	o.keep = p_keep
 	o.id = p_id
 	o.base = p_base
 	o.palette = p_palette

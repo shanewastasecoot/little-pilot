@@ -126,6 +126,11 @@ func _ready() -> void:
 	_clock = 45.0
 
 
+## On Easy, a plane carrying a parcel is left alone (DeliveryManager sets
+## this): as if it weren't flying, so the dragon stops hunting and wanders.
+var parcel_truce := false
+
+
 func _read_settings() -> void:
 	level = clampi(SaveManager.dragon_level, 0, LEVELS.size() - 1)
 	dangerous = SaveManager.crashes
@@ -188,7 +193,7 @@ func _physics_process(delta: float) -> void:
 # --- Senses ------------------------------------------------------------------
 
 func _plane_flying() -> bool:
-	return plane != null and plane.get("mode") == Aircraft.Mode.FLYING
+	return plane != null and plane.get("mode") == Aircraft.Mode.FLYING and not parcel_truce
 
 
 func _in_sanctuary(p: Vector3) -> bool:

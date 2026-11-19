@@ -290,12 +290,14 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 | **No buttons** | Walk into the parcel to pick it up, walk up to them to hand it over. |
 | **Joyful** | They reach out, take it and cheer; confetti, a fanfare, and reward stars fly into the star jar. |
 
-- **Post office** at the airport, by the runway's west end where the plane waits: a postie at the door and a parcel bobbing on a golden pad.
-- **One parcel at a time.** The first two go to people a short walk away (a kid with a balloon, a grandma in a sun hat), then to anyone who hasn't had one yet (the mechanic at the hangar, the farmer, the lighthouse keeper), never the same person twice in a row.
+- **Post offices** at the airport (by the runway's west end, where the plane waits), just west of the city, and at the east end of Town Island's main street: a postie at each door and a parcel bobbing on a golden pad.
+- **One parcel at a time**, nearest first: the first two go to people a short walk from the airport (a kid with a balloon, a grandma in a sun hat); then the rest of the main island (the mechanic at the hangar, the farmer, the lighthouse keeper, a painter at the city's edge); then the other islands, where you fly, land and walk up (the baker on Town Island, an explorer among the penguins on Ice Island, a ranger by the Dino Island landing meadow, a knight at the foot of the castle hill). After everyone has had one, anyone, never the same person twice in a row.
+- **In the plane** the parcel rides on top, behind the pilot. On **Easy**, the dragon leaves a plane carrying a parcel alone.
+- **Where:** a little picture in the bubble (barn, lighthouse, city, town, snowflake, dinosaur, castle) shows which place they're in.
 - **Reward stars** count in the lifetime total and towards city parties, but not towards the floating stars' "all found".
 - **Parents** can switch the arrow off (parcel button in settings); the picture and the column of light stay.
 - People are KayKit characters dressed like the player (palette + Blender props), animate only near the player and stop drawing far away.
-- Coming next (see the roadmap): flying parcels to other islands, parachute drops to mermaids and boats, themed parcels, more people, rewards and stickers.
+- Coming next (see the roadmap): parachute drops to mermaids and boats, themed parcels, more people, rewards and stickers.
 
 ---
 

@@ -12,7 +12,11 @@ extends Node
 ##            and "met" list save, a new parcel waits at the post office
 ##   order    the two lesson people first, then everyone, never the same
 ##            person twice in a row
-##   reach    every recipient can be walked up to
+##   reach    every recipient can be walked up to from where you'd land
+##   islands  post offices at the airport, the city and Town Island, each
+##            with a postie, each giving out parcels; the parcel rides on
+##            the plane (biplane and jet) while you're in it; on Easy the
+##            dragon leaves a plane carrying a parcel alone (not on Medium)
 ##   arrow    the parents' setting hides the arrow and survives a reload
 ## Exit code 0 = pass, 1 = fail.
 
@@ -73,7 +77,7 @@ func _run() -> void:
 	await _frames(10)
 	var first := _dm.job
 	_check("walking into the parcel picks it up (a lesson person first)", first != ""
-			and Recipients.get_recipient(first).lesson)
+			and Recipients.get_recipient(first).tier == 0)
 	_check("it's in your arms", _w.model.carrying and _w.model.parcel() != null)
 	_check("the bubble shows who it's for", _main.hud.delivery_showing())
 	_check("a beacon shines over them", _dm.beacon.visible
@@ -120,12 +124,25 @@ func _run() -> void:
 	_check("a new parcel waits at the post office", _dm.post_offices[0].available)
 	# --- order --------------------------------------------------------------------
 	var second := _dm.next_recipient()
-	_check("the other lesson person is next", second != first and Recipients.get_recipient(second).lesson)
+	_check("the other lesson person is next", second != first and Recipients.get_recipient(second).tier == 0)
 	SaveManager.delivered_to.append(second)
 	var seen := {}
-	for i in 60:
+	for i in 80:
 		seen[_dm.next_recipient()] = true
-	_check("then people who haven't had one", not seen.has(first) and not seen.has(second) and seen.size() >= 2)
+	var tiers_ok := true
+	for id in seen:
+		tiers_ok = tiers_ok and Recipients.get_recipient(id).tier == 1
+	_check("then the rest of the main island", not seen.has(first) and not seen.has(second) and seen.size() >= 2 and tiers_ok)
+	for r in Recipients.deliverable():
+		if r.tier < 2 and not SaveManager.delivered_to.has(r.id):
+			SaveManager.delivered_to.append(r.id)
+	seen = {}
+	for i in 80:
+		seen[_dm.next_recipient()] = true
+	tiers_ok = true
+	for id in seen:
+		tiers_ok = tiers_ok and Recipients.get_recipient(id).tier == 2
+	_check("then the other islands", seen.size() >= 3 and tiers_ok)
 	for r in Recipients.deliverable():
 		if not SaveManager.delivered_to.has(r.id):
 			SaveManager.delivered_to.append(r.id)
@@ -138,12 +155,57 @@ func _run() -> void:
 	var unreached := []
 	for r: RecipientData in Recipients.deliverable():
 		var rec: Recipient = _dm.recipients[r.id]
-		await _get_out_near(rec.global_position + _front(rec) * 30.0)
-		if not await _walk_to(rec.global_position, GiveRadius.REACH, 900):
-			unreached.append(r.id)
-	_check("every recipient can be walked up to", unreached.is_empty())
+		var land := Vector3(r.land_at.x, 0, r.land_at.y)
+		await _get_out_near(land)
+		var frames := int(_flat_dist(land, rec.global_position) / Walker.SPRINT_SPEED * 60.0 * 1.6) + 300
+		if not await _walk_to(rec.global_position, GiveRadius.REACH, frames):
+			unreached.append("%s (stuck at %s)" % [r.id, str(_w.global_position.round())])
+	_check("every recipient can be walked up to from where you'd land", unreached.is_empty())
 	for u in unreached:
 		print("    unreached: ", u)
+	# --- post offices on other islands -------------------------------------------------
+	_check("three post offices, each with its postie", _dm.post_offices.size() == 3
+			and _dm.recipients.has("postie_city") and _dm.recipients.has("postie_town"))
+	var gave := 0
+	for i in _dm.post_offices.size():
+		var po2: PostOffice = _dm.post_offices[i]
+		if _dm.carrying():
+			_dm._deliver()
+			await _frames(int(DeliveryManager.REFILL_DELAY * 60) + 20)
+		var front: Vector3 = po2.global_transform.basis.z
+		await _get_out_near(po2.pickup_point() + front * 30.0)
+		await _walk_to(po2.pickup_point(), 1.0, 900)
+		await _frames(10)
+		if _dm.carrying():
+			gave += 1
+	_check("every post office gives out parcels", gave == _dm.post_offices.size())
+	# --- the parcel on the plane -------------------------------------------------------
+	await _walk_to(_plane.global_position, 6.0, 900)
+	_main.toggle_plane()
+	await _frames(15)
+	var parcel: Node3D = _plane.visuals.get_node_or_null("Parcel")
+	_check("in the plane, the parcel rides on top", parcel != null and parcel.visible and _dm.carrying())
+	_plane.set_stats(AircraftCatalog.get_stats("jet"))
+	await _frames(15)
+	parcel = _plane.visuals.get_node_or_null("Parcel")
+	_check("and on the jet too", parcel != null and parcel.visible)
+	_plane.set_stats(AircraftCatalog.get_stats("prop"))
+	await _get_out_near(_plane.global_position + Vector3(0, 0, 0))
+	await _frames(15)
+	parcel = _plane.visuals.get_node_or_null("Parcel")
+	_check("on foot it's back in your arms, not on the plane", (parcel == null or not parcel.visible) and _w.model.carrying)
+	# --- the dragon's parcel truce -----------------------------------------------------------
+	var dragon: Dragon = get_tree().get_first_node_in_group("dragon")
+	SaveManager.dragon_level = 0
+	await _frames(10)
+	_check("on Easy the dragon leaves a parcel plane alone", dragon.parcel_truce)
+	SaveManager.dragon_level = 1
+	await _frames(10)
+	_check("not on Medium", not dragon.parcel_truce)
+	_dm._deliver()
+	SaveManager.dragon_level = 0
+	await _frames(10)
+	_check("and no truce without a parcel", not dragon.parcel_truce)
 	# --- arrow setting ---------------------------------------------------------------
 	SaveManager.set_delivery_arrow(false)
 	SaveManager.save_now()

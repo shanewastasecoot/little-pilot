@@ -477,12 +477,38 @@ def balloon():
     return finish("Balloon", parts, voxel=0.012, target_tris=900)
 
 
+def chef_hat():
+    """A baker's tall puffy white hat."""
+    white, band = "ffffff", "eef1f5"
+    parts = [shell(HEAD + Vector((0, 0.03, 0.1)), (0.63, 0.63, 0.6), band, lambda p: p.z > 0.16, thickness=0.06)]
+    parts.append(loft([(HEAD + Vector((0, 0.03, 0.4)), 0.56, 0.56), (HEAD + Vector((0, 0.03, 0.7)), 0.6, 0.6)], white, segs=32))
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        parts.append(sphere(HEAD + Vector((math.cos(a) * 0.34, 0.03 + math.sin(a) * 0.34, 0.88)), (0.3, 0.3, 0.26), white, segs=16, rings=10))
+    parts.append(sphere(HEAD + Vector((0, 0.03, 0.95)), (0.36, 0.36, 0.3), white, segs=18, rings=12))
+    return finish("Chef_Hat", parts, voxel=0.016, target_tris=1300)
+
+
+def ranger_hat():
+    return _brim_hat("Ranger_Hat", "c2a36b", "6b4e2e", 0.76, 0.26)
+
+
+def beret():
+    """A painter's floppy beret, tipped to one side."""
+    red, stalk = "d64545", "a83232"
+    parts = [shell(HEAD + Vector((0, 0.03, 0.1)), (0.63, 0.63, 0.6), red, lambda p: p.z > 0.2, thickness=0.06)]
+    parts.append(sphere(HEAD + Vector((0.12, 0.03, 0.58)), (0.72, 0.68, 0.16), red, segs=24, rings=12))
+    parts.append(cone(HEAD + Vector((0.12, 0.03, 0.7)), HEAD + Vector((0.12, 0.03, 0.82)), 0.04, 0.02, stalk, segs=8))
+    return finish("Beret", parts, voxel=0.016, target_tris=1000)
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     print("PROPS")
     for build in (pilot_cap, pilot_scarf, princess_tiara, princess_gown, astro_helmet, astro_pack,
                   hero_cape, hero_emblem, dino_hood, dino_tail, face_smile,
-                  package, straw_hat, sun_hat, flat_cap, beanie, postie_cap, mail_bag, balloon):
+                  package, straw_hat, sun_hat, flat_cap, beanie, postie_cap, mail_bag, balloon,
+                  chef_hat, ranger_hat, beret):
         build()
     for o in bpy.context.scene.objects:
         o.select_set(True)
