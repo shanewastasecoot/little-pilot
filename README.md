@@ -133,10 +133,32 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 | `./dev.sh city 12` | Play with the city grown 12 hours ahead (a preview: not saved) |
 | `./dev.sh editor` | Open the Godot editor |
 | `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), growing city (plan, pacing, construction, people, restart), landing (soft landings, parking and take-off on every island and islet, what still bumps), walking (getting out and in, analog speed, sprint, jump, shore, slopes, camera, every island), player character (model, all 32 looks, animations, save, the character screen with a controller), flight stress test (54 cases across both planes, incl. mountains, lighthouse, turbines and the fully grown city). Exit code 0 = pass. |
-| `./dev.sh check` | Import the project and report script errors |
-| `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
+| `./dev.sh check` | Import the project, load every script and scene, and start the game headless for a moment; fails (exit code 1) on any error. Only says "No errors." when everything is clean |
+| `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` (set `BUILD_DIR=...` to build somewhere else) |
 
 Press **F3** in game to toggle the debug overlay (FPS, speed, clearance, safety state). It's on by default in debug runs and off in release builds.
+
+### How CI works
+
+"CI" (continuous integration) means GitHub runs checks for you on its own computers, so a
+mistake gets noticed even if nobody ran the tests by hand. The recipes are in
+`.github/workflows/`.
+
+- **Tests** (`test.yml`) run on every push and every pull request. GitHub downloads the exact
+  Godot version this project uses (4.7.2, the plain version, not .NET), fetches the big model and
+  texture files from Git LFS (keeping a cache so later runs are quicker), makes sure none of them
+  are left as small "pointer" placeholders, and then runs `./dev.sh check` and `./dev.sh test`.
+  A green tick on a commit or pull request means everything passed; a red cross means
+  something failed. Click it to see which step and why.
+- **Release** (`release.yml`) runs when a version tag such as `v1.6.0` is pushed. It first checks
+  the tag matches `config/version` in `project.godot` (so a wrong tag can't publish the wrong
+  version), then exports the Linux build and attaches
+  `LittlePilot-<version>-linux-x86_64.tar.gz` to the GitHub Release. Inside: the game
+  (`LittlePilot.x86_64`, ready to run), `CREDITS.md`, `INSTALL.md` (Steam Deck steps) and a
+  SHA-256 checksum file to check the download.
+
+When the pinned Godot version changes, update `GODOT_VERSION` in both workflow files and the
+version in this README together (the test workflow checks they match).
 
 ### Steam Deck
 See [`docs/STEAM_DECK.md`](docs/STEAM_DECK.md).

@@ -5,12 +5,12 @@
 #   city N   play with the city grown N hours ahead (preview only, not saved)
 #   props    rebuild the outfit props in Blender (Flatpak)
 #   test     run all headless tests (exit code 0 = all pass)
-#   check    import the project and report script errors, no window
+#   check    import, load every script/scene, boot headless; fail on errors
 #   export   build ../LittlePilot-builds/LittlePilot.x86_64 (release)
 set -euo pipefail
 cd "$(dirname "$0")"
 GODOT="${GODOT:-flatpak run org.godotengine.Godot}"
-BUILD_DIR="../LittlePilot-builds"
+BUILD_DIR="${BUILD_DIR:-../LittlePilot-builds}"
 
 case "${1:-}" in
   editor) $GODOT --path . --editor ;;
@@ -28,7 +28,30 @@ case "${1:-}" in
   props)  flatpak run org.blender.Blender -b --factory-startup -P "$PWD/tools/blender/build_props.py" \
             -- "$PWD/assets/characters/props/props.glb" | grep -E "PROPS|tris|BUILT|Error|Traceback"
           $GODOT --headless --path . --import >/dev/null 2>&1 || true ;;
-  check)  $GODOT --headless --path . --import 2>&1 | grep -E "ERROR|SCRIPT ERROR|WARNING" || echo "No errors." ;;
+  check)  # Three steps; each keeps Godot's real exit status (no pipes):
+          #   1 import the project (assets and scripts)
+          #   2 load every script and scene (tools/check_scripts.gd), so a
+          #     broken script nothing uses yet is still caught
+          #   3 start the game headless for a few frames (autoloads, main scene)
+          # Fails on a non-zero exit or any ERROR line; warnings print but
+          # don't fail. "No errors." only when all three are clean.
+          fail=0
+          for step in import scripts boot; do
+            case $step in
+              import)  args=(--headless --path . --import) ;;
+              scripts) args=(--headless --path . -s res://tools/check_scripts.gd) ;;
+              boot)    args=(--headless --path . --quit-after 30) ;;
+            esac
+            out=$($GODOT "${args[@]}" 2>&1) && status=0 || status=$?
+            grep -E "WARNING" <<<"$out" || true
+            errors=$(grep -E "ERROR|SCRIPT CHECK FAILED" <<<"$out" || true)
+            if [[ $status -ne 0 || -n "$errors" ]]; then
+              [[ -n "$errors" ]] && echo "$errors"
+              echo "!!! check step '$step' failed (exit $status)"
+              fail=1
+            fi
+          done
+          [[ $fail -eq 0 ]] && echo "No errors." || { echo "CHECK FAILED"; exit 1; } ;;
   export) mkdir -p "$BUILD_DIR"
           $GODOT --headless --path . --export-release Linux "$BUILD_DIR/LittlePilot.x86_64" >/dev/null
           echo "Built $(realpath "$BUILD_DIR/LittlePilot.x86_64")" ;;
