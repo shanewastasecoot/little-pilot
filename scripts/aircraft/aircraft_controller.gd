@@ -44,15 +44,35 @@ const ROLL_BRAKE := 8.0
 const ROLL_TURN_DEG := 14.0
 const LIFTOFF_FRACTION := 0.75
 const LIFTOFF_PITCH_DEG := 10.0
-## Landing. Ground steeper than LAND_MAX_SLOPE_DEG, a dive steeper than
-## LAND_MAX_DIVE_DEG or more than LAND_MAX_SPEED x cruise is a bump, not a
-## landing. On the ground: ROLL_FRICTION slows a landing roll on its own,
+## Landing. Low over landable ground (flat island terrain, not a roof or
+## the sea; can_land_on) and heading down without pulling up: it lands, in
+## both modes, even diving or boosting in (it flares in the last few metres
+## and lands at no more than LAND_MAX_SPEED x cruise). Holding slow lands
+## too. Ground steeper than LAND_MAX_SLOPE_DEG, buildings, trees and the
+## sea are still a bump. On the ground: ROLL_FRICTION slows a landing roll on its own,
 ## the plane stops for water/cliffs/walls ahead (ROLL_STOP_BRAKE), and
 ## won't roll onto ground steeper than ROLL_MAX_SLOPE_DEG.
 const LAND_MAX_SLOPE_DEG := 14.0
-const LAND_MAX_DIVE_DEG := 25.0
 const LAND_MAX_SPEED := 1.12
 const LAND_MIN_HEIGHT := 1.2      # above the waves: no landing in the surf
+## Coming in to land within this height over landable ground.
+const LAND_ASSIST_HEIGHT := 30.0
+## Heading down: nose down more than LAND_NOSE_DOWN_DEG (or the stick
+## pushed down), sinking faster than LAND_SINK m/s, and not pulling up
+## (stick up more than LAND_PULL_UP). Level flight, skimming the grass with
+## the stick let go, never lands by itself.
+const LAND_NOSE_DOWN_DEG := 3.0
+const LAND_SINK := 0.5
+const LAND_PULL_UP := 0.15
+## Just lifted off: no automatic landing for this long (a dip after
+## take-off isn't "coming in to land").
+const LAND_AFTER_LIFTOFF := 2.0
+## Flare: the lower it is, the slower it may sink: FLARE_SINK_PER_M m/s for
+## each metre above touchdown, never less than FLARE_MIN_SINK.
+const FLARE_SINK_PER_M := 0.8
+const FLARE_MIN_SINK := 1.8
+## Boosting within this height of touchdown is eased back to LAND_MAX_SPEED.
+const FLARE_SPEED_HEIGHT := 8.0
 const ROLL_FRICTION := 3.0
 const ROLL_STOP_BRAKE := 30.0
 const ROLL_MAX_SLOPE_DEG := 24.0
@@ -76,6 +96,12 @@ var mode: Mode = Mode.FLYING
 var _ground_y := 0.0
 ## The current ground roll is a landing (slowing down), not a take-off.
 var _landing := false
+## Landed with boost held: ignore boost until it's let go once (then
+## pressing it again takes off), so holding boost all the way down still
+## ends in a landing.
+var _roll_await_release := false
+## Seconds in the air since the last lift-off (large after a teleport).
+var _airborne := 99.0
 ## Parked after landing: wait for the stick and triggers to be let go
 ## before a push counts as "let's go" (they were still held from flying).
 var _await_release := false
@@ -113,6 +139,7 @@ func _ready() -> void:
 	input.trick_pressed.connect(func(): visuals.barrel_roll())
 	_apply_stats(stats)
 	add_child(WaterSpray.new())
+	add_child(BlobShadow.new())
 	safety.assist = not crashes
 	speed = stats.cruise_speed
 	velocity = _forward() * speed
@@ -142,12 +169,27 @@ func _physics_process(delta: float) -> void:
 		_crashed_step(delta)
 		return
 	_grace -= delta
-	# Coming in to land (holding slow, low over landable ground): the safety
-	# system flares the descent and, in can't-crash mode, lets us down.
+	# Coming in to land (low over landable ground, and heading down without
+	# pulling up, or holding slow): the safety system flares the descent
+	# and, in can't-crash mode, lets us down.
 	var below := _ground_ray(global_position)
-	safety.landing = input.throttle < -0.2 and not below.is_empty() \
-			and global_position.y - below.position.y < 30.0 and can_land_on(below)
+	_airborne += delta
+	var height := global_position.y - (below.position as Vector3).y if not below.is_empty() else INF
+	var nose_down := pitch < -deg_to_rad(LAND_NOSE_DOWN_DEG) or input.stick.y < -0.1
+	var heading_down := nose_down and velocity.y < -LAND_SINK and input.stick.y < LAND_PULL_UP \
+			and _airborne > LAND_AFTER_LIFTOFF
+	safety.landing = height < LAND_ASSIST_HEIGHT and can_land_on(below) \
+			and (heading_down or input.throttle < -0.2)
 	safety.evaluate(global_position, velocity, turn)
+	# Auto-flare: the lower it is, the slower it may sink (so a dive onto a
+	# meadow eases into a landing); boosting is eased off near the ground.
+	var flare_pitch := -INF
+	var flare_slow := false
+	if safety.landing:
+		var above := maxf(height - _touch_height(), 0.0)
+		var allowed := maxf(FLARE_MIN_SINK, above * FLARE_SINK_PER_M)
+		flare_pitch = -rad_to_deg(asin(clampf(allowed / maxf(speed, 1.0), 0.0, 1.0)))
+		flare_slow = above < FLARE_SPEED_HEIGHT
 
 	# Turning: safety bias overrides the stick in proportion to its strength.
 	var bias := safety.turn_bias
@@ -162,6 +204,9 @@ func _physics_process(delta: float) -> void:
 	if not input.has_stick_input:
 		rate *= stats.auto_level_strength
 	target_deg = clampf(target_deg, safety.pitch_floor_deg, safety.pitch_ceiling_deg)
+	if target_deg < flare_pitch:
+		target_deg = flare_pitch
+		rate = maxf(rate, stats.pitch_rate_deg * 2.0)
 	if target_deg > rad_to_deg(pitch) and safety.pitch_floor_deg > -stats.max_pitch_deg:
 		rate *= 1.6  # rescue climbs respond a little quicker
 	pitch = move_toward(pitch, deg_to_rad(target_deg), deg_to_rad(rate) * delta)
@@ -171,6 +216,8 @@ func _physics_process(delta: float) -> void:
 	var throttle := input.throttle
 	var mult := 1.0 + (throttle * (stats.boost_multiplier - 1.0) if throttle > 0.0 else throttle * (1.0 - stats.slow_multiplier))
 	var target_speed := stats.cruise_speed * mult * safety.speed_factor
+	if flare_slow:
+		target_speed = minf(target_speed, stats.cruise_speed * LAND_MAX_SPEED)
 	# Brake for walls faster than we normally change speed.
 	var response := stats.speed_response * (3.0 if target_speed < speed and safety.speed_factor < 1.0 else 1.0)
 	speed = lerpf(speed, target_speed, 1.0 - exp(-response * delta))
@@ -291,10 +338,13 @@ func _try_touch_down(delta: float) -> bool:
 	var hit := _ground_ray(next)
 	if hit.is_empty() or next.y - hit.position.y > _touch_height() or not can_land_on(hit):
 		return false
-	if crashes and (pitch < -deg_to_rad(LAND_MAX_DIVE_DEG) or speed > stats.cruise_speed * LAND_MAX_SPEED):
-		return false
+	# Flat, landable ground is always a landing, never a crash (however
+	# fast or steep). Can't-crash mode keeps the plane up unless it's
+	# coming in to land (safety.landing), so this only happens on purpose.
 	if not crashes and not safety.landing:
-		return false  # can't-crash mode only lands on purpose (holding slow)
+		return false
+	speed = minf(speed, stats.cruise_speed * LAND_MAX_SPEED)
+	_roll_await_release = input.raw_throttle > 0.2
 	global_position = next
 	_ground_y = hit.position.y
 	mode = Mode.ROLLING
@@ -339,7 +389,9 @@ func _ahead(dir: Vector3, dist: float) -> Ahead:
 ## way, and on take-off noses round away from walls.
 func _roll_step(delta: float) -> void:
 	var lift_speed := stats.cruise_speed * LIFTOFF_FRACTION
-	var boosting := input.throttle > 0.2
+	if _roll_await_release and input.raw_throttle < 0.2:
+		_roll_await_release = false
+	var boosting := input.throttle > 0.2 and not _roll_await_release
 	var braking := input.throttle < -0.2
 	if _landing and boosting:
 		_landing = false  # changed their mind: off we go again
@@ -428,6 +480,7 @@ func _park_here() -> void:
 ## Leave the ground: normal flight, nose up, a moment's grace from crashes.
 func lift_off() -> void:
 	mode = Mode.FLYING
+	_airborne = 0.0
 	_landing = false
 	pitch = deg_to_rad(LIFTOFF_PITCH_DEG)
 	_grace = CRASH_GRACE
@@ -476,6 +529,7 @@ func _crashed_step(delta: float) -> void:
 ## Also puts the plane in normal flying mode.
 func teleport(pos: Vector3, yaw: float) -> void:
 	mode = Mode.FLYING
+	_airborne = 99.0
 	_grace = CRASH_GRACE
 	exploded = false
 	if visuals:

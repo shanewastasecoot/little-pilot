@@ -15,6 +15,12 @@ extends Node
 ##   back     walking back to the plane and pressing Y gets in (LANDED); a
 ##            held stick doesn't set it rolling; then it takes off
 ##   islands  getting out, walking and getting back in works at every site
+##   autorun  the stick held all the way breaks into a run by itself after
+##            about 1.5 s (no B needed)
+##   call     far from the plane a beacon shows it and the prompt offers to
+##            call it; holding Y brings it to a safe spot nearby (never the
+##            sea, a building or a steep slope) or, with nowhere safe, leaves
+##            it where it is
 ## Exit code 0 = pass, 1 = fail.
 
 const SITES := [
@@ -48,6 +54,48 @@ func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_walk.cfg"))
 	print("\nWALK TEST %s" % ("PASSED" if _fails == 0 else "FAILED (%d)" % _fails))
 	get_tree().quit(1 if _fails else 0)
+
+
+func _call_checks() -> void:
+	# A meadow with room around it: calling brings the plane, safely parked.
+	_park(Vector3(1200, 0, 40))
+	await _frames(3)
+	_main.toggle_plane()
+	await _frames(5)
+	_w.place(Vector3(1080, _ground(Vector3(1080, 0, 200)), 200), 0.0)
+	await _frames(10)
+	_check("far from the plane: its beacon shows and the prompt offers to call it", _main.plane_beacon.visible
+			and _main.hud.prompt_kind() == "call")
+	_check("a tap of Y far away does nothing", not _main.toggle_plane() and _main.state == _main.State.ON_FOOT)
+	_main.override_call_hold = true
+	await _frames(int(_main.PLANE_CALL_HOLD * 60) + 70)
+	_main.override_call_hold = false
+	var near := _flat_dist(_plane.global_position, _w.global_position)
+	_check("holding Y brings the plane to a safe spot nearby", near < 60.0 and _safe_parking()
+			and _plane.mode == Aircraft.Mode.PARKED and not _main.plane_beacon.visible)
+	# Everywhere else: wherever it ends up, it's safe (or it didn't move).
+	var bad: Array[String] = []
+	for spot in [["city centre", IslandShape.CITY + Vector2(10, 10)], ["beach by the sea", Vector2(1255, 120)],
+			["mountain side", Vector2(195, -720)], ["forest", IslandShape.FOREST], ["airport", Vector2(-330, -60)],
+			["town square", OuterIslands.TOWN + Vector2(5, 30)], ["ice island", Vector2(560, -3310)]]:
+		_park(Vector3(1200, 0, 40))
+		await _frames(3)
+		_main.toggle_plane()
+		await _frames(5)
+		var at := Vector3(spot[1].x, 0, spot[1].y)
+		_w.place(Vector3(at.x, _ground(at) + 0.1, at.z), 0.0)
+		await _frames(5)
+		var before := _plane.global_position
+		var moved: bool = await _main.call_plane()
+		await _frames(5)
+		if moved and not _safe_parking():
+			bad.append("%s (plane at %s)" % [spot[0], str(_plane.global_position.round())])
+		elif not moved and _plane.global_position.distance_to(before) > 0.1:
+			bad.append("%s (moved though it said no)" % spot[0])
+		print("  note: call from %s: %s" % [spot[0], "came to %s" % str(_plane.global_position.round()) if moved else "nowhere safe, stayed put"])
+	_check("calling never puts the plane in the sea, a building or on a steep slope (and it can take off again)", bad.is_empty())
+	for b in bad:
+		print("    unsafe: ", b)
 
 
 func _run() -> void:
@@ -144,6 +192,20 @@ func _run() -> void:
 	var at_shore := _w.global_position
 	print("  note: ran east to %s, lowest ground %.2f m above sea level" % [at_shore.round(), wettest])
 	_check("sprinting at the sea stops at the shore (never in the water)", wettest > Walker.SHORE_LEVEL - 0.3 and at_shore.x > 1250.0)
+	# --- auto-run -------------------------------------------------------------------
+	_w.override_sprint = false
+	_w.override_move = Vector2.ZERO
+	await _frames(20)  # let go of the stick first
+	_cam.yaw = 0.0  # north, back inland
+	_w.override_move = Vector2(0, 1)
+	await _frames(55)
+	var early := Vector2(_w.velocity.x, _w.velocity.z).length()
+	await _frames(60)
+	var later := Vector2(_w.velocity.x, _w.velocity.z).length()
+	_w.override_move = Vector2.ZERO
+	print("  note: full stick %.1f m/s at 0.9 s, %.1f m/s at 1.9 s" % [early, later])
+	_check("full stick walks at first, then runs by itself after ~1.5 s (no B)",
+			absf(early - Walker.WALK_SPEED) < 1.2 and absf(later - Walker.SPRINT_SPEED) < 1.5)
 	# --- slopes and camera --------------------------------------------------------
 	var foot := Vector3(195, 0, -640)
 	_w.place(Vector3(foot.x, _ground(foot) + 0.2, foot.z), 0.0)
@@ -219,6 +281,17 @@ func _run() -> void:
 	_check("out, a walk, and back in at all %d sites" % sites.size(), failed.is_empty())
 	if not failed.is_empty():
 		print("  failed: ", ", ".join(failed))
+	await _call_checks()
+
+
+## The plane is somewhere it could have landed itself: island terrain,
+## flat, clear of the sea, the same under its whole size, and nothing but
+## terrain where it stands.
+func _safe_parking() -> bool:
+	var g := _plane.global_position - Vector3.UP * _plane.stats.ground_offset
+	var space := _plane.get_world_3d().direct_space_state
+	var nose := Vector3(-sin(_plane.heading), 0.0, -cos(_plane.heading))
+	return not PlaneCall.check_spot(_plane, space, g, g.y).is_empty() and PlaneCall.clear_run(_plane, space, g, nose)
 
 
 ## Park the plane on the ground at `at` (x, z), heading north.

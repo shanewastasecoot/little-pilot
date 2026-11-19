@@ -7,10 +7,16 @@ extends Node3D
 const HEIGHT := 170.0
 const RADIUS := 7.0
 
+## The little spinning parcel over the spot (off for beacons that mark
+## something you can't pick up there, like the plane or a post office).
+@export var show_parcel := true
+## Use the colour exactly as given (on for white/grey beacons), instead of
+## a bold version of it.
+@export var exact_colour := false
 var colour := Color("ffd23f"):
 	set(v):
 		# A bold version of their colour: pale colours vanish on grass and sky.
-		colour = Color.from_hsv(v.h, maxf(v.s, 0.8), 1.0)
+		colour = v if exact_colour else Color.from_hsv(v.h, maxf(v.s, 0.8), 1.0)
 		if _mat:
 			_mat.set_shader_parameter("colour", colour)
 var _mat: ShaderMaterial
@@ -63,14 +69,15 @@ func _ready() -> void:
 	col.material_override = _mat
 	add_child(col)
 	_column = col
-	_parcel = CharacterLook.prop("Package")
-	_parcel.scale = Vector3.ONE * 2.6
-	_parcel.position.y = 8.5
-	add_child(_parcel)
+	if show_parcel:
+		_parcel = CharacterLook.prop("Package")
+		_parcel.scale = Vector3.ONE * 2.6
+		_parcel.position.y = 8.5
+		add_child(_parcel)
 
 
 func _process(delta: float) -> void:
-	if not visible:
+	if not visible or _parcel == null:
 		return
 	_t += delta
 	_parcel.rotation.y = _t * 1.4

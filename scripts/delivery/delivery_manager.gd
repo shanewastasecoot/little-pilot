@@ -31,6 +31,10 @@ var job := ""
 var recipients := {}           # id -> Recipient
 var post_offices: Array[PostOffice] = []
 var beacon: DeliveryBeacon
+## Red, like the mailbox: over the nearest post office with a parcel
+## waiting, whenever you're not carrying one (so it's easy to find).
+var po_beacon: DeliveryBeacon
+const PO_BEACON_COLOUR := Color("e63946")
 var _main: Node
 var _timer := 0.0
 var _last := ""
@@ -61,6 +65,12 @@ func setup(main: Node, world: Node3D) -> void:
 	beacon.name = "DeliveryBeacon"
 	world.add_child(beacon)
 	beacon.hide()
+	po_beacon = DeliveryBeacon.new()
+	po_beacon.name = "PostOfficeBeacon"
+	po_beacon.show_parcel = false  # the real parcel waits on the pad
+	world.add_child(po_beacon)
+	po_beacon.colour = PO_BEACON_COLOUR
+	po_beacon.hide()
 	_dragon = main.get_tree().get_first_node_in_group("dragon")
 	_snap_to_ground.call_deferred()
 	var saved := SaveManager.delivery_job
@@ -105,6 +115,7 @@ func _process(delta: float) -> void:
 			who.notice(p if walker.is_active() else Vector3(1e9, 0, 0))
 	if carrying():
 		beacon.near = walker.is_active() and _flat_dist(p, target().global_position) < BEACON_NEAR
+	_update_po_beacon(p, walker.is_active())
 	_show_on_plane(carrying() and not walker.is_active())
 	if _dragon:
 		_dragon.parcel_truce = carrying() and SaveManager.dragon_level == 0
@@ -196,6 +207,30 @@ func _deliver() -> void:
 
 static func _flat_dist(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z))
+
+
+## The post office beacon: over the nearest post office with a parcel
+## waiting, only while you're not carrying one.
+func _update_po_beacon(p: Vector3, on_foot: bool) -> void:
+	var best: PostOffice = null
+	if not carrying():
+		for po in post_offices:
+			if po.available and (best == null or _flat_dist(p, po.global_position) < _flat_dist(p, best.global_position)):
+				best = po
+	po_beacon.visible = best != null
+	if best:
+		po_beacon.global_position = best.pickup_point()
+		po_beacon.near = on_foot and _flat_dist(p, best.pickup_point()) < BEACON_NEAR
+
+
+## The post office the red beacon is over (null when it's hidden).
+func po_beacon_target() -> PostOffice:
+	if not po_beacon.visible:
+		return null
+	for po in post_offices:
+		if po.pickup_point().distance_to(po_beacon.global_position) < 0.5:
+			return po
+	return null
 
 
 ## The parcel riding on top of the plane (while you're in it).

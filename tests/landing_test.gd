@@ -10,6 +10,9 @@ extends Node
 ##   islands  the plane can land, park and take off again on every island
 ##            and islet
 ##   jet      the lower, faster jet lands and takes off too
+##   child    like a 4-year-old: nose down, boost held all the way, never
+##            touching slow, onto the runway, a meadow and three islands, with
+##            crashes on and off: it always lands and parks, never crashes
 ##   gentle   crashes off: holding slow lets it land; otherwise it still
 ##            refuses to touch the ground
 ## Exit code 0 = pass, 1 = fail.
@@ -139,6 +142,19 @@ func _run() -> void:
 	_check("crashes off: still won't touch the ground on its own", _plane.mode == Aircraft.Mode.FLYING and min_clear > _plane.stats.min_clearance - 0.6)
 	await _approach(site, -1.0, -1.0)
 	_check("crashes off: holding slow lets it land", _plane.mode == Aircraft.Mode.PARKED and _crashes == 0)
+	# --- child-style approaches (both modes) -----------------------------------------
+	var child_sites := [["runway", Vector2(-300, 0), -PI / 2.0], ["main island meadow", Vector2(1200, 40), 0.0],
+		["dino meadow (from the sea)", Vector2(2650, 2080), -3.0 * PI / 4.0], ["town island", Vector2(-3060, 580), 0.0], ["ice island", Vector2(620, -3280), 0.0]]
+	for crash_mode in [true, false]:
+		var bad: Array[String] = []
+		for s in child_sites:
+			if not await _child_lands(s[1], s[2], crash_mode):
+				bad.append(s[0])
+		_check("child-style approach (nose down, boost held, no slow) lands with crashes %s" % ("on" if crash_mode else "off"),
+				bad.is_empty())
+		if not bad.is_empty():
+			print("  didn't land: ", ", ".join(bad))
+	SaveManager.set_crashes(true)
 
 
 ## Fly a gentle approach to `site` (holding slow, nose down a little), then
@@ -157,6 +173,36 @@ func _approach(site: Vector2, roll_throttle: float, approach_throttle: float, ho
 	_plane.input.override_throttle = roll_throttle
 	await _until(func(): return _plane.mode == Aircraft.Mode.PARKED or _crashes > start_crashes, 1500)
 	return touch.distance_to(_plane.global_position)
+
+
+## Come in like a 4-year-old towards `at` (x, z) heading `yaw`: from 90 m
+## short and 35 m up, nose down and boost held the whole time (through the
+## roll too), never slow. True if it touched down and parked with no crash.
+func _child_lands(at: Vector2, yaw: float, crash_mode: bool) -> bool:
+	SaveManager.set_crashes(crash_mode)
+	var start := _crashes
+	var touched := [false]
+	var on_touch := func(): touched[0] = true
+	_plane.touched_down.connect(on_touch)
+	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	var from := Vector3(at.x, 0.0, at.y) - fwd * 90.0
+	var gy := _ground(Vector3(at.x, 0.0, at.y))
+	_plane.speed = _plane.stats.cruise_speed * 1.3
+	_plane.teleport(Vector3(from.x, gy + 35.0, from.z), yaw)
+	_plane._grace = 0.0
+	await _frames(2)
+	_plane.input.override_stick = Vector2(0, -0.6)
+	_plane.input.override_throttle = 1.0
+	await _until(func(): return touched[0] or _crashes > start, 900)
+	await _until(func(): return _plane.mode == Aircraft.Mode.PARKED or _crashes > start, 1500)
+	var ok: bool = touched[0] and _crashes == start and _plane.mode == Aircraft.Mode.PARKED
+	_plane.touched_down.disconnect(on_touch)
+	_plane.input.override_stick = Vector2.ZERO
+	_plane.input.override_throttle = 0.0
+	if _crashes > start:
+		await _until(func(): return _plane.mode == Aircraft.Mode.PARKED, 600)
+	await _frames(20)
+	return ok
 
 
 ## Put the plane `height` m above the ground at `at` (x, z), heading north.

@@ -3,7 +3,8 @@ extends CharacterBody3D
 ## The player on foot: gets out of the parked plane, walks about, gets back
 ## in. Storybook-sized like the townspeople (about 5 m tall). The left stick
 ## moves relative to the camera, and how far it's pushed sets the speed
-## (analog walk); B sprints, A jumps. It walks on any ground up to
+## (analog walk); holding the stick all the way for AUTO_RUN_AFTER seconds
+## breaks into a run by itself (B runs straight away), A jumps. It walks on any ground up to
 ## MAX_SLOPE_DEG, bumps into buildings and the plane, and never goes into
 ## the sea: the shore is a soft invisible edge at SHORE_LEVEL (a fixed
 ## height, not the moving waves: big swells may lap at your feet, but the
@@ -14,8 +15,12 @@ extends CharacterBody3D
 
 const HEIGHT := 5.0
 const RADIUS := 0.9
-const WALK_SPEED := 5.0        # m/s with the stick fully pushed (a jog for short legs)
-const SPRINT_SPEED := 9.0
+const WALK_SPEED := 8.0        # m/s with the stick fully pushed
+const SPRINT_SPEED := 15.0     # running (B, or the stick held all the way)
+## Stick pushed all the way for this long: run without needing B.
+const AUTO_RUN_AFTER := 1.5
+## How far is "all the way" (the stick's length, 0..1).
+const FULL_PUSH := 0.92
 const ACCEL := 45.0            # m/s^2 towards the wanted speed
 const AIR_ACCEL := 14.0
 const JUMP_SPEED := 11.0
@@ -46,6 +51,8 @@ var model: CharacterModel
 ## (sliding down a steep bank), it goes back there.
 var _last_dry := Vector3.ZERO
 var _active := false
+## Seconds the stick has been pushed all the way (auto-run).
+var _full_push := 0.0
 
 
 func _ready() -> void:
@@ -86,6 +93,7 @@ func set_active(on: bool) -> void:
 	velocity = Vector3.ZERO
 	moving = false
 	sprinting = false
+	_full_push = 0.0
 	if on:
 		add_to_group("player_focus")
 	elif is_in_group("player_focus"):
@@ -112,6 +120,9 @@ func _physics_process(delta: float) -> void:
 	var sprint := override_sprint if override_enabled else Input.is_action_pressed("sprint")
 	var jump := override_jump if override_enabled else Input.is_action_just_pressed("jump")
 	var amount := move.length()
+	# Held all the way for a moment: break into a run by itself.
+	_full_push = _full_push + delta if amount >= FULL_PUSH else 0.0
+	sprint = sprint or _full_push >= AUTO_RUN_AFTER
 	var dir := Vector3.ZERO
 	if amount > 0.01:
 		var forward := Vector3(-sin(camera_yaw), 0.0, -cos(camera_yaw))
