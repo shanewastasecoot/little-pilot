@@ -333,6 +333,17 @@ Make the game feel finished and joyful through sound, music and full Steam Deck 
 
 ---
 
+## Deliveries
+
+Approved plan, one phase per PR; the game runs and `./dev.sh test` passes after each.
+
+1. **Delivery core, walk-only (done):** airport post office, people to deliver to on the main island, carrying, picture bubble + arrow + beacon, hand-over celebration, reward stars, saved mid-delivery, parent arrow switch. `tests/delivery_test.gd`.
+2. **Fly-and-land:** parcels for people on other islands; the parcel rides on the plane; post offices in the city and Town Island; on Easy the dragon leaves a plane carrying a parcel alone.
+3. **Sea deliveries:** fly low through a glowing ring over a mermaid, boat or the pirate ship and the parcel parachutes down (no button); more mermaids.
+4. **Themed parcels and more people:** fish for penguins, a bone for the dinosaurs, a pearl for the mermaids, a cake for the bakery, a crown for the castle.
+5. **Island expansion where needed:** Town Island plaza, a path up the castle hill, room on Palm Island (Dino is limited by the world edge).
+6. **Rewards:** parcel counter, a sticker for each first-time recipient, unlocks (paints, hat colours, mailbag look), town celebrations.
+
 ## After 1.0
 
 Candidates for later milestones, in rough priority order:

@@ -38,12 +38,23 @@ var body := "M"
 var hair := 1
 var outfit := 1
 var anim := ""
+## Someone else's look (delivery recipients): used instead of the outfit and
+## hair choices when set. head_override = [character, palette repaints].
+var look_override: OutfitData
+var head_override: Array = []
+## Holding a parcel in both arms (CarryPose bends the arms round it).
+var carrying := false
 
 var _model: Node3D
 var _skel: Skeleton3D
 var _anim: AnimationPlayer
 var _parts: Array[MeshInstance3D] = []
+var _carry_pose: CarryPose
+var _parcel: Node3D
 static var _atlases: Dictionary = {}
+## Loaded KayKit scenes, kept: otherwise the last character to go frees the
+## scene and the next build reads it from disk again (~60 ms each).
+static var _scenes: Dictionary = {}
 
 
 func _ready() -> void:
@@ -74,8 +85,8 @@ func _build() -> void:
 	if _model:
 		_model.free()
 	_parts.clear()
-	var look := Outfits.get_outfit(outfit)
-	_model = (load(DIR + look.base + ".glb") as PackedScene).instantiate()
+	var look := look_override if look_override else Outfits.get_outfit(outfit)
+	_model = scene_of(look.base).instantiate()
 	_model.scale = Vector3.ONE * SCALE
 	_model.rotation.y = PI  # KayKit faces +Z; the walker's forward is -Z
 	add_child(_model)
@@ -92,13 +103,13 @@ func _build() -> void:
 			_paint(mi, look.base, look.palette)
 			_parts.append(mi)
 	# The head (maybe from another character), onto this skeleton.
-	var head: Array = HEADS[hair - 1]
+	var head: Array = head_override if not head_override.is_empty() else HEADS[hair - 1]
 	var head_mesh: MeshInstance3D
 	if head[0] == look.base:
 		head_mesh = _model.find_children(look.base + "_Head", "MeshInstance3D", true, false)[0]
 		head_mesh.visible = true
 	else:
-		var donor: Node3D = (load(DIR + head[0] + ".glb") as PackedScene).instantiate()
+		var donor: Node3D = scene_of(head[0]).instantiate()
 		head_mesh = donor.find_children(head[0] + "_Head", "MeshInstance3D", true, false)[0]
 		head_mesh.get_parent().remove_child(head_mesh)
 		donor.free()
@@ -110,8 +121,20 @@ func _build() -> void:
 	for mi in _parts:
 		mi.extra_cull_margin = 0.5
 	_attach_props(look)
+	_carry_pose = CarryPose.new()
+	_carry_pose.active = carrying
+	_skel.add_child(_carry_pose)
+	_parcel = null  # went with the old model
+	if carrying:
+		_add_parcel()
 	anim = ""
 	play(playing if playing != "" else "Idle")
+
+
+static func scene_of(who: String) -> PackedScene:
+	if not _scenes.has(who):
+		_scenes[who] = load(DIR + who + ".glb")
+	return _scenes[who]
 
 
 ## Give a part its character's palette texture, repainted for this look.
@@ -164,6 +187,49 @@ func _attach_props(look: OutfitData) -> void:
 		holder.add_child(prop)
 		for mi: MeshInstance3D in prop.find_children("*", "MeshInstance3D", true, false) + ([prop] if prop is MeshInstance3D else []):
 			_parts.append(mi)
+
+
+## Soft outlines on or off. Off, each part draws once instead of twice
+## (for people far enough away that the outline would be under a pixel).
+func set_outline(on: bool) -> void:
+	for mi in _parts:
+		for s in mi.mesh.get_surface_count():
+			var m := mi.get_surface_override_material(s) as ShaderMaterial
+			if m == null:
+				continue
+			var tex: Texture2D = m.get_shader_parameter("albedo_tex") if m.get_shader_parameter("use_texture") else null
+			var width := 0.0
+			if on:
+				width = 0.0 if mi.name == "Face_Smile" else (CharacterLook.PROP_OUTLINE_WIDTH if tex == null else CharacterLook.OUTLINE_WIDTH)
+			mi.set_surface_override_material(s, CharacterLook.material(tex, width))
+
+
+## Hold a parcel in both arms (or put it down).
+func set_carrying(on: bool) -> void:
+	carrying = on
+	if _carry_pose:
+		_carry_pose.active = on
+	if on and _parcel == null and _skel:
+		_add_parcel()
+	elif not on and _parcel:
+		_parcel.get_parent().queue_free()
+		_parcel = null
+
+
+## The parcel's node while carrying (for effects), else null.
+func parcel() -> Node3D:
+	return _parcel
+
+
+func _add_parcel() -> void:
+	var holder := BoneAttachment3D.new()
+	holder.bone_name = "chest"
+	_skel.add_child(holder)
+	_parcel = CharacterLook.prop("Package")
+	# In front of the chest, at hand height (model space: +Z is forward).
+	var at := Transform3D(Basis.IDENTITY, CarryPose.PARCEL_AT)
+	_parcel.transform = _skel.get_bone_global_rest(_skel.find_bone("chest")).affine_inverse() * at
+	holder.add_child(_parcel)
 
 
 ## Pick the animation for this movement. speed: ground speed (m/s).

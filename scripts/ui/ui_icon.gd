@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -160,6 +160,14 @@ func _draw() -> void:
 			draw_line(c + Vector2(0.0, -0.12) * s, c + Vector2(-0.2, 0.0) * s, color, lw * 0.8, true)
 			draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(0.17, 0.42) * s, color, lw, true)
 			draw_line(c + Vector2(-0.02, 0.1) * s, c + Vector2(-0.2, 0.42) * s, color, lw, true)
+		Icon.PARCEL:
+			# A parcel with a ribbon and bow, under a guiding arrow.
+			var box := Rect2(c + Vector2(-0.3, -0.06) * s, Vector2(0.6, 0.44) * s)
+			draw_rect(box, color, false, s * 0.07)
+			draw_line(c + Vector2(0, -0.06) * s, c + Vector2(0, 0.38) * s, color, s * 0.07)
+			draw_arc(c + Vector2(-0.09, -0.13) * s, s * 0.08, 0, TAU, 16, color, s * 0.05, true)
+			draw_arc(c + Vector2(0.09, -0.13) * s, s * 0.08, 0, TAU, 16, color, s * 0.05, true)
+			_poly(PackedVector2Array([c + Vector2(0, -0.5) * s, c + Vector2(0.16, -0.3) * s, c + Vector2(-0.16, -0.3) * s]))
 		Icon.BATTERY:
 			var body := Rect2(c + Vector2(-0.4, -0.2) * s, Vector2(0.72, 0.4) * s)
 			draw_rect(body, color, false, s * 0.06)

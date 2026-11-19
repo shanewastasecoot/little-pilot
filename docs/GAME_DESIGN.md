@@ -278,7 +278,28 @@ Audio uses three buses: **Master**, **Music** and **SFX**. A parent-only setting
 
 ---
 
-## 12. Future Ideas
+## 12. Deliveries
+
+A gentle job to do, never a chore: pick up a parcel and carry it to someone.
+
+| Rule | In practice |
+|---|---|
+| **Optional** | A parcel only becomes yours if you walk into it. Ignore the post office and nothing happens. |
+| **No failure** | No timers. The parcel can't be lost, dropped or broken: it stays with you in the plane, through crashes, pauses and quitting (it's saved). Walking up to the wrong person just gets a wave. |
+| **No reading** | The bubble (top left) shows a picture of who it's for, ringed in their colour; an arrow round it points their way; a column of light in their colour shines over them from far away. |
+| **No buttons** | Walk into the parcel to pick it up, walk up to them to hand it over. |
+| **Joyful** | They reach out, take it and cheer; confetti, a fanfare, and reward stars fly into the star jar. |
+
+- **Post office** at the airport, by the runway's west end where the plane waits: a postie at the door and a parcel bobbing on a golden pad.
+- **One parcel at a time.** The first two go to people a short walk away (a kid with a balloon, a grandma in a sun hat), then to anyone who hasn't had one yet (the mechanic at the hangar, the farmer, the lighthouse keeper), never the same person twice in a row.
+- **Reward stars** count in the lifetime total and towards city parties, but not towards the floating stars' "all found".
+- **Parents** can switch the arrow off (parcel button in settings); the picture and the column of light stay.
+- People are KayKit characters dressed like the player (palette + Blender props), animate only near the player and stop drawing far away.
+- Coming next (see the roadmap): flying parcels to other islands, parachute drops to mermaids and boats, themed parcels, more people, rewards and stickers.
+
+---
+
+## 13. Future Ideas
 
 | Idea | Description | Complexity |
 |---|---|---|
@@ -293,7 +314,7 @@ Audio uses three buses: **Master**, **Music** and **SFX**. A parent-only setting
 
 ---
 
-## 13. Open Questions
+## 14. Open Questions
 
 - [ ] Should the jet be available from the start, or unlocked after collecting N stars? *(Recommendation: available from the start. Unlocks add friction for a 4-year-old.)*
 - [ ] Should there be a voice narrator (for example "You found the lighthouse!")? It helps non-readers but needs recording.

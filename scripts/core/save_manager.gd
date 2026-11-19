@@ -54,6 +54,13 @@ var char_made: bool = false
 ## Outfits to choose from (Outfits: pilot, princess, astronaut, superhero, dino).
 const OUTFIT_COUNT := 5
 var look_sensitivity: float = 1.0
+## Deliveries: the parcel being carried (who it's for; "" = none), how many
+## have been delivered, and everyone who has had one (first-time stickers).
+var delivery_job: String = ""
+var deliveries: int = 0
+var delivered_to: Array[String] = []
+## Parent setting: the delivery arrow (the picture bubble still shows).
+var delivery_arrow: bool = true
 var invert_y: bool = false
 const LOOK_SENSITIVITY_MIN := 0.4
 const LOOK_SENSITIVITY_MAX := 2.5
@@ -158,6 +165,21 @@ func _load_file() -> void:
 	var inv = cfg.get_value("settings", "invert_y", invert_y)
 	if inv is bool:
 		invert_y = inv
+	var darrow = cfg.get_value("settings", "delivery_arrow", delivery_arrow)
+	if darrow is bool:
+		delivery_arrow = darrow
+	# Who the job is for is checked by DeliveryManager (it knows everyone).
+	var job = cfg.get_value("delivery", "job", "")
+	if job is String:
+		delivery_job = job
+	var dc = cfg.get_value("delivery", "count", 0)
+	if dc is int and dc >= 0:
+		deliveries = dc
+	var met = cfg.get_value("delivery", "delivered_to", [])
+	if met is Array:
+		for m in met:
+			if m is String and not delivered_to.has(m):
+				delivered_to.append(m)
 	settings_changed.emit()
 
 
@@ -202,6 +224,10 @@ func save_now() -> void:
 	cfg.set_value("character", "made", char_made)
 	cfg.set_value("settings", "look_sensitivity", look_sensitivity)
 	cfg.set_value("settings", "invert_y", invert_y)
+	cfg.set_value("settings", "delivery_arrow", delivery_arrow)
+	cfg.set_value("delivery", "job", delivery_job)
+	cfg.set_value("delivery", "count", deliveries)
+	cfg.set_value("delivery", "delivered_to", delivered_to)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -319,6 +345,29 @@ func set_look_sensitivity(v: float) -> void:
 	request_save()
 
 
+func set_delivery_arrow(on: bool) -> void:
+	delivery_arrow = on
+	settings_changed.emit()
+	request_save()
+
+
+## Picked up a parcel for `id` ("" = nothing being carried).
+func set_delivery_job(id: String) -> void:
+	delivery_job = id
+	request_save()
+
+
+## A parcel reached `id`. Returns true the first time they get one.
+func add_delivery(id: String) -> bool:
+	deliveries += 1
+	delivery_job = ""
+	var first := not delivered_to.has(id)
+	if first:
+		delivered_to.append(id)
+	request_save()
+	return first
+
+
 func set_invert_y(on: bool) -> void:
 	invert_y = on
 	settings_changed.emit()
@@ -342,6 +391,10 @@ func _reset_to_defaults() -> void:
 	dragon_level = 0
 	look_sensitivity = 1.0
 	invert_y = false
+	delivery_job = ""
+	deliveries = 0
+	delivered_to = []
+	delivery_arrow = true
 	char_body = "M"
 	char_hair = 1
 	char_outfit = 1
