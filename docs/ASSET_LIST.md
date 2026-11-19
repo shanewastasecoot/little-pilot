@@ -166,10 +166,10 @@ Each asset has two checkboxes:
   - [ ] Final Asset: soft wind ambience
 - **Honk — prop plane** · Status: ⬜ Not started · Phase 2/6
   - [ ] Placeholder Asset: any horn
-  - [ ] Final Asset: silly toy horn
+  - [ ] Final Asset: fun plane horn
 - **Honk — jet** · Status: ⬜ Not started · Phase 3/6
   - [ ] Placeholder Asset: any horn
-  - [ ] Final Asset: different silly horn
+  - [ ] Final Asset: a different horn for the jet
 
 ### Gameplay SFX
 - **Star collect chime** · Status: ⬜ Not started · Phase 4
