@@ -96,7 +96,7 @@ func _build() -> void:
 		if _anim.has_animation(a):
 			_anim.get_animation(a).loop_mode = Animation.LOOP_LINEAR
 	# Keep the base's body, arms and legs; hide its head, hat, cape, weapons.
-	var keep := [look.base + "_Body", look.base + "_ArmLeft", look.base + "_ArmRight", look.base + "_LegLeft", look.base + "_LegRight"]
+	var keep := [look.base + "_Body", look.base + "_ArmLeft", look.base + "_ArmRight", look.base + "_LegLeft", look.base + "_LegRight"] + look.keep
 	for mi: MeshInstance3D in _model.find_children("*", "MeshInstance3D", true, false):
 		mi.visible = String(mi.name) in keep and not String(mi.name) in look.hide
 		if mi.visible:
@@ -106,11 +106,11 @@ func _build() -> void:
 	var head: Array = head_override if not head_override.is_empty() else HEADS[hair - 1]
 	var head_mesh: MeshInstance3D
 	if head[0] == look.base:
-		head_mesh = _model.find_children(look.base + "_Head", "MeshInstance3D", true, false)[0]
+		head_mesh = _head_in(_model)
 		head_mesh.visible = true
 	else:
 		var donor: Node3D = scene_of(head[0]).instantiate()
-		head_mesh = donor.find_children(head[0] + "_Head", "MeshInstance3D", true, false)[0]
+		head_mesh = _head_in(donor)
 		head_mesh.get_parent().remove_child(head_mesh)
 		donor.free()
 		_skel.add_child(head_mesh)
@@ -137,6 +137,14 @@ static func scene_of(who: String) -> PackedScene:
 	return _scenes[who]
 
 
+## A KayKit character's head mesh ("Rogue_Head", "Rogue_Head_Hooded"...).
+static func _head_in(scene: Node) -> MeshInstance3D:
+	for mi: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+		if "_Head" in String(mi.name):
+			return mi
+	return null
+
+
 ## Give a part its character's palette texture, repainted for this look.
 func _paint(mi: MeshInstance3D, who: String, repaint: Dictionary) -> void:
 	var tex := atlas(who, repaint)
@@ -149,7 +157,7 @@ static func atlas(who: String, repaint: Dictionary) -> Texture2D:
 	var key := who + str(repaint)
 	if _atlases.has(key):
 		return _atlases[key]
-	var src: Texture2D = load(DIR + who.to_lower() + "_texture.png")
+	var src: Texture2D = load(DIR + who.to_lower().replace("_hooded", "") + "_texture.png")
 	if repaint.is_empty():
 		_atlases[key] = src
 		return src

@@ -14,12 +14,13 @@ var _parcel: Node3D
 var _glow: MeshInstance3D
 var _t := 0.0
 var available := true
+var _body: StaticBody3D
 
 
 func _ready() -> void:
 	var shop := AssetLib.place(self, "res://assets/environment/shop_small_a.glb", Vector3(0, 0, 0), SHOP_SCALE)
 	shop.name = "Shop"
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(1.64, 0.88, 0.97) * SHOP_SCALE), Vector3(0, 0.44 * SHOP_SCALE, 0))
+	_body = BuildKit.collider(self, BuildKit.box_shape(Vector3(1.64, 0.88, 0.97) * SHOP_SCALE), Vector3(0, 0.44 * SHOP_SCALE, 0))
 	BuildKit.push_volume(self, 34.0, 40.0, Vector3(0, 10, 0))
 	# The sign on the roof: a white envelope on blue.
 	var sign := Node3D.new()
@@ -55,6 +56,10 @@ func _ready() -> void:
 	_glow.material_override = m
 	add_child(_glow)
 	set_available(true)
+
+
+func body_rid() -> RID:
+	return _body.get_rid()
 
 
 ## The pad's spot in the world (where you walk to pick up).
