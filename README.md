@@ -15,7 +15,7 @@ Little Pilot lets a small child fly a cheerful little plane around a bright, fri
 | **Session length** | 5–20 minutes, whenever the child wants |
 | **Monetisation** | None. Hobby project, no ads, no in-app purchases |
 | **Online features** | None. Fully offline, no accounts, no data collection |
-| **Status** | v1.4.0 released (land anywhere, get out and walk around as your own character: boy or girl, 4 hairstyles, 4 outfits, built in Blender; a picture-only character screen; camera speed and invert-Y for parents); v1.3.0 added the growing city; v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
+| **Status** | v1.5.0 released (a new player character on a KayKit base with a toon look: 4 hairstyles and 5 original outfits: pilot, princess, astronaut, superhero and a dino costume; deliveries: pick up parcels at three post offices and carry them on foot or by plane to people around the main island and on four other islands); v1.4.0 added landing anywhere, getting out to walk, and the character screen; v1.3.0 added the growing city; v1.2.0 added the dragon and Dragon Peak; v1.1.0 added crashing, paint, barrel rolls, the city, volcano and Mermaid Lagoon |
 
 ## Target Audience
 
