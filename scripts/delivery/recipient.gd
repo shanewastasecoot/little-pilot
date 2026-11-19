@@ -7,6 +7,8 @@ extends Node3D
 ## (DeliveryManager wakes them).
 
 const DRAW_DISTANCE := 400.0
+## Outlines only this close (further, they'd be under a pixel wide).
+const OUTLINE_DISTANCE := 90.0
 ## Turn to face the player within this distance.
 const NOTICE := 28.0
 const TURN_RATE := 4.0
@@ -16,6 +18,7 @@ var model: CharacterModel
 var _home_yaw := 0.0
 var _want_yaw := 0.0
 var _celebrating := 0.0
+var _outlined := true
 
 
 func _init(p_data: RecipientData) -> void:
@@ -33,8 +36,7 @@ func _ready() -> void:
 	model.rotation.y = _home_yaw
 	for gi: GeometryInstance3D in model.find_children("*", "GeometryInstance3D", true, false):
 		gi.visibility_range_end = DRAW_DISTANCE
-		gi.visibility_range_end_margin = 30.0
-		gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	set_outlined(false)  # the manager turns them on when you come close
 
 
 ## Animate (near) or freeze (far away).
@@ -42,6 +44,12 @@ func set_awake(on: bool) -> void:
 	if model and model._anim:
 		model._anim.active = on
 	set_process(on)
+
+
+func set_outlined(on: bool) -> void:
+	if on != _outlined:
+		_outlined = on
+		model.set_outline(on)
 
 
 ## The player is at `p`: face them if close, else turn back home.

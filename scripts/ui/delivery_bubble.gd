@@ -95,11 +95,16 @@ func set_recipient(who: RecipientData) -> void:
 ## Draw the picture a few times while the idle pose settles, then keep it
 ## (UPDATE_ONCE each frame for a few frames: no ongoing cost).
 func _render_portrait() -> void:
+	var who := _who
+	if who:
+		who.process_mode = Node.PROCESS_MODE_INHERIT
 	for i in 6:
 		if not is_inside_tree():
 			return
 		_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		await get_tree().process_frame
+	if is_instance_valid(who) and who == _who:
+		who.process_mode = Node.PROCESS_MODE_DISABLED
 
 
 func _process(delta: float) -> void:

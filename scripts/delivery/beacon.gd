@@ -29,13 +29,12 @@ const SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
 uniform vec4 colour : source_color = vec4(1.0, 0.82, 0.25, 1.0);
-uniform float time = 0.0;
 void fragment() {
 	// UV.y runs 0 at the top to 1 at the bottom of a CylinderMesh.
 	float up = 1.0 - UV.y;
 	float fade = 1.0 - up * 0.65;
 	// Bands of light drifting up the column, and a brighter rim.
-	float bands = 0.8 + 0.2 * sin(up * 46.0 - time * 3.0);
+	float bands = 0.8 + 0.2 * sin(up * 46.0 - TIME * 3.0);
 	float edge = 1.0 - abs(dot(NORMAL, VIEW));
 	ALBEDO = mix(colour.rgb, vec3(1.0), 0.1 * bands);
 	ALPHA = clamp(fade * bands * (0.75 + 0.25 * edge), 0.0, 0.92);
@@ -74,6 +73,5 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 	_t += delta
-	_mat.set_shader_parameter("time", _t)
 	_parcel.rotation.y = _t * 1.4
 	_parcel.position.y = 8.5 + sin(_t * 2.5) * 0.5

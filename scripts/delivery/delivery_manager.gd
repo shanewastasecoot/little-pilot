@@ -83,10 +83,16 @@ func _process(delta: float) -> void:
 	var walker: Walker = _main.walker
 	var focus: Node3D = walker if walker.is_active() else _main.aircraft
 	var p := focus.global_position
+	# The camera decides how much detail people need; the player decides
+	# who wakes up and turns to look.
+	var cam := get_viewport().get_camera_3d()
+	var eye := cam.global_position if cam else p
 	for who: Recipient in recipients.values():
-		var near := who.global_position.distance_to(p) < WAKE_RADIUS
+		var d := who.global_position.distance_to(p)
+		var near := d < WAKE_RADIUS
 		if near != who.is_processing():
 			who.set_awake(near)
+		who.set_outlined(who.global_position.distance_to(eye) < Recipient.OUTLINE_DISTANCE)
 		if near:
 			who.notice(p if walker.is_active() else Vector3(1e9, 0, 0))
 	if carrying():
@@ -117,6 +123,8 @@ func next_recipient() -> String:
 		for r in Recipients.deliverable():
 			if r.id != _last:
 				pool.append(r.id)
+	if pool.is_empty():  # only one person to deliver to
+		pool.append(Recipients.deliverable()[0].id)
 	return pool[_rng.randi() % pool.size()]
 
 

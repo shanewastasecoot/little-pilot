@@ -52,6 +52,9 @@ var _parts: Array[MeshInstance3D] = []
 var _carry_pose: CarryPose
 var _parcel: Node3D
 static var _atlases: Dictionary = {}
+## Loaded KayKit scenes, kept: otherwise the last character to go frees the
+## scene and the next build reads it from disk again (~60 ms each).
+static var _scenes: Dictionary = {}
 
 
 func _ready() -> void:
@@ -83,7 +86,7 @@ func _build() -> void:
 		_model.free()
 	_parts.clear()
 	var look := look_override if look_override else Outfits.get_outfit(outfit)
-	_model = (load(DIR + look.base + ".glb") as PackedScene).instantiate()
+	_model = scene_of(look.base).instantiate()
 	_model.scale = Vector3.ONE * SCALE
 	_model.rotation.y = PI  # KayKit faces +Z; the walker's forward is -Z
 	add_child(_model)
@@ -106,7 +109,7 @@ func _build() -> void:
 		head_mesh = _model.find_children(look.base + "_Head", "MeshInstance3D", true, false)[0]
 		head_mesh.visible = true
 	else:
-		var donor: Node3D = (load(DIR + head[0] + ".glb") as PackedScene).instantiate()
+		var donor: Node3D = scene_of(head[0]).instantiate()
 		head_mesh = donor.find_children(head[0] + "_Head", "MeshInstance3D", true, false)[0]
 		head_mesh.get_parent().remove_child(head_mesh)
 		donor.free()
@@ -126,6 +129,12 @@ func _build() -> void:
 		_add_parcel()
 	anim = ""
 	play(playing if playing != "" else "Idle")
+
+
+static func scene_of(who: String) -> PackedScene:
+	if not _scenes.has(who):
+		_scenes[who] = load(DIR + who + ".glb")
+	return _scenes[who]
 
 
 ## Give a part its character's palette texture, repainted for this look.
@@ -178,6 +187,21 @@ func _attach_props(look: OutfitData) -> void:
 		holder.add_child(prop)
 		for mi: MeshInstance3D in prop.find_children("*", "MeshInstance3D", true, false) + ([prop] if prop is MeshInstance3D else []):
 			_parts.append(mi)
+
+
+## Soft outlines on or off. Off, each part draws once instead of twice
+## (for people far enough away that the outline would be under a pixel).
+func set_outline(on: bool) -> void:
+	for mi in _parts:
+		for s in mi.mesh.get_surface_count():
+			var m := mi.get_surface_override_material(s) as ShaderMaterial
+			if m == null:
+				continue
+			var tex: Texture2D = m.get_shader_parameter("albedo_tex") if m.get_shader_parameter("use_texture") else null
+			var width := 0.0
+			if on:
+				width = 0.0 if mi.name == "Face_Smile" else (CharacterLook.PROP_OUTLINE_WIDTH if tex == null else CharacterLook.OUTLINE_WIDTH)
+			mi.set_surface_override_material(s, CharacterLook.material(tex, width))
 
 
 ## Hold a parcel in both arms (or put it down).

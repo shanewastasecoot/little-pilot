@@ -239,6 +239,7 @@ func fly_bonus_stars(n: int) -> void:
 		tw.tween_callback(func():
 			Sfx.play("chime", pitch)
 			var pop := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			_jar.pivot_offset = _jar.size * 0.5
 			_jar.scale = Vector2.ONE * 1.15
 			pop.tween_property(_jar, "scale", Vector2.ONE, 0.25)
 			st.queue_free())
