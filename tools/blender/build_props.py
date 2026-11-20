@@ -502,13 +502,24 @@ def beret():
     return finish("Beret", parts, voxel=0.016, target_tris=1000)
 
 
+def heart_marker():
+    """A big puffy heart: floats over whoever a parcel is for (a destination
+    marker, deliberately not parcel-shaped). Centred on the origin, ~1 m."""
+    pink, shine = "ff4d6d", "ffd1dc"
+    parts = [sphere(Vector((-0.24, 0, 0.18)), (0.3, 0.2, 0.3), pink, segs=24, rings=16),
+             sphere(Vector((0.24, 0, 0.18)), (0.3, 0.2, 0.3), pink, segs=24, rings=16)]
+    parts.append(cone(Vector((0, 0, 0.12)), Vector((0, 0, -0.5)), 0.5, 0.03, pink, segs=24))
+    parts.append(sphere(Vector((-0.3, -0.17, 0.3)), (0.08, 0.04, 0.08), shine, segs=12, rings=8))
+    return finish("Heart_Marker", parts, voxel=0.014, target_tris=900)
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     print("PROPS")
     for build in (pilot_cap, pilot_scarf, princess_tiara, princess_gown, astro_helmet, astro_pack,
                   hero_cape, hero_emblem, dino_hood, dino_tail, face_smile,
                   package, straw_hat, sun_hat, flat_cap, beanie, postie_cap, mail_bag, balloon,
-                  chef_hat, ranger_hat, beret):
+                  chef_hat, ranger_hat, beret, heart_marker):
         build()
     for o in bpy.context.scene.objects:
         o.select_set(True)

@@ -49,6 +49,15 @@ var walk_camera: WalkCamera
 var _door: Area3D
 var _near_plane := false
 const DOOR_RADIUS := 9.0
+## On foot further than this from the plane: a beacon shows where it is,
+## and holding Y for PLANE_CALL_HOLD seconds brings it over (PlaneCall).
+const PLANE_FAR := 60.0
+const PLANE_CALL_HOLD := 1.0
+var plane_beacon: DeliveryBeacon
+var _call_hold := 0.0
+var _calling := false
+## Tests hold Y without a controller.
+var override_call_hold := false
 
 @onready var map: GameMap = $Map
 @onready var aircraft: Aircraft = $Aircraft
@@ -86,6 +95,13 @@ func _ready() -> void:
 	(door_shape.shape as SphereShape3D).radius = DOOR_RADIUS
 	_door.add_child(door_shape)
 	aircraft.add_child(_door)
+	plane_beacon = DeliveryBeacon.new()
+	plane_beacon.name = "PlaneBeacon"
+	plane_beacon.show_parcel = false
+	plane_beacon.exact_colour = true
+	map.add_child(plane_beacon)
+	plane_beacon.colour = Color("f2f7ff")
+	plane_beacon.hide()
 	_door.body_entered.connect(func(b): if b == walker: _near_plane = true)
 	_door.body_exited.connect(func(b): if b == walker: _near_plane = false)
 	SaveManager.settings_changed.connect(func(): aircraft.crashes = SaveManager.crashes)
@@ -197,8 +213,11 @@ func _process(delta: float) -> void:
 		hud.set_prompt("exit")
 	elif state == State.ON_FOOT and _near_plane:
 		hud.set_prompt("enter")
+	elif state == State.ON_FOOT and plane_far():
+		hud.set_prompt("call")
 	elif _playing():
 		hud.set_prompt("")
+	_update_plane_call(delta)
 	# Fell out of the world somehow: back beside the plane.
 	if state == State.ON_FOOT and walker.global_position.y < -30.0:
 		_place_walker()
@@ -378,6 +397,50 @@ func toggle_plane() -> bool:
 		hud.show_foot_hints(false)
 		return true
 	return false
+
+
+## On foot, far from the plane?
+func plane_far() -> bool:
+	var a := walker.global_position
+	var b := aircraft.global_position
+	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z)) > PLANE_FAR
+
+
+## The plane's beacon (on foot and far away) and holding Y to call it.
+func _update_plane_call(delta: float) -> void:
+	var far := state == State.ON_FOOT and plane_far()
+	plane_beacon.visible = far
+	if far:
+		plane_beacon.global_position = aircraft.global_position - Vector3.UP * aircraft.stats.ground_offset
+	var holding := far and not _calling and (override_call_hold or Input.is_action_pressed("interact"))
+	_call_hold = _call_hold + delta if holding else 0.0
+	hud.set_prompt_hold(_call_hold / PLANE_CALL_HOLD)
+	if _call_hold >= PLANE_CALL_HOLD:
+		_call_hold = 0.0
+		call_plane()
+
+
+## Bring the parked plane to a safe spot near the walker: a quick fade and
+## it's there. No safe spot nearby: a soft "nope" and it stays put (the
+## beacon still shows where it is). Returns true if it moved.
+func call_plane() -> bool:
+	if state != State.ON_FOOT or _calling:
+		return false
+	var spot := PlaneCall.find_spot(aircraft, walker.global_position)
+	if spot.is_empty():
+		Sfx.play("pop", 0.5)
+		return false
+	_calling = true
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE)
+	await tw.finished
+	aircraft.park(spot.pos, spot.yaw)
+	Sfx.play("whoosh", 0.8)
+	tw = create_tween()
+	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE)
+	await tw.finished
+	_calling = false
+	return true
 
 
 ## Put the walker on the ground beside the plane. False if no spot is dry,

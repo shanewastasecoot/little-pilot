@@ -69,6 +69,9 @@ func _run() -> void:
 			print("    not on dry ground: ", r.id, " ground ", g)
 	_check("everyone stands on dry ground", dry)
 	_check("nothing showing before a pick-up", not _main.hud.delivery_showing() and not _dm.beacon.visible)
+	await _frames(10)
+	_check("a red beacon shows the nearest post office with a parcel waiting", _dm.po_beacon.visible
+			and _dm.po_beacon_target() == _dm.post_offices[0] and not _dm.po_beacon.show_parcel)
 	# --- pick up ------------------------------------------------------------------
 	await _get_out_near(po.pickup_point() + Vector3(-30, 0, 25))
 	var lifetime0 := SaveManager.lifetime_stars
@@ -83,6 +86,7 @@ func _run() -> void:
 	_check("a beacon shines over them", _dm.beacon.visible
 			and _flat_dist(_dm.beacon.global_position, _dm.target().global_position) < 0.5)
 	_check("the post office's parcel is gone", not po.available)
+	_check("while carrying, the post office beacon hides (the delivery beacon shows the way)", not _dm.po_beacon.visible)
 	_check("the save knows", SaveManager.delivery_job == first)
 	# --- walking past someone else -----------------------------------------------------
 	var other: Recipient = _dm.recipients["postie"]

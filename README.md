@@ -40,7 +40,7 @@ The secondary audience is the parent or developer, who should find the project e
 
 ## Core Gameplay Features
 
-- **Gentle arcade flight.** The plane always moves forward and levels itself. Take off yourself from a long runway; bump into something and it's a soft bonk or splash and back to the runway. **Land anywhere:** come down gently onto flat ground on any island (hold slow to flare and brake), roll to a stop and park; boost to take off again. Windsocks mark landing meadows on the bumpier islands. **Get out and walk:** parked anywhere, press **Y** to climb out and explore on foot (left stick walks, further push = faster; **B** sprints, **A** jumps, right stick turns the camera); walk back to the plane and press **Y** to get in. You walk as your own character (KayKit Adventurers base, CC0, with a toon look: 4 hairstyles and 5 original outfits: pilot, princess, astronaut, superhero and a dino costume), made on a picture-only screen the first time you press Start (LB/RB change tab, left/right pick, right stick spins your character, A done) and changeable any time from the pause menu (orange person button). Parents can switch crashing off for the uncrashable mode, where the plane steers away from the ground, water and buildings on its own.
+- **Gentle arcade flight.** The plane always moves forward and levels itself. Take off yourself from a long runway; bump into something and it's a soft bonk or splash and back to the runway. **Land anywhere:** point the nose down at flat ground on any island and the plane lands by itself, even diving or boosting in (it flares in the last few metres; flat ground is never a crash, and a soft shadow under the plane shows how high you are); it rolls to a stop and parks; let go of boost and press it again to take off. Holding slow brakes. Flying level low over the grass never lands by itself. Windsocks mark landing meadows on the bumpier islands. **Get out and walk:** parked anywhere, press **Y** to climb out and explore on foot (left stick walks, further push = faster, and holding it all the way breaks into a run; **B** runs straight away, **A** jumps, right stick turns the camera); walk back to the plane and press **Y** to get in. Wandered far away? A white beacon shows the plane, and holding **Y** for a second brings it to the nearest safe flat spot. You walk as your own character (KayKit Adventurers base, CC0, with a toon look: 4 hairstyles and 5 original outfits: pilot, princess, astronaut, superhero and a dino costume), made on a picture-only screen the first time you press Start (LB/RB change tab, left/right pick, right stick spins your character, A done) and changeable any time from the pause menu (orange person button). Parents can switch crashing off for the uncrashable mode, where the plane steers away from the ground, water and buildings on its own.
 - **Two aircraft:** a cartoon **toy biplane** (with a pilot and spinning propeller) and a zippier blue **jet**, each in 8 paint colours (D-pad), plus **barrel rolls** (X).
 - **A world of islands to explore** (about 9 km across):
   - **Main island:** airport and hangar, snowy mountains with a valley, pine forest, farm with animals, wind turbines, lighthouse, and a **city** (5×5 blocks) with skyscrapers, construction cranes, a park and a big turning **Ferris wheel**
@@ -52,7 +52,7 @@ The secondary audience is the parent or developer, who should find the project e
 - **220 floating stars** in trails that lead from place to place, with a star jar and celebrations. Every 30 stars the city throws a **fireworks party** (an optional arrow and a 30 s countdown point the way).
 - **The dragon:** a big fire-breathing dragon sleeps in its cave, then wakes with a roar and patrols the islands. It sees in a cone (hills and mountains hide you), hears you nearby (louder when you boost or honk), gets suspicious before it gives chase, predicts where you're going, searches where it lost you and gives up after a while. It never enters the airport, so the runway is always safe. Its fire and its body blow the plane up (with Crashes off it just chases and roars). The screen edges glow and an arrow points at it while it hunts you. Parents can switch it off or pick Easy, Medium or Hard.
 - **A living ocean:** six layered Gerstner waves (swells plus chop) that boats, the pirate ship and the whale really ride, sea spray when you skim the water, depth colour, refraction, glowing crests, lapping shore foam and whitecaps.
-- **Deliveries.** Walk into the glowing parcel at a post office (airport, city or Town Island) and carry it to someone, on foot or by plane to another island (it rides on top of the plane): a picture of who it's for (and an arrow and a column of light) shows the way; walk up to them and they cheer, with confetti and reward stars. No timers and nothing to lose: the parcel stays with you in the plane, through crashes and restarts, and you can always ignore it and just explore.
+- **Deliveries.** A red beacon shows the nearest post office with a parcel waiting. Walk into the glowing parcel at a post office (airport, city or Town Island) and carry it to someone, on foot or by plane to another island (it rides on top of the plane): a picture of who it's for (and an arrow and a column of light) shows the way; walk up to them and they cheer, with confetti and reward stars. No timers and nothing to lose: the parcel stays with you in the plane, through crashes and restarts, and you can always ignore it and just explore.
 - **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
 - **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (volume, 30 FPS battery saver, city arrow on/off, delivery arrow on/off, crashes on/off, dragon on/off and difficulty).
 - **Gamepad-first controls** designed for the Steam Deck (Xbox controllers work too).
@@ -133,10 +133,32 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 | `./dev.sh city 12` | Play with the city grown 12 hours ahead (a preview: not saved) |
 | `./dev.sh editor` | Open the Godot editor |
 | `./dev.sh test` | All headless tests: gamepad mapping (Deck + Xbox layout), save robustness, autopilot star run (every star reachable), growing city (plan, pacing, construction, people, restart), landing (soft landings, parking and take-off on every island and islet, what still bumps), walking (getting out and in, analog speed, sprint, jump, shore, slopes, camera, every island), player character (model, all 32 looks, animations, save, the character screen with a controller), flight stress test (54 cases across both planes, incl. mountains, lighthouse, turbines and the fully grown city). Exit code 0 = pass. |
-| `./dev.sh check` | Import the project and report script errors |
-| `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` |
+| `./dev.sh check` | Import the project, load every script and scene, and start the game headless for a moment; fails (exit code 1) on any error. Only says "No errors." when everything is clean |
+| `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` (set `BUILD_DIR=...` to build somewhere else) |
 
 Press **F3** in game to toggle the debug overlay (FPS, speed, clearance, safety state). It's on by default in debug runs and off in release builds.
+
+### How CI works
+
+"CI" (continuous integration) means GitHub runs checks for you on its own computers, so a
+mistake gets noticed even if nobody ran the tests by hand. The recipes are in
+`.github/workflows/`.
+
+- **Tests** (`test.yml`) run on every push and every pull request. GitHub downloads the exact
+  Godot version this project uses (4.7.2, the plain version, not .NET), fetches the big model and
+  texture files from Git LFS (keeping a cache so later runs are quicker), makes sure none of them
+  are left as small "pointer" placeholders, and then runs `./dev.sh check` and `./dev.sh test`.
+  A green tick on a commit or pull request means everything passed; a red cross means
+  something failed. Click it to see which step and why.
+- **Release** (`release.yml`) runs when a version tag such as `v1.6.0` is pushed. It first checks
+  the tag matches `config/version` in `project.godot` (so a wrong tag can't publish the wrong
+  version), then exports the Linux build and attaches
+  `LittlePilot-<version>-linux-x86_64.tar.gz` to the GitHub Release. Inside: the game
+  (`LittlePilot.x86_64`, ready to run), `CREDITS.md`, `INSTALL.md` (Steam Deck steps) and a
+  SHA-256 checksum file to check the download.
+
+When the pinned Godot version changes, update `GODOT_VERSION` in both workflow files and the
+version in this README together (the test workflow checks they match).
 
 ### Steam Deck
 See [`docs/STEAM_DECK.md`](docs/STEAM_DECK.md).
