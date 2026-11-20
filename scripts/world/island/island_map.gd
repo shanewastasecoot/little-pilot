@@ -114,6 +114,10 @@ func _place_landmarks() -> void:
 	volcano.position = Vector3(IslandShape.VOLCANO.x, crater_floor, IslandShape.VOLCANO.y)
 	add_child(volcano)
 	_add_landmark(CityDistrict.new(), IslandShape.CITY)
+	var her_house := HerHouse.new()
+	her_house.name = "HerHouse"
+	_add_landmark(her_house, IslandShape.HOUSE)
+	her_house.rotation.y = PI  # front door towards the runway (north)
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)

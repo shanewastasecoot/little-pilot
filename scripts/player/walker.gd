@@ -31,6 +31,9 @@ const TURN_RATE := 12.0        # how quickly it turns to face where it's going
 ## this far ahead of the feet.
 const SHORE_LEVEL := 1.5
 const SHORE_REACH := 1.6
+## How hard walking into a ball or a toy pushes it (per m/s, per second of contact).
+const PUSH := 9.0
+const PUSH_LIFT := 6.0
 
 ## The camera's yaw (set by WalkCamera): the stick moves relative to it.
 var camera_yaw := 0.0
@@ -140,6 +143,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		velocity.y -= GRAVITY * delta
 	move_and_slide()
+	_push_things()
 	if _wet(global_position):
 		global_position = _last_dry
 		velocity = Vector3.ZERO
@@ -151,6 +155,18 @@ func _physics_process(delta: float) -> void:
 	moving = is_on_floor() and flat.length() > 0.3
 	sprinting = moving and sprint
 	model.animate(flat.length(), is_on_floor(), velocity.y > 0.5, sprinting)
+
+
+## Kick: anything loose you walk into (a ball, toys) gets a push.
+func _push_things() -> void:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as RigidBody3D
+		if body == null:
+			continue
+		var flat := Vector3(velocity.x, 0.0, velocity.z)
+		var push := (-c.get_normal() * Vector3(1, 0, 1)).normalized() * maxf(flat.length(), 2.0) * PUSH
+		body.apply_central_impulse((push + Vector3.UP * PUSH_LIFT) * body.mass * get_physics_process_delta_time())
 
 
 ## Don't walk into the sea: if the ground just ahead is under (or nearly

@@ -301,7 +301,20 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 
 ---
 
-## 13. Future Ideas
+## 13. Her House (enterable buildings)
+
+Her own house near the airport is the first building you can walk into.
+
+- **Going in and out:** walk into the front door: a quick fade, and you're in the hall (the outdoor world is hidden and paused, indoor lighting on). Walk into the bright doorway to come back out onto the doorstep. Nothing standing on the doorstep (a parked plane is moved aside).
+- **Indoor camera:** closer than the walk camera, looking down over the walls from behind you (no ceilings, dollhouse style). The right stick swings it round; left alone it drifts back behind you. Any wall between the camera and you fades away.
+- **Built from data:** a building is a list of rooms (type, size, storey, doorways, windows) in a JSON file (`resources/buildings/her_house.json`). One generator (`scripts/buildings/building_generator.gd`) builds the floors, walls, doorways, windows and furniture (KayKit Furniture Bits, varied by a seed), so later buildings only need a layout.
+- **Sized for her:** rooms are built for her 5 m character (11 m storeys, 7 m wide doorways); furniture is scaled to match.
+- **Rooms so far:** entrance hall, playroom (a toy box that pops open with bouncing, squeaking toys; a ball to kick). Toys go back in the box when you leave.
+- **Next:** the rest of the ground floor (kitchen, living room, dining room), then the stairs and four bedrooms upstairs.
+
+---
+
+## 14. Future Ideas
 
 | Idea | Description | Complexity |
 |---|---|---|
@@ -316,7 +329,7 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 
 ---
 
-## 14. Open Questions
+## 15. Open Questions
 
 - [ ] Should the jet be available from the start, or unlocked after collecting N stars? *(Recommendation: available from the start. Unlocks add friction for a 4-year-old.)*
 - [ ] Should there be a voice narrator (for example "You found the lighthouse!")? It helps non-readers but needs recording.

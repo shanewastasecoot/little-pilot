@@ -1,0 +1,46 @@
+{
+	"name": "her_house",
+	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door). Doors and windows sit on a side (N, S, E, W) at a fraction along it. A door with exit = true leads outside. Checkpoint 1: the hall and the playroom.",
+	"storey_height": 11.0,
+	"wall_thickness": 0.5,
+	"door_width": 7.0,
+	"door_height": 8.5,
+	"furniture_scale": 2.27,
+	"seed": 7,
+	"rooms": [
+		{
+			"id": "hall",
+			"type": "hall",
+			"floor": 0,
+			"rect": [-13, -11, 26, 22],
+			"wall": "fff1d6",
+			"floor_colour": "c8a27a",
+			"doors": [
+				{"side": "S", "at": 0.5, "exit": true},
+				{"side": "W", "at": 0.5}
+			],
+			"windows": [
+				{"side": "S", "at": 0.17},
+				{"side": "S", "at": 0.83},
+				{"side": "N", "at": 0.3}
+			]
+		},
+		{
+			"id": "playroom",
+			"type": "playroom",
+			"floor": 0,
+			"rect": [-45, -14, 32, 28],
+			"wall": "cfe8ff",
+			"floor_colour": "f2c46d",
+			"doors": [
+				{"side": "E", "at": 0.5}
+			],
+			"windows": [
+				{"side": "W", "at": 0.3},
+				{"side": "W", "at": 0.7},
+				{"side": "N", "at": 0.5},
+				{"side": "S", "at": 0.5}
+			]
+		}
+	]
+}
