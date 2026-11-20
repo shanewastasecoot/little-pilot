@@ -286,7 +286,7 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 |---|---|
 | **Optional** | A parcel only becomes yours if you walk into it. Ignore the post office and nothing happens. |
 | **No failure** | No timers. The parcel can't be lost, dropped or broken: it stays with you in the plane, through crashes, pauses and quitting (it's saved). Walking up to the wrong person just gets a wave. |
-| **No reading** | The bubble (top left) shows a picture of who it's for, ringed in their colour; an arrow round it points their way; a column of light in their colour shines over them from far away. |
+| **No reading** | The bubble (top left) shows a picture of who it's for, ringed in their colour; an arrow round it points their way; a column of light in their colour shines over them from far away, with a big heart over their head (a heart, not a parcel: only parcels you can pick up look like parcels). When you're not carrying one, a red beacon shows the nearest post office with a parcel waiting. |
 | **No buttons** | Walk into the parcel to pick it up, walk up to them to hand it over. |
 | **Joyful** | They reach out, take it and cheer; confetti, a fanfare, and reward stars fly into the star jar. |
 

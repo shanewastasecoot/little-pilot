@@ -1,14 +1,15 @@
 class_name DeliveryBeacon
 extends Node3D
 ## A tall soft column of light over where a parcel should go (seen from the
-## air, from far away) with a little spinning parcel above the spot (seen on
-## foot). One unshaded see-through mesh plus the parcel: two draw calls.
+## air, from far away) with a big puffy heart turning above the spot (seen
+## on foot). A heart, not a parcel: only parcels you can pick up look like
+## parcels. One unshaded see-through mesh plus the parcel: two draw calls.
 
 const HEIGHT := 170.0
 const RADIUS := 7.0
 
-## The little spinning parcel over the spot (off for beacons that mark
-## something you can't pick up there, like the plane or a post office).
+## The heart over the spot (off for beacons over the plane or a post
+## office).
 @export var show_parcel := true
 ## Use the colour exactly as given (on for white/grey beacons), instead of
 ## a bold version of it.
@@ -70,8 +71,8 @@ func _ready() -> void:
 	add_child(col)
 	_column = col
 	if show_parcel:
-		_parcel = CharacterLook.prop("Package")
-		_parcel.scale = Vector3.ONE * 2.6
+		_parcel = CharacterLook.prop("Heart_Marker")
+		_parcel.scale = Vector3.ONE * 3.2
 		_parcel.position.y = 8.5
 		add_child(_parcel)
 

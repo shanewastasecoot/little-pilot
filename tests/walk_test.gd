@@ -4,8 +4,9 @@ extends Node
 ##            (ON_FOOT), with the walk camera live and the "get in" prompt
 ##   plane    the parked plane ignores the controls while you walk
 ##   speed    full stick walks at walk speed, half stick at half (analog),
-##            B sprints; A jumps and lands again
-##   prompt   walking away hides the prompt and Y does nothing there
+##            B runs; A jumps and lands again
+##   prompt   walking away hides the get-in prompt and a tap of Y does
+##            nothing there
 ##   sea      sprinting at the sea stops at the shore, never in the water
 ##   slopes   it won't climb ground steeper than the limit, and the camera
 ##            stays above the ground
@@ -113,7 +114,8 @@ func _run() -> void:
 	_check("A / B button hints show after getting out", _main.hud.foot_hints_showing())
 	# --- speeds ---------------------------------------------------------------
 	_cam.yaw = PI  # look (and walk) south, away from the plane's nose
-	var v_full: float = await _walk(Vector2(0, 1), false, 150)
+	# Full stick, measured within the first ~1.3 s (before the auto-run).
+	var v_full: float = await _walk(Vector2(0, 1), false, 80)
 	var v_half: float = await _walk(Vector2(0, 0.5), false, 150)
 	var v_run: float = await _walk(Vector2(0, 1), true, 150)
 	print("  note: walk %.1f m/s, half stick %.1f m/s, sprint %.1f m/s" % [v_full, v_half, v_run])
@@ -135,8 +137,8 @@ func _run() -> void:
 	await _frames(90)
 	_check("A jumps and lands again", top > y0 + 1.5 and _w.is_on_floor() and absf(_w.global_position.y - _ground(_w.global_position)) < 0.3)
 	# --- prompt goes away -------------------------------------------------------
-	_check("walked away: no prompt, Y does nothing", _flat_dist(_w.global_position, _plane.global_position) > 20.0
-			and _main.hud.prompt_kind() == "" and not _main.toggle_plane() and _main.state == _main.State.ON_FOOT)
+	_check("walked away: no get-in prompt, a tap of Y does nothing", _flat_dist(_w.global_position, _plane.global_position) > 20.0
+			and _main.hud.prompt_kind() != "enter" and not _main.toggle_plane() and _main.state == _main.State.ON_FOOT)
 	# --- camera settings: speed and invert-Y -------------------------------------
 	var pitch0: float = _cam.pitch
 	_cam.override_look = Vector2(0, 1)  # right stick up
@@ -180,6 +182,11 @@ func _run() -> void:
 	_main._resume()
 	_check("pause on foot resumes on foot", paused_ok and _main.state == _main.State.ON_FOOT and _cam.cam.current)
 	# --- the sea ------------------------------------------------------------------
+	# From a fixed spot on the meadow (the walks above end in different
+	# places at different speeds, and the coast isn't straight).
+	_w.override_move = Vector2.ZERO
+	_w.place(Vector3(1180, _ground(Vector3(1180, 0, 60)) + 0.1, 60), 0.0)
+	await _frames(20)
 	_cam.yaw = -PI * 0.5  # east, to the coast
 	var wettest := INF
 	_w.override_move = Vector2(0, 1)

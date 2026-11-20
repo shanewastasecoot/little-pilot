@@ -2,6 +2,9 @@ extends Node
 ## Automated version of the roadmap's stress test: holds each stick direction
 ## (with and without boost/slow) for 60 simulated seconds and checks the plane
 ## never goes below the hard floor, above the ceiling or past the world edge.
+## Holding the stick down near flat ground lands (by design): touching down
+## on landable ground is a safe ending, and being low while coming in to land
+## or on the ground doesn't count against the floor.
 ##
 ## Run headless (fast, no window):
 ##   flatpak run org.godotengine.Godot --headless --path . --fixed-fps 60 res://tests/stress_test.tscn
@@ -60,6 +63,7 @@ func _ready() -> void:
 	_main = load("res://scenes/main/main.tscn").instantiate()
 	add_child(_main)
 	_plane = _main.get_node("Aircraft")
+	_plane.touched_down.connect(func(): _stats.landed = true)
 	_plane.input.override_enabled = true
 	_frames_per_case = int(SECONDS_PER_CASE * Engine.physics_ticks_per_second)
 	_start_aircraft()
@@ -78,7 +82,10 @@ func _physics_process(_delta: float) -> void:
 	var s := _plane.safety
 	var pos := _plane.global_position
 	var flat := Vector2(pos.x - s.boundary_center.x, pos.z - s.boundary_center.z).length()
-	_stats.min_clear = minf(_stats.min_clear, s.clearance)
+	# Coming in to land, and once down on flat ground, being low is fine (a
+	# landing is a safe ending); anywhere else the floor still applies.
+	if not s.landing and not _plane.on_ground():
+		_stats.min_clear = minf(_stats.min_clear, s.clearance)
 	_stats.max_alt = maxf(_stats.max_alt, pos.y)
 	_stats.max_dist = maxf(_stats.max_dist, flat)
 	for i in _plane.get_slide_collision_count():
@@ -114,7 +121,7 @@ func _next_case() -> void:
 	else:
 		_plane.teleport(map.spawn_position, map.spawn_heading())
 	_frames = 0
-	_stats = {min_clear = INF, max_alt = -INF, max_dist = 0.0, contacts = 0, nan = false, first_contact = ""}
+	_stats = {min_clear = INF, max_alt = -INF, max_dist = 0.0, contacts = 0, nan = false, first_contact = "", landed = false}
 
 
 func _finish_case() -> void:
@@ -132,6 +139,8 @@ func _finish_case() -> void:
 		problems.append("NaN position")
 	var line := "%-22s min clearance %6.2f  max alt %6.1f  max dist %6.1f  contacts %d" % [
 		c[0], _stats.min_clear, _stats.max_alt, _stats.max_dist, _stats.contacts]
+	if _stats.landed:
+		line += "  (landed on flat ground: a safe ending)"
 	if problems.is_empty():
 		print("PASS  ", line)
 	else:

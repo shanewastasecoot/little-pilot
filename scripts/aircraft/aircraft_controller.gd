@@ -67,6 +67,9 @@ const LAND_PULL_UP := 0.15
 ## Just lifted off: no automatic landing for this long (a dip after
 ## take-off isn't "coming in to land").
 const LAND_AFTER_LIFTOFF := 2.0
+## Automatic landings only where there's this much room ahead to roll out
+## (no building, wall or steep bank): not in city streets.
+const LAND_ROOM := 60.0
 ## Flare: the lower it is, the slower it may sink: FLARE_SINK_PER_M m/s for
 ## each metre above touchdown, never less than FLARE_MIN_SINK.
 const FLARE_SINK_PER_M := 0.8
@@ -179,7 +182,7 @@ func _physics_process(delta: float) -> void:
 	var heading_down := nose_down and velocity.y < -LAND_SINK and input.stick.y < LAND_PULL_UP \
 			and _airborne > LAND_AFTER_LIFTOFF
 	safety.landing = height < LAND_ASSIST_HEIGHT and can_land_on(below) \
-			and (heading_down or input.throttle < -0.2)
+			and (input.throttle < -0.2 or (heading_down and _room_to_roll(below)))
 	safety.evaluate(global_position, velocity, turn)
 	# Auto-flare: the lower it is, the slower it may sink (so a dive onto a
 	# meadow eases into a landing); boosting is eased off near the ground.
@@ -315,6 +318,20 @@ func can_land_on(hit: Dictionary) -> bool:
 	var n: Vector3 = hit.normal
 	var p: Vector3 = hit.position
 	return n.y >= cos(deg_to_rad(LAND_MAX_SLOPE_DEG)) and p.y > Waves.height(p.x, p.z) + LAND_MIN_HEIGHT
+
+
+## Room ahead to roll out after landing: a low ray along the heading from
+## just above the ground under the plane meets nothing (or only gentle
+## terrain) within LAND_ROOM.
+func _room_to_roll(below: Dictionary) -> bool:
+	var fwd := Vector3(-sin(heading), 0.0, -cos(heading))
+	var from: Vector3 = (below.position as Vector3) + Vector3.UP * 3.0
+	var q := PhysicsRayQueryParameters3D.create(from, from + fwd * LAND_ROOM, GameSettings.LAYER_WORLD)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return true
+	return (hit.collider as Node).is_in_group("terrain") and (hit.normal as Vector3).y >= cos(deg_to_rad(ROLL_MAX_SLOPE_DEG))
 
 
 ## The world straight below `pos` (from a little above it): {} or a ray hit.
