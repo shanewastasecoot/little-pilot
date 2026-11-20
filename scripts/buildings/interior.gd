@@ -24,7 +24,16 @@ var fridges: Array = []
 var pots: Array = []
 var tables: Array = []
 var sofas: Array = []
+var beds: Array = []
+var switches: Array = []
 var trophy_shelf: TrophyShelf
+var house_star: HouseStar
+## Her bedroom's info (rooms entry): its wall materials, quilt and pickers.
+var her_room: Dictionary = {}
+## {from, to, bottom (local), top (local)}
+var stairs: Array = []
+var _floor_fade: Dictionary = {}   # storey -> how visible 0..1
+var _floor_items: Dictionary = {}  # storey -> [GeometryInstance3D]
 var _fade: Dictionary = {}    # wall index -> current fade 0..1
 
 
@@ -73,6 +82,10 @@ func reset() -> void:
 		f.reset()
 	for t in tables:
 		t.reset()
+	for s in switches:
+		s.reset()
+	if house_star:
+		house_star.reset()
 
 
 ## The middle of a doorway (world space, on the floor): the door on `side`
@@ -92,7 +105,39 @@ func door_point(room_id: String, side: String, at: float) -> Vector3:
 	return global_position
 
 
-## Doorways between rooms (world space, on the floor): [room a, room b, point].
+func find_room(room_id: String) -> Dictionary:
+	for r in rooms:
+		if r.id == room_id:
+			return r
+	return {}
+
+
+## Her room's walls in colour `i` of ColourPicker.COLOURS (saved if `save`).
+func paint_her_walls(i: int, save := false) -> void:
+	if her_room.is_empty() or i < 0 or i >= ColourPicker.COLOURS.size():
+		return
+	for s in switches:
+		if s.get_parent() == her_room.node and not s.on:
+			s.set_on(true)
+	for m: StandardMaterial3D in her_room.mats:
+		if m.get_meta("wall", false):
+			m.albedo_color = (ColourPicker.COLOURS[i] as Color).lightened(0.35)
+	if save:
+		SaveManager.set_house_colours(i, SaveManager.house_bed)
+
+
+## Her bed's quilt in colour `i` (saved if `save`).
+func colour_her_quilt(i: int, save := false) -> void:
+	if her_room.is_empty() or not her_room.has("quilt") or i < 0 or i >= ColourPicker.COLOURS.size():
+		return
+	(her_room.quilt as StandardMaterial3D).albedo_color = ColourPicker.COLOURS[i]
+	if save:
+		SaveManager.set_house_colours(SaveManager.house_wall, i)
+
+
+## Doorways (and stairs) between rooms: [room a, room b, point on a's side,
+## point on b's side] (world space; the same point for a doorway, the
+## bottom and top of the stairs for a flight).
 ## A doorway is listed on both rooms' sides; these are the pairs that meet.
 func doorways() -> Array:
 	var ends := []
@@ -105,7 +150,13 @@ func doorways() -> Array:
 	for i in ends.size():
 		for j in range(i + 1, ends.size()):
 			if ends[i][0] != ends[j][0] and (ends[i][1] as Vector3).distance_to(ends[j][1]) < 1.5:
-				out.append([ends[i][0], ends[j][0], ends[i][1]])
+				out.append([ends[i][0], ends[j][0], ends[i][1], ends[i][1]])
+	# Stairs: from a spot in front of the bottom step to one beyond the top
+	# (so going up or down is a straight walk along the flight).
+	for st in stairs:
+		var along: Vector3 = ((st.top as Vector3) - (st.bottom as Vector3)) * Vector3(1, 0, 1)
+		along = along.normalized()
+		out.append([st.from, st.to, to_global((st.bottom as Vector3) - along * 3.0), to_global((st.top as Vector3) + along * 3.5)])
 	return out
 
 
@@ -126,16 +177,108 @@ func route(from_room: String, to_room: String) -> Array:
 				var b: String = l[1 - k]
 				if a == r and not prev.has(b):
 					prev[b] = r
-					via[b] = l[2]
+					via[b] = [l[2 + k], l[3 - k]]  # from a's side to b's side
 					queue.append(b)
 	if not prev.has(to_room):
 		return []
 	var path := []
 	var cur := to_room
 	while cur != from_room:
-		path.push_front(via[cur])
+		var pts: Array = via[cur]
+		path.push_front(pts[1])
+		if not (pts[0] as Vector3).is_equal_approx(pts[1]):
+			path.push_front(pts[0])
 		cur = prev[cur]
-	return path
+	return _around_obstacles(path)
+
+
+## Keep-out areas on each storey (local plan rects): the stairs on the
+## storey they start from, and holes in the floor on theirs.
+func _keep_out() -> Array:
+	var out := []
+	var storey: float = data.get("storey_height", 11.0)
+	for st in stairs:
+		var b: Vector3 = st.bottom
+		var t: Vector3 = st.top
+		var w := 6.0
+		for s: Dictionary in data.get("stairs", []):
+			w = float(s.get("width", 6.0))
+		var r := Rect2(Vector2(minf(b.x, t.x), minf(b.z, t.z)), Vector2.ZERO).expand(Vector2(maxf(b.x, t.x), maxf(b.z, t.z)))
+		r = r.grow_individual(0.0 if absf(t.z - b.z) > 0.1 else 0.0, w * 0.5, 0.0, w * 0.5) if absf(t.x - b.x) > absf(t.z - b.z) \
+				else r.grow_individual(w * 0.5, 0.0, w * 0.5, 0.0)
+		out.append([floori((b.y + 1.0) / storey), r.grow(1.2)])
+	for room: Dictionary in data.get("rooms", []):
+		for h: Array in room.get("holes", []):
+			out.append([int(room.get("floor", 0)), Rect2(float(h[0]), float(h[1]), float(h[2]), float(h[3])).grow(1.2)])
+	return out
+
+
+## Walking straight between two points of a route on the same storey
+## mustn't cross the stairs or a hole: go round by the side nearer the
+## next point (two corners of the keep-out area).
+func _around_obstacles(path: Array) -> Array:
+	var storey: float = data.get("storey_height", 11.0)
+	var areas := _keep_out()
+	var out := []
+	for i in path.size():
+		var q: Vector3 = path[i]
+		if i > 0:
+			var p: Vector3 = out[out.size() - 1]
+			var lp := to_local(p)
+			var lq := to_local(q)
+			if absf(lp.y - lq.y) < 1.0:
+				var f := floori((lp.y + 1.0) / storey)
+				for a in areas:
+					if a[0] != f:
+						continue
+					var r: Rect2 = a[1]
+					var p2 := Vector2(lp.x, lp.z)
+					var q2 := Vector2(lq.x, lq.z)
+					if not _segment_hits_rect(p2, q2, r):
+						continue
+					# Go round: the shortest way by one corner or two
+					# neighbouring corners, staying inside this room.
+					var room_rect := r
+					var here := room_at(p)
+					if not here.is_empty():
+						room_rect = (here.rect as Rect2).grow(-1.3)
+					var c: Array[Vector2] = []
+					for k in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
+						var off: Vector2 = ((k as Vector2) - r.get_center()).sign() * 1.5
+						var cc: Vector2 = k + off
+						cc.x = clampf(cc.x, room_rect.position.x, room_rect.end.x)
+						cc.y = clampf(cc.y, room_rect.position.y, room_rect.end.y)
+						c.append(cc)
+					var best: Array = []
+					var best_len := INF
+					for k in 4:
+						if not _segment_hits_rect(p2, c[k], r) and not _segment_hits_rect(c[k], q2, r):
+							var l := p2.distance_to(c[k]) + c[k].distance_to(q2)
+							if l < best_len:
+								best_len = l
+								best = [c[k]]
+						for j in [(k + 1) % 4, (k + 3) % 4]:
+							if not _segment_hits_rect(p2, c[k], r) and not _segment_hits_rect(c[k], c[j], r) \
+									and not _segment_hits_rect(c[j], q2, r):
+								var l2 := p2.distance_to(c[k]) + c[k].distance_to(c[j]) + c[j].distance_to(q2)
+								if l2 < best_len:
+									best_len = l2
+									best = [c[k], c[j]]
+					for cp: Vector2 in best:
+						out.append(to_global(Vector3(cp.x, lp.y, cp.y)))
+					break
+		out.append(q)
+	return out
+
+
+static func _segment_hits_rect(a: Vector2, b: Vector2, r: Rect2) -> bool:
+	if r.has_point(a) or r.has_point(b):
+		return false  # starting or ending at it (the stairs themselves)
+	var c := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
+	for i in 4:
+		if Geometry2D.segment_intersects_segment(a, b, c[i], c[(i + 1) % 4]) != null:
+			return true
+	return false
 
 
 ## A clear spot to stand in a room, coming from `from_room`: a few metres
@@ -183,11 +326,12 @@ func update_view(camera_pos: Vector3, player_pos: Vector3, delta: float) -> void
 	var c2 := Vector2(cam.x, cam.z)
 	var m2 := Vector2(me.x, me.z)
 	var my_floor := storey_at(player_pos)
+	var climb := clampf((me.y - float(my_floor) * float(data.get("storey_height", 11.0)) - 4.0) / 5.0, 0.0, 1.0)
 	for i in walls.size():
 		var w: Dictionary = walls[i]
 		var target := 0.0
 		if w.floor > my_floor:
-			target = 1.0
+			target = 1.0 if w.floor > my_floor + 1 else 1.0 - climb
 		elif w.floor == my_floor:
 			# Between us (with a little margin), or facing the camera right
 			# beside us in the same room.
@@ -202,7 +346,35 @@ func update_view(camera_pos: Vector3, player_pos: Vector3, delta: float) -> void
 			_fade[i] = cur
 			var hide_all: bool = w.floor > my_floor
 			for gi: GeometryInstance3D in w.pieces:
-				gi.visible = not (hide_all and cur >= 1.0)
-				gi.transparency = cur * FADE
+				gi.visible = not (hide_all and cur >= 0.999)
+				gi.transparency = cur * (1.0 if hide_all else FADE)
+	# Storeys above: hidden; the one just above fades in as you climb the
+	# stairs towards it (and out as you go down).
 	for r in rooms:
-		(r.node as Node3D).visible = r.floor <= my_floor
+		var f: int = r.floor
+		var v := 1.0 if f <= my_floor else (climb if f == my_floor + 1 else 0.0)
+		if not is_equal_approx(_floor_fade.get(f, -1.0), v):
+			_floor_fade[f] = v
+			_set_floor_visibility(f, v)
+
+
+## Show storey `f` at visibility `v` (0 hidden .. 1 solid).
+func _set_floor_visibility(f: int, v: float) -> void:
+	if not _floor_items.has(f):
+		var items: Array = []
+		var wall_bits := {}
+		for w in walls:
+			for gi in w.pieces:
+				wall_bits[gi] = true
+		for r in rooms:
+			if r.floor == f:
+				for gi in (r.node as Node).find_children("*", "GeometryInstance3D", true, false):
+					if not wall_bits.has(gi):
+						items.append(gi)
+		_floor_items[f] = items
+	for r in rooms:
+		if r.floor == f:
+			(r.node as Node3D).visible = v > 0.02
+	for gi: GeometryInstance3D in _floor_items[f]:
+		if is_instance_valid(gi):
+			gi.transparency = 1.0 - v if v < 0.999 else 0.0

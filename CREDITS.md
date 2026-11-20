@@ -109,7 +109,7 @@ Changes: the biplane's propeller is cut out of the body mesh at load time so it 
 
 ## Generated in code
 
-- **Her house** (outside): built in Blender by `tools/blender/build_house.py` (`assets/buildings/her_house/her_house.glb`). Inside: rooms built in code from `resources/buildings/her_house.json` by `scripts/buildings/building_generator.gd`; the toy box, toys, ball, bubbles, trophy shelf and the sofa's bounce are built in code too.
+- **Her house** (outside): built in Blender by `tools/blender/build_house.py` (`assets/buildings/her_house/her_house.glb`). Inside: rooms built in code from `resources/buildings/her_house.json` by `scripts/buildings/building_generator.gd`; the stairs, railings, toy box, toys, ball, bubbles, trophy shelf, light switches, paint pots, cushions, the hidden star and the bouncy sofa and beds are built in code too.
 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 

@@ -69,6 +69,8 @@ var interior: Interior
 var indoor_camera: IndoorCamera
 var _outdoor_env: Environment
 var _doorway_busy := false
+## The game last stopped with her inside: start outside the front door.
+var _start_at_house := false
 var _call_hold := 0.0
 var _calling := false
 ## Tests hold Y without a controller.
@@ -121,6 +123,9 @@ func _ready() -> void:
 	indoor_camera.name = "IndoorCamera"
 	indoor_camera.target = walker
 	add_child(indoor_camera)
+	_start_at_house = SaveManager.house_inside
+	if _start_at_house:
+		SaveManager.set_house_inside(false)
 	for l in get_tree().get_nodes_in_group("landmarks"):
 		if l is HerHouse:
 			house = l
@@ -354,7 +359,11 @@ func _on_plane_confirmed(id: String) -> void:
 	SaveManager.set_selected_aircraft(id)
 	plane_select.hide()
 	# From the pause menu: back to whatever we were doing (maybe on foot).
+	var starting := state != State.PAUSED
 	_enter(_play_state if state == State.PAUSED else State.FLYING)
+	if starting and _start_at_house:
+		_start_at_house = false
+		start_outside_house()
 
 
 func _show_pause() -> void:
@@ -442,7 +451,10 @@ func enter_house() -> void:
 		interior.global_position = Vector3(house.global_position.x, INTERIOR_HEIGHT, house.global_position.z)
 		interior.exit_reached.connect(func(): if state == State.INDOORS: exit_house())
 		indoor_camera.interior = interior
+		interior.paint_her_walls(SaveManager.house_wall)
+		interior.colour_her_quilt(SaveManager.house_bed)
 	_set_outdoors(false)
+	SaveManager.set_house_inside(true)
 	walker.place(interior.entry_point(), interior.entry_yaw())
 	interior.arrive()
 	_enter(State.INDOORS)
@@ -452,6 +464,22 @@ func enter_house() -> void:
 	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE * 0.7)
 	await tw.finished
 	_doorway_busy = false
+
+
+## The game stopped while she was inside: start on foot outside the front
+## door, the plane parked safely nearby.
+func start_outside_house() -> void:
+	if house == null:
+		return
+	var step := house.doorstep()
+	var spot := PlaneCall.find_spot(aircraft, step + (step - house.global_position).normalized() * 30.0)
+	if not spot.is_empty():
+		aircraft.park(spot.pos, spot.yaw)
+	_enter(State.LANDED)
+	_place_walker()
+	walker.place(Vector3(step.x, IslandShape.height(step.x, step.z) + 0.1, step.z), house.doorstep_yaw())
+	_enter(State.ON_FOOT)
+	walk_camera.snap_to(house.doorstep_yaw())
 
 
 ## Out through the front door: back on the doorstep (nothing standing on
@@ -464,6 +492,7 @@ func exit_house() -> void:
 	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)
 	await tw.finished
 	_set_outdoors(true)
+	SaveManager.set_house_inside(false)
 	interior.reset()
 	var step := house.doorstep()
 	# The plane parked on the doorstep? Move it to a safe spot nearby first.

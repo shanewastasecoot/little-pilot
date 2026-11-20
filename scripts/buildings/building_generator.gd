@@ -43,6 +43,8 @@ static func build(data: Dictionary) -> Interior:
 	interior.add_child(sun)
 	for room: Dictionary in data.get("rooms", []):
 		_build_room(interior, data, room, rng)
+	for st: Dictionary in data.get("stairs", []):
+		_build_stairs(interior, data, st)
 	return interior
 
 
@@ -54,18 +56,26 @@ static func _build_room(interior: Interior, data: Dictionary, room: Dictionary, 
 	var node := Node3D.new()
 	node.name = str(room.id)
 	interior.add_child(node)
-	interior.rooms.append({"id": room.id, "type": room.type, "rect": rect, "floor": int(room.get("floor", 0)), "base": base, "node": node})
-	# Floor (solid) and a soft light.
-	var floor_mi := BuildKit.add(node, BuildKit.box(Vector3(rect.size.x, 0.6, rect.size.y)), str(room.get("floor_colour", "c8a27a")),
-			Vector3(rect.get_center().x, base - 0.3, rect.get_center().y))
-	floor_mi.material_override = _mat(str(room.get("floor_colour", "c8a27a")))
-	BuildKit.collider(node, BuildKit.box_shape(Vector3(rect.size.x, 0.6, rect.size.y)), Vector3(rect.get_center().x, base - 0.3, rect.get_center().y))
+	var info := {"id": room.id, "type": room.type, "rect": rect, "floor": int(room.get("floor", 0)), "base": base, "node": node,
+		"own_materials": str(room.type) == "bedroom", "mats": [], "hers": room.get("hers", false)}
+	interior.rooms.append(info)
+	# Floor (solid, with any holes left open) and a soft light.
+	var floor_mat := _room_mat(info, str(room.get("floor_colour", "c8a27a")))
+	var holes: Array = room.get("holes", [])
+	for piece: Rect2 in _floor_pieces(rect, holes):
+		var fmi := BuildKit.add(node, BuildKit.box(Vector3(piece.size.x, 0.6, piece.size.y)), "ffffff",
+				Vector3(piece.get_center().x, base - 0.3, piece.get_center().y))
+		fmi.material_override = floor_mat
+		BuildKit.collider(node, BuildKit.box_shape(Vector3(piece.size.x, 0.6, piece.size.y)), Vector3(piece.get_center().x, base - 0.3, piece.get_center().y))
+	for h: Array in holes:
+		_hole_rails(data, Rect2(float(h[0]), float(h[1]), float(h[2]), float(h[3])), rect, base, node)
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(rect.get_center().x, base + storey * 0.8, rect.get_center().y)
 	lamp.omni_range = maxf(rect.size.x, rect.size.y) * 0.9
 	lamp.light_energy = 0.35
 	lamp.light_color = Color("fff1d6")
 	node.add_child(lamp)
+	info["light"] = lamp
 	# Walls, side by side.
 	for side in ["N", "S", "W", "E"]:
 		_build_side(interior, data, room, rect, base, side, node)
@@ -123,7 +133,7 @@ static func _build_side(interior: Interior, data: Dictionary, room: Dictionary, 
 		var h: float = sp[3] - sp[2]
 		var size := Vector3(b - a, h, t) if along_x else Vector3(t, h, b - a)
 		var mi := BuildKit.add(node, BuildKit.box(size), colour, Vector3(mid.x, base + sp[2] + h * 0.5, mid.y))
-		mi.material_override = _mat(colour)
+		mi.material_override = _room_mat(interior.rooms[interior.rooms.size() - 1], colour, true)
 		BuildKit.collider(node, BuildKit.box_shape(size), mi.position)
 		pieces.append(mi)
 	# Windows: a frame and glowing sky glass on the room side.
@@ -255,6 +265,8 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			_furnish_dining(interior, data, rect, base, node, rng)
 		"living":
 			_furnish_living(interior, data, rect, base, node, rng)
+		"bedroom":
+			_furnish_bedroom(interior, data, room, rect, base, node, rng)
 
 
 ## Along the back (north) wall: the fridge, counters, the sink and the stove
@@ -377,7 +389,249 @@ static func _bouncy_seat(sofa: Node3D, f: float) -> void:
 	sofa.add_child(back)
 
 
+# --- Floors with holes, railings, stairs --------------------------------------------
+
+## The floor of `rect` cut round its holes (one hole: up to four pieces).
+static func _floor_pieces(rect: Rect2, holes: Array) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if holes.is_empty():
+		out.append(rect)
+		return out
+	var h := Rect2(float(holes[0][0]), float(holes[0][1]), float(holes[0][2]), float(holes[0][3])).intersection(rect)
+	for r in [Rect2(rect.position.x, rect.position.y, h.position.x - rect.position.x, rect.size.y),
+			Rect2(h.end.x, rect.position.y, rect.end.x - h.end.x, rect.size.y),
+			Rect2(h.position.x, rect.position.y, h.size.x, h.position.y - rect.position.y),
+			Rect2(h.position.x, h.end.y, h.size.x, rect.end.y - h.end.y)]:
+		if r.size.x > 0.05 and r.size.y > 0.05:
+			out.append(r)
+	return out
+
+
+## Railings round a hole in the floor, on every edge that isn't against a
+## wall or where the stairs come up (walk-into-proof: a tall invisible wall
+## behind a low white rail).
+static func _hole_rails(data: Dictionary, hole: Rect2, rect: Rect2, base: float, node: Node3D) -> void:
+	var t: float = data.get("wall_thickness", 0.5)
+	var tops: Array[Vector2] = []
+	for st: Dictionary in data.get("stairs", []):
+		tops.append(Vector2(float(st.top[0]), float(st.top[1])))
+	var edges := [[hole.position, Vector2(hole.end.x, hole.position.y)], [Vector2(hole.position.x, hole.end.y), hole.end],
+			[hole.position, Vector2(hole.position.x, hole.end.y)], [Vector2(hole.end.x, hole.position.y), hole.end]]
+	for e in edges:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var mid := (a + b) * 0.5
+		var near_wall := absf(mid.x - rect.position.x) < t + 0.4 or absf(mid.x - rect.end.x) < t + 0.4 \
+				or absf(mid.y - rect.position.y) < t + 0.4 or absf(mid.y - rect.end.y) < t + 0.4
+		var at_top := false
+		for tp in tops:
+			if Geometry2D.get_closest_point_to_segment(tp, a, b).distance_to(tp) < 1.0:
+				at_top = true
+		if near_wall or at_top:
+			continue
+		var length := a.distance_to(b)
+		var along_x := absf(b.y - a.y) < 0.01
+		var size := Vector3(length, 0.4, 0.4) if along_x else Vector3(0.4, 0.4, length)
+		var bar := BuildKit.add(node, BuildKit.box(size), "ffffff", Vector3(mid.x, base + 3.2, mid.y))
+		bar.material_override = _mat("ffffff")
+		var posts := int(length / 2.5)
+		for k in posts + 1:
+			var p := a.lerp(b, float(k) / maxf(posts, 1))
+			BuildKit.add(node, BuildKit.box(Vector3(0.3, 3.2, 0.3)), "ffffff", Vector3(p.x, base + 1.6, p.y)).material_override = _mat("ffffff")
+		var wall := Vector3(length, 6.0, 0.4) if along_x else Vector3(0.4, 6.0, length)
+		BuildKit.collider(node, BuildKit.box_shape(wall), Vector3(mid.x, base + 3.0, mid.y))
+
+
+## A straight flight of stairs: stepped blocks to see, a solid wedge to
+## walk on (smooth, so nothing snags and nothing's underneath), and a
+## banister on the open side. It's listed with the room below (so it
+## shows and hides with that storey).
+static func _build_stairs(interior: Interior, data: Dictionary, st: Dictionary) -> void:
+	var below: Dictionary = interior.find_room(str(st.from))
+	var above: Dictionary = interior.find_room(str(st.to))
+	if below.is_empty() or above.is_empty():
+		return
+	var node: Node3D = below.node
+	var y0: float = below.base
+	var y1: float = above.base
+	var b := Vector2(float(st.bottom[0]), float(st.bottom[1]))
+	var tp := Vector2(float(st.top[0]), float(st.top[1]))
+	var w: float = st.get("width", 6.0)
+	var dir := (tp - b).normalized()
+	var side := Vector2(-dir.y, dir.x) * w * 0.5
+	var run := b.distance_to(tp)
+	var steps := 14
+	for i in steps:
+		var f0 := float(i) / steps
+		var f1 := float(i + 1) / steps
+		var c := b.lerp(tp, (f0 + f1) * 0.5)
+		var h := (y1 - y0) * f1
+		var size := Vector3(run / steps if absf(dir.x) > 0.5 else w, h, w if absf(dir.x) > 0.5 else run / steps)
+		var step := BuildKit.add(node, BuildKit.box(size), "c8a27a" if i % 2 == 0 else "b98a5e", Vector3(c.x, y0 + h * 0.5, c.y))
+		step.material_override = _mat("c8a27a" if i % 2 == 0 else "b98a5e")
+	# The wedge you walk on.
+	var body := StaticBody3D.new()
+	body.collision_layer = GameSettings.LAYER_WORLD
+	var shape := ConvexPolygonShape3D.new()
+	var pts := PackedVector3Array()
+	for s in [side, -side]:
+		pts.append(Vector3(b.x + s.x, y0, b.y + s.y))
+		pts.append(Vector3(tp.x + s.x, y0, tp.y + s.y))
+		pts.append(Vector3(tp.x + s.x, y1, tp.y + s.y))
+	shape.points = pts
+	var cs := CollisionShape3D.new()
+	cs.shape = shape
+	body.add_child(cs)
+	node.add_child(body)
+	# Banisters on the sides that aren't against a wall.
+	var rect: Rect2 = below.rect
+	var banisters: Array[Vector2] = []
+	for sd in [side, -side]:
+		if _dist_to_rect_edge((b + tp) * 0.5 + sd, rect) > 1.5:
+			banisters.append(sd)
+	for open in banisters:
+		_banister(node, b, tp, y0, y1, open, w)
+	interior.stairs.append({"from": str(st.from), "to": str(st.to), "bottom": Vector3(b.x, y0, b.y), "top": Vector3(tp.x, y1, tp.y)})
+
+
+## A banister along one side of a flight: posts you see and a slanted wall
+## you can't walk or jump through.
+static func _banister(node: Node3D, b: Vector2, tp: Vector2, y0: float, y1: float, open: Vector2, w: float) -> void:
+	var o := open.normalized() * (w * 0.5 + 0.2)
+	var rail := StaticBody3D.new()
+	rail.collision_layer = GameSettings.LAYER_WORLD
+	var rshape := ConvexPolygonShape3D.new()
+	var rp := PackedVector3Array()
+	for k in [0.0, 0.4]:
+		var off: Vector2 = open.normalized() * float(k)
+		for e in [[b, y0], [tp, y1]]:
+			var p: Vector2 = e[0] + o + off
+			rp.append(Vector3(p.x, e[1], p.y))
+			rp.append(Vector3(p.x, e[1] + 5.5, p.y))
+	rshape.points = rp
+	var rcs := CollisionShape3D.new()
+	rcs.shape = rshape
+	rail.add_child(rcs)
+	node.add_child(rail)
+	for i in 8:
+		var f := (i + 0.5) / 8.0
+		var p := b.lerp(tp, f) + o
+		var h := (y1 - y0) * f
+		BuildKit.add(node, BuildKit.box(Vector3(0.3, 3.2, 0.3)), "ffffff", Vector3(p.x, y0 + h + 1.6, p.y)).material_override = _mat("ffffff")
+
+
+static func _dist_to_rect_edge(p: Vector2, r: Rect2) -> float:
+	return minf(minf(p.x - r.position.x, r.end.x - p.x), minf(p.y - r.position.y, r.end.y - p.y))
+
+
+# --- Bedrooms --------------------------------------------------------------------
+
+## A bed (land on it to bounce), a nightstand and lamp, a rug, a picture,
+## a shelf, and a light switch by the door. Her room also has paint pots
+## (walk into one to colour the walls) and cushions (the bed's quilt), and
+## the house's hidden star is tucked into one room's corner.
+static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Dictionary, rect: Rect2, base: float, node: Node3D,
+		rng: RandomNumberGenerator) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var t: float = data.get("wall_thickness", 0.5)
+	var info: Dictionary = interior.find_room(str(room.id))
+	var door_side := "S"
+	for d: Dictionary in room.get("doors", []):
+		door_side = str(d.side)
+	var back_north := door_side == "S"
+	var back_z := (t + 1.5 * f + 0.4) / rect.size.y
+	var bz := back_z if back_north else 1.0 - back_z
+	var double: bool = rng.randf() < 0.5 or bool(room.get("hers", false))
+	var bed_name := ("bed_double_" if double else "bed_single_") + ("A" if rng.randf() < 0.5 else "B")
+	var bed := _put(node, data, rect, base, bed_name, 0.5, bz, 0.0 if back_north else 180.0, 1.0, false)
+	if bed:
+		var seat := StaticBody3D.new()
+		seat.collision_layer = GameSettings.LAYER_WORLD
+		seat.add_to_group("bouncy")
+		var cs := CollisionShape3D.new()
+		var bw := 3.1 if double else 1.6
+		cs.shape = BuildKit.box_shape(Vector3(bw, 0.55, 2.9))
+		cs.position = Vector3(0, 0.275, 0.05)
+		seat.add_child(cs)
+		bed.add_child(seat)
+		interior.beds.append(bed)
+		if room.get("hers", false):
+			var quilt := MeshInstance3D.new()
+			quilt.mesh = BuildKit.box(Vector3(bw * 0.92, 0.12, 1.7))
+			quilt.position = Vector3(0, 0.6, 0.55)
+			var qm := StandardMaterial3D.new()
+			qm.albedo_color = Color("ffffff")
+			qm.roughness = 1.0
+			quilt.material_override = qm
+			bed.add_child(quilt)
+			info["quilt"] = qm
+	var side_x := 0.5 + (2.0 if double else 1.3) * f / rect.size.x + 0.06
+	_put(node, data, rect, base, "cabinet_small", side_x, bz - (0.25 if back_north else -0.25) * 0.0 + (-0.04 if back_north else 0.04), 0.0 if back_north else 180.0)
+	_put(node, data, rect, base, "lamp_table", side_x, bz + (-0.04 if back_north else 0.04), 0.0, 1.0, false, 1.0 * f)
+	_put(node, data, rect, base, "rug_oval_" + ("A" if rng.randf() < 0.5 else "B"), 0.5, 0.55 if back_north else 0.45, 0.0, 1.6, false)
+	_put(node, data, rect, base, "pictureframe_medium", 0.25, (t + 0.3) / rect.size.y if back_north else 1.0 - (t + 0.3) / rect.size.y,
+			0.0 if back_north else 180.0, 1.5, false, 6.5)
+	_put(node, data, rect, base, "shelf_A_small", 1.0 - (t + 0.6) / rect.size.x, 0.5, -90.0, 1.4, false, 5.0)
+	# Light switch on the door wall, beside the door.
+	var sw := LightSwitch.new()
+	sw.name = "LightSwitch"
+	var door_w: float = data.get("door_width", 7.0)
+	var sx := rect.position.x + rect.size.x * 0.5 + door_w * 0.5 + 2.2
+	var sz := rect.end.y - t if back_north else rect.position.y + t
+	sw.position = Vector3(sx, base + 4.0, sz)
+	sw.rotation.y = PI if back_north else 0.0
+	sw.light = info.get("light")
+	for m in info.mats:
+		sw.materials.append(m)
+	node.add_child(sw)
+	interior.switches.append(sw)
+	# Her room: paint pots for the walls, cushions for the quilt.
+	if room.get("hers", false):
+		var pots := ColourPicker.new()
+		pots.name = "WallPaint"
+		pots.kind = "pot"
+		pots.position = Vector3(rect.position.x + t + 2.0, base, rect.get_center().y)
+		pots.rotation.y = PI * 0.5
+		node.add_child(pots)
+		var cushions := ColourPicker.new()
+		cushions.name = "BedColours"
+		cushions.kind = "cushion"
+		cushions.spacing = 3.4
+		cushions.position = Vector3(rect.get_center().x, base, rect.position.y + rect.size.y * (0.72 if back_north else 0.28))
+		node.add_child(cushions)
+		interior.her_room = info
+		info["wall_picker"] = pots
+		info["bed_picker"] = cushions
+		pots.picked.connect(func(i): interior.paint_her_walls(i, true))
+		cushions.picked.connect(func(i): interior.colour_her_quilt(i, true))
+	# The hidden star: tucked into the far corner of the south-east bedroom.
+	if str(room.id) == "bedroom_se":
+		var star := HouseStar.new()
+		star.name = "HiddenStar"
+		star.position = Vector3(rect.end.x - t - 2.5, base, rect.end.y - t - 2.5)
+		node.add_child(star)
+		interior.house_star = star
+
+
 # --- Materials ------------------------------------------------------------------------
+
+## A room's material: shared, unless the room has its own (bedrooms: their
+## lights dim them, her room's walls get painted). Walls are marked so her
+## paint only colours walls.
+static func _room_mat(info: Dictionary, hex: String, wall := false) -> StandardMaterial3D:
+	if not info.get("own_materials", false):
+		return _mat(hex)
+	var key := ("wall_" if wall else "floor_") + hex
+	for m: StandardMaterial3D in info.mats:
+		if m.get_meta("key", "") == key:
+			return m
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(hex)
+	m.roughness = 1.0
+	m.set_meta("key", key)
+	m.set_meta("wall", wall)
+	info.mats.append(m)
+	return m
 
 static var _mats: Dictionary = {}
 

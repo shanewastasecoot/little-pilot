@@ -44,7 +44,7 @@ func snap_to(view_yaw: float) -> void:
 	_place_camera()
 
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if target == null or not cam.current:
 		return
 	var look := override_look if override_enabled else Input.get_vector("look_left", "look_right", "look_down", "look_up")

@@ -316,7 +316,14 @@ Her own house near the airport is the first building you can walk into.
   - **Dining room:** walk up and the long table sets itself, place by place, with rising chimes.
   - **Living room:** jump onto the sofa and it bounces you up high; a trophy shelf with five golden stands waits for dragon treasure (Phase 4).
   - Everything goes back as it was when you leave (toys in the box, the table cleared, the fridge shut).
-- **Next:** the stairs and the four bedrooms upstairs (dollhouse view: the upstairs hides while you're downstairs).
+- **Stairs:** in a stairwell between the hall and the living room, up the middle with walkways either side. Stepped blocks to see, a smooth solid ramp to walk on (no snagging, nothing to get under), banisters on both sides, and railings round the opening upstairs.
+- **Upstairs** (dollhouse: hidden while you're downstairs, fading in as you climb):
+  - **Landing** over the hall and stairwell.
+  - **Four bedrooms**, each with a bed to bounce on (land on it from a jump), a nightstand and lamp, a rug, and a big light switch by the door: walk into it and the room dims, walk into it again and it's bright.
+  - **Her room** (the north-west one for now; easy to change in `resources/buildings/her_house.json` with `"hers": true`): six paint pots along a wall (walk into one to colour the walls) and six cushions (her quilt). Picture-only, saved (`[house] wall`, `bed`).
+  - **A hidden star** in a corner of the south-east bedroom: three reward stars, back every visit.
+- **Saving:** her room's colours, and whether she was inside (new `[house]` keys only). Stopping the game inside starts her outside the front door next time, the plane parked safely nearby.
+- **Edge cases:** calling the plane doesn't work indoors; the dragon (with the rest of the outdoor world) is paused while she's inside; nothing stands on the doorstep when she comes out.
 
 ---
 

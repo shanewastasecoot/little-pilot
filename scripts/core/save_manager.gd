@@ -61,6 +61,12 @@ var deliveries: int = 0
 var delivered_to: Array[String] = []
 ## Parent setting: the delivery arrow (the picture bubble still shows).
 var delivery_arrow: bool = true
+## Her house: her bedroom's wall and quilt colours (ColourPicker index, -1 =
+## as built), and whether she was inside when the game last stopped (then
+## she starts outside the front door).
+var house_wall: int = -1
+var house_bed: int = -1
+var house_inside: bool = false
 var invert_y: bool = false
 const LOOK_SENSITIVITY_MIN := 0.4
 const LOOK_SENSITIVITY_MAX := 2.5
@@ -175,6 +181,15 @@ func _load_file() -> void:
 	var dc = cfg.get_value("delivery", "count", 0)
 	if dc is int and dc >= 0:
 		deliveries = dc
+	var hw = cfg.get_value("house", "wall", -1)
+	if hw is int and hw >= -1 and hw < 6:
+		house_wall = hw
+	var hb = cfg.get_value("house", "bed", -1)
+	if hb is int and hb >= -1 and hb < 6:
+		house_bed = hb
+	var hi = cfg.get_value("house", "inside", false)
+	if hi is bool:
+		house_inside = hi
 	var met = cfg.get_value("delivery", "delivered_to", [])
 	if met is Array:
 		for m in met:
@@ -228,6 +243,9 @@ func save_now() -> void:
 	cfg.set_value("delivery", "job", delivery_job)
 	cfg.set_value("delivery", "count", deliveries)
 	cfg.set_value("delivery", "delivered_to", delivered_to)
+	cfg.set_value("house", "wall", house_wall)
+	cfg.set_value("house", "bed", house_bed)
+	cfg.set_value("house", "inside", house_inside)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -351,6 +369,20 @@ func set_delivery_arrow(on: bool) -> void:
 	request_save()
 
 
+## Her bedroom's colours (ColourPicker indices, -1 = as built).
+func set_house_colours(wall: int, bed: int) -> void:
+	house_wall = clampi(wall, -1, 5)
+	house_bed = clampi(bed, -1, 5)
+	request_save()
+
+
+## Inside her house or not (saved straight away: quitting inside means
+## starting outside the front door next time).
+func set_house_inside(on: bool) -> void:
+	house_inside = on
+	save_now()
+
+
 ## Picked up a parcel for `id` ("" = nothing being carried).
 func set_delivery_job(id: String) -> void:
 	delivery_job = id
@@ -395,6 +427,9 @@ func _reset_to_defaults() -> void:
 	deliveries = 0
 	delivered_to = []
 	delivery_arrow = true
+	house_wall = -1
+	house_bed = -1
+	house_inside = false
 	char_body = "M"
 	char_hair = 1
 	char_outfit = 1

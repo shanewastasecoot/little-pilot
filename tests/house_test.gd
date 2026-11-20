@@ -1,6 +1,6 @@
 extends Node
-## Her house (Phase 3, checkpoints 1-2: the front door and the ground
-## floor: hall, playroom, kitchen, dining room, living room):
+## Her house (Phase 3: the front door, the ground floor, the stairs and
+## the upstairs landing and four bedrooms):
 ##   outside  the house stands on its pad near the airport, outside the
 ##            city plan, with its door facing the runway
 ##   in/out   walking into the front door goes in (INDOORS: outdoor world
@@ -16,7 +16,15 @@ extends Node
 ##            closes when you go; the pot bubbles; the dining table sets
 ##            itself; landing on the sofa bounces you up high; the trophy
 ##            shelf has its stands; going out tidies everything away
+##   stairs   you can walk up the stairs and down again; downstairs the
+##            upstairs is hidden (dollhouse), upstairs it shows
+##   bedrooms landing on a bed bounces you; walking into the light switch
+##            turns the light off and on; in her room, walking into a paint
+##            pot or a cushion colours the walls or the quilt, and it's saved;
+##            the hidden star gives reward stars
 ##   plane    the plane parked on the doorstep is moved before you come out
+##   restart  stopping the game while inside starts you outside the front
+##            door next time
 ## Exit code 0 = pass, 1 = fail.
 
 const PATH := "user://test_house.cfg"
@@ -79,9 +87,9 @@ func _run() -> void:
 			ok_rooms = false
 			print("    couldn't reach ", room.id, " (at ", (_w.global_position - interior.global_position).round(), ")")
 	print("  note: walked to ", ", ".join(visited))
-	_check("you can walk to every room through the doorways (%d rooms)" % interior.rooms.size(), ok_rooms
-			and interior.rooms.size() >= 5)
-	await _walk_to(interior.room_centre("hall"), 3.0, 600)
+	_check("you can walk to every room through the doorways and up the stairs (%d rooms)" % interior.rooms.size(), ok_rooms
+			and interior.rooms.size() >= 11)
+	await _go_to_room("hall")
 	_check("the floor holds you everywhere (never through it)", lowest > -0.5 and _on_floor())
 	# Bump along every wall of the playroom: never inside or through one.
 	var through := false
@@ -90,8 +98,8 @@ func _run() -> void:
 		if r.id == "playroom":
 			pr = r
 	var rect: Rect2 = pr.rect
-	for p in interior.route("hall", "playroom") + [interior.room_centre("playroom")]:
-		await _walk_to(p, 2.5, 600)
+	await _go_to_room("playroom")
+	await _walk_to(interior.room_centre("playroom"), 2.5, 300)
 	for corner in [Vector2(rect.position.x, rect.position.y), Vector2(rect.end.x, rect.position.y), Vector2(rect.end.x, rect.end.y),
 			Vector2(rect.position.x, rect.end.y)]:
 		await _walk_to(interior.room_centre("playroom"), 2.5, 300)
@@ -117,9 +125,17 @@ func _run() -> void:
 	await _frames(30)
 	_check("walking up to the toy box opens it and toys pop out", tb.is_open() and tb._toys.size() == ToyBox.TOYS)
 	var ball: BouncyBall = interior.balls[0]
+	# The ball back where it starts (it may have rolled into a corner while
+	# the test walked about), then a run-up from the open middle of the
+	# room, straight through it.
+	ball.reset()
+	await _frames(20)
+	var from_mid := (ball.global_position - interior.room_centre("playroom")) * Vector3(1, 0, 1)
+	if from_mid.length() < 1.0:
+		from_mid = Vector3(1, 0, 0)
+	await _walk_to(ball.global_position - from_mid.normalized() * 7.0, 0.8, 400)
 	var ball_at := ball.global_position
-	var to_ball := ball.global_position - _w.global_position
-	await _walk_to(ball.global_position + to_ball.normalized() * 3.0, 0.5, 300)
+	await _walk_to(ball.global_position + from_mid.normalized() * 3.0, 0.5, 300)
 	await _frames(60)
 	_check("walking into the ball kicks it", ball.global_position.distance_to(ball_at) > 3.0)
 	# Kitchen: the fridge and the pot.
@@ -172,6 +188,95 @@ func _run() -> void:
 			shown += 1
 	shelf.show_trophies(0)
 	_check("the trophy shelf has stands for dragon treasure", shelf.stand_count() >= 5 and shown == 2)
+	# --- upstairs ------------------------------------------------------------------------------
+	await _go_to_room("stairwell")
+	var upstairs_hidden := not _visible_floor(1)
+	await _go_to_room("landing")
+	var up_y := _w.global_position.y - interior.global_position.y
+	_check("you can walk up the stairs", interior.storey_at(_w.global_position) == 1 and up_y > 10.0 and _on_floor())
+	_check("downstairs the upstairs is hidden; upstairs it shows", upstairs_hidden and _visible_floor(1))
+	# A bed: jump onto it and bounce.
+	var her: Dictionary = interior.her_room
+	await _go_to_room(her.id)
+	var bed: Node3D = null
+	for b in interior.beds:
+		if interior.room_at(b.global_position).get("id", "") == her.id:
+			bed = b
+	var bed_front := bed.global_transform.basis.z.normalized() * Vector3(1, 0, 1)
+	await _walk_to(bed.global_position + bed_front * 7.5, 0.8, 400)
+	var bed_bounces := [0]
+	var on_bed_bounce := func(): bed_bounces[0] += 1
+	_w.bounced.connect(on_bed_bounce)
+	var bed_top := -INF
+	var bed_floor_y := _w.global_position.y
+	for i in 240:
+		var d := bed.global_position - _w.global_position
+		d.y = 0.0
+		_w.camera_yaw = atan2(-d.x, -d.z)
+		_main.indoor_camera.yaw = _w.camera_yaw
+		_w.override_move = Vector2(0, 1) if d.length() > 1.0 else Vector2.ZERO
+		_w.override_jump = i % 25 == 5
+		await get_tree().physics_frame
+		bed_top = maxf(bed_top, _w.global_position.y - bed_floor_y)
+	_w.override_jump = false
+	_w.override_move = Vector2.ZERO
+	_w.bounced.disconnect(on_bed_bounce)
+	_check("landing on a bed bounces you", bed_bounces[0] > 0 and bed_top > 4.0)
+	# Her colours: walk into a paint pot and a cushion.
+	await _go_to_room(her.id)
+	var pots: ColourPicker = her.wall_picker
+	var cushions: ColourPicker = her.bed_picker
+	# Straight up to each one from in front of its row (not brushing the others).
+	var pot2: Node3D = pots.get_child(2)
+	var pots_out := (interior.room_centre(her.id) - pots.global_position) * Vector3(1, 0, 1)
+	await _walk_to(pot2.global_position + pots_out.normalized() * 5.0, 0.6, 400)
+	await _walk_to(pot2.global_position, 0.6, 300)
+	await _frames(10)
+	await _walk_to(pot2.global_position + pots_out.normalized() * 5.0, 0.6, 300)
+	var cushion4: Node3D = cushions.get_child(4)
+	var cushions_out := (interior.room_centre(her.id) - cushions.global_position) * Vector3(1, 0, 1)
+	if cushions_out.length() < 1.0:
+		cushions_out = Vector3(0, 0, 1)
+	await _walk_to(cushion4.global_position + cushions_out.normalized() * 5.0, 0.6, 400)
+	await _walk_to(cushion4.global_position, 0.6, 300)
+	await _frames(10)
+	var wall_col: Color = Color.BLACK
+	for m: StandardMaterial3D in her.mats:
+		if m.get_meta("wall", false):
+			wall_col = m.albedo_color
+	print("  note: walls %s (want %s), quilt %s (want %s), saved wall %d bed %d, at %s" % [wall_col.to_html(false),
+			(ColourPicker.COLOURS[2] as Color).lightened(0.35).to_html(false), (her.quilt as StandardMaterial3D).albedo_color.to_html(false),
+			(ColourPicker.COLOURS[4] as Color).to_html(false), SaveManager.house_wall, SaveManager.house_bed,
+			str((_w.global_position - interior.global_position).round())])
+	_check("in her room, a paint pot colours the walls and a cushion the quilt", wall_col.is_equal_approx(
+			(ColourPicker.COLOURS[2] as Color).lightened(0.35)) and (her.quilt as StandardMaterial3D).albedo_color.is_equal_approx(ColourPicker.COLOURS[4]))
+	SaveManager.save_now()
+	SaveManager.use_path(PATH)
+	_check("her colours are saved", SaveManager.house_wall == 2 and SaveManager.house_bed == 4)
+	# The light switch.
+	var sw: LightSwitch = null
+	for s in interior.switches:
+		if s.get_parent() == her.node:
+			sw = s
+	var sw_front := sw.global_transform.basis.z.normalized() * Vector3(1, 0, 1)
+	await _walk_to(sw.global_position + sw_front * 1.5, 0.8, 400)
+	await _frames(10)
+	var off_now := not sw.on and not (sw.light as OmniLight3D).visible
+	await _walk_to(sw.global_position + sw_front * 8.0, 1.0, 300)
+	await _walk_to(sw.global_position + sw_front * 1.5, 0.8, 300)
+	await _frames(10)
+	_check("walking into the light switch turns the light off, and on again", off_now and sw.on)
+	# The hidden star.
+	var star: HouseStar = interior.house_star
+	await _go_to_room(interior.room_at(star.global_position).get("id", "bedroom_se"))
+	var lifetime := SaveManager.lifetime_stars
+	await _walk_to(star.global_position, 0.8, 600)
+	await _frames(10)
+	_check("the hidden star is found", star.is_taken())
+	# And back down the stairs.
+	await _go_to_room("hall")
+	_check("you can walk back down the stairs", interior.storey_at(_w.global_position) == 0 and _on_floor()
+			and interior.room_at(_w.global_position).get("id", "") == "hall")
 	# --- out, and in and out again -----------------------------------------------------------
 	await _walk_out()
 	_check("walking into the doorway comes out on the doorstep", _main.state == _main.State.ON_FOOT
@@ -197,6 +302,23 @@ func _run() -> void:
 	await _walk_out()
 	_check("the plane parked on the doorstep is moved before you come out",
 			_flat_dist(_main.aircraft.global_position, step) > 15.0 and _safe_outside())
+	# --- stopping the game inside ----------------------------------------------------------------
+	await _walk_up_to_door()
+	await _until(func(): return _main.state == _main.State.INDOORS, 240)
+	await _frames(20)
+	_check("inside, the save remembers it", SaveManager.house_inside)
+	_main.queue_free()
+	await _frames(3)
+	SaveManager.use_path(PATH)
+	_main = load("res://scenes/main/main.tscn").instantiate()
+	add_child(_main)
+	_w = _main.walker
+	_main.title.hide()
+	await _frames(5)
+	_main._on_plane_confirmed("prop")
+	await _frames(20)
+	_check("next time you start outside the front door", _main.state == _main.State.ON_FOOT
+			and _flat_dist(_w.global_position, _main.house.doorstep()) < 3.0 and _safe_outside() and not SaveManager.house_inside)
 
 
 ## Out of the plane beside the house, then walk into the front door.
@@ -238,6 +360,14 @@ func _walk_out() -> void:
 				" touching ", touching, " move ", _w.override_move)
 	_w.override_move = Vector2.ZERO
 	await _frames(30)
+
+
+## Is storey `f` showing (any of its rooms visible)?
+func _visible_floor(f: int) -> bool:
+	for r in _main.interior.rooms:
+		if r.floor == f and (r.node as Node3D).visible:
+			return true
+	return false
 
 
 func _on_floor() -> bool:
