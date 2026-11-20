@@ -20,6 +20,11 @@ var walls: Array = []
 var exits: Array = []
 var toy_boxes: Array = []
 var balls: Array = []
+var fridges: Array = []
+var pots: Array = []
+var tables: Array = []
+var sofas: Array = []
+var trophy_shelf: TrophyShelf
 var _fade: Dictionary = {}    # wall index -> current fade 0..1
 
 
@@ -64,6 +69,10 @@ func reset() -> void:
 		tb.reset()
 	for b in balls:
 		b.reset()
+	for f in fridges:
+		f.reset()
+	for t in tables:
+		t.reset()
 
 
 ## The middle of a doorway (world space, on the floor): the door on `side`
@@ -81,6 +90,64 @@ func door_point(room_id: String, side: String, at: float) -> Vector3:
 			_: p = Vector2(rect.end.x, rect.position.y + at * rect.size.y)
 		return to_global(Vector3(p.x, r.base, p.y))
 	return global_position
+
+
+## Doorways between rooms (world space, on the floor): [room a, room b, point].
+## A doorway is listed on both rooms' sides; these are the pairs that meet.
+func doorways() -> Array:
+	var ends := []
+	var storey: float = data.get("storey_height", 11.0)
+	for room: Dictionary in data.get("rooms", []):
+		for d: Dictionary in room.get("doors", []):
+			if not d.get("exit", false):
+				ends.append([str(room.id), door_point(str(room.id), str(d.side), float(d.at))])
+	var out := []
+	for i in ends.size():
+		for j in range(i + 1, ends.size()):
+			if ends[i][0] != ends[j][0] and (ends[i][1] as Vector3).distance_to(ends[j][1]) < 1.5:
+				out.append([ends[i][0], ends[j][0], ends[i][1]])
+	return out
+
+
+## The doorways to walk through from one room to another (shortest by
+## number of rooms), as world points.
+func route(from_room: String, to_room: String) -> Array:
+	var prev := {from_room: ""}
+	var via := {}
+	var queue := [from_room]
+	var links := doorways()
+	while not queue.is_empty():
+		var r: String = queue.pop_front()
+		if r == to_room:
+			break
+		for l in links:
+			for k in 2:
+				var a: String = l[k]
+				var b: String = l[1 - k]
+				if a == r and not prev.has(b):
+					prev[b] = r
+					via[b] = l[2]
+					queue.append(b)
+	if not prev.has(to_room):
+		return []
+	var path := []
+	var cur := to_room
+	while cur != from_room:
+		path.push_front(via[cur])
+		cur = prev[cur]
+	return path
+
+
+## A clear spot to stand in a room, coming from `from_room`: a few metres
+## in through the doorway (the middle may be under a table).
+func inside_point(room_id: String, from_room: String) -> Vector3:
+	var path := route(from_room, room_id)
+	var centre := room_centre(room_id)
+	if path.is_empty():
+		return centre
+	var door: Vector3 = path[path.size() - 1]
+	var into := (centre - door) * Vector3(1, 0, 1)
+	return door + into.normalized() * minf(7.0, into.length())
 
 
 ## The middle of a room's floor (world space).

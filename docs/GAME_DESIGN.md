@@ -309,8 +309,14 @@ Her own house near the airport is the first building you can walk into.
 - **Indoor camera:** closer than the walk camera, looking down over the walls from behind you (no ceilings, dollhouse style). The right stick swings it round; left alone it drifts back behind you. Any wall between the camera and you fades away.
 - **Built from data:** a building is a list of rooms (type, size, storey, doorways, windows) in a JSON file (`resources/buildings/her_house.json`). One generator (`scripts/buildings/building_generator.gd`) builds the floors, walls, doorways, windows and furniture (KayKit Furniture Bits, varied by a seed), so later buildings only need a layout.
 - **Sized for her:** rooms are built for her 5 m character (11 m storeys, 7 m wide doorways); furniture is scaled to match.
-- **Rooms so far:** entrance hall, playroom (a toy box that pops open with bouncing, squeaking toys; a ball to kick). Toys go back in the box when you leave.
-- **Next:** the rest of the ground floor (kitchen, living room, dining room), then the stairs and four bedrooms upstairs.
+- **Ground floor:**
+  - **Entrance hall** (the front door; doorways to every other room).
+  - **Playroom:** a toy box that pops open with bouncing, squeaking toys; a ball to kick.
+  - **Kitchen** (KayKit Restaurant Bits): the fridge's doors swing open with a cool glow when you walk up; a pot of stew bubbles on the stove.
+  - **Dining room:** walk up and the long table sets itself, place by place, with rising chimes.
+  - **Living room:** jump onto the sofa and it bounces you up high; a trophy shelf with five golden stands waits for dragon treasure (Phase 4).
+  - Everything goes back as it was when you leave (toys in the box, the table cleared, the fridge shut).
+- **Next:** the stairs and the four bedrooms upstairs (dollhouse view: the upstairs hides while you're downstairs).
 
 ---
 

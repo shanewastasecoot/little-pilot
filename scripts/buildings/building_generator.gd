@@ -12,6 +12,9 @@ extends RefCounted
 ## (back to back); doorways are cut through both.
 
 const FURNITURE := "res://assets/furniture/kaykit_furniture_bits/"
+## Kitchen and dining things (KayKit Restaurant Bits, CC0): item names
+## starting with "r:" come from here.
+const RESTAURANT := "res://assets/furniture/kaykit_restaurant_bits/"
 const WINDOW_SIZE := Vector2(5.0, 4.6)
 const WINDOW_Y := 5.6
 
@@ -168,12 +171,12 @@ static func _build_side(interior: Interior, data: Dictionary, room: Dictionary, 
 static func _put(node: Node3D, data: Dictionary, rect: Rect2, base: float, item: String, fx: float, fz: float,
 		yaw := 0.0, scale := 1.0, solid := true, lift := 0.0) -> Node3D:
 	var s: float = float(data.get("furniture_scale", 2.27)) * scale
-	var path := FURNITURE + item + ".gltf"
+	var path := (RESTAURANT + item.substr(2) if item.begins_with("r:") else FURNITURE + item) + ".gltf"
 	if not ResourceLoader.exists(path):
 		push_warning("No furniture model %s" % path)
 		return null
 	var piece: Node3D = (load(path) as PackedScene).instantiate()
-	piece.name = item
+	piece.name = item.trim_prefix("r:")
 	piece.scale = Vector3.ONE * s
 	piece.rotation_degrees.y = yaw
 	piece.position = Vector3(rect.position.x + fx * rect.size.x, base + lift, rect.position.y + fz * rect.size.y)
@@ -246,6 +249,132 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			_put(node, data, rect, base, "lamp_standing", 0.07, _against(data, rect.size.y, 1.0))
 			_put(node, data, rect, base, ab.call("pictureframe_small"), 0.75, 1.0 - (data.get("wall_thickness", 0.5) + 0.3) / rect.size.y,
 					180.0, 1.6, false, 6.0)
+		"kitchen":
+			_furnish_kitchen(interior, data, rect, base, node, rng)
+		"dining":
+			_furnish_dining(interior, data, rect, base, node, rng)
+		"living":
+			_furnish_living(interior, data, rect, base, node, rng)
+
+
+## Along the back (north) wall: the fridge, counters, the sink and the stove
+## with the bubbling pot; cupboards above; crates of vegetables in a corner.
+static func _furnish_kitchen(interior: Interior, data: Dictionary, rect: Rect2, base: float, node: Node3D,
+		rng: RandomNumberGenerator) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var t: float = data.get("wall_thickness", 0.5)
+	var unit := 2.0 * f  # one counter's width
+	var z := rect.position.y + t + 1.02 * f + 0.2
+	var x := rect.position.x + t + unit * 0.5 + 0.3
+	var fridge := KitchenFridge.new()
+	fridge.name = "Fridge"
+	fridge.furniture_scale = f
+	fridge.position = Vector3(x, base, rect.position.y + t + 0.75 * f + 0.25)
+	node.add_child(fridge)
+	interior.fridges.append(fridge)
+	x += unit
+	var row := ["r:kitchencounter_straight_A_backsplash", "r:kitchencounter_sink_backsplash", "r:kitchencounter_straight_A_decorated",
+		"stove", "r:kitchencounter_straight_A_backsplash"]
+	for item in row:
+		var fx := (x - rect.position.x) / rect.size.x
+		var fz := (z - rect.position.y) / rect.size.y
+		if item == "stove":
+			_put(node, data, rect, base, "r:stove_multi", fx, fz)
+			var pot := BubblingPot.new()
+			pot.name = "Pot"
+			pot.furniture_scale = f
+			pot.position = Vector3(x - 0.45 * f, base + 1.2 * f, z + 0.25 * f)
+			node.add_child(pot)
+			interior.pots.append(pot)
+		else:
+			_put(node, data, rect, base, item, fx, fz)
+		if item != "stove" and rng.randf() < 0.7:
+			_put(node, data, rect, base, "r:kitchencabinet", fx, (t + 0.55 * f) / rect.size.y, 0.0, 1.0, false, 4.6)
+		x += unit
+	# Jars and a chopping board on the counter, vegetables in the corner.
+	_put(node, data, rect, base, "r:jar_A_medium", (rect.position.x + t + unit * 1.3 - rect.position.x) / rect.size.x,
+			(z - rect.position.y) / rect.size.y, 0.0, 1.0, false, 1.0 * f)
+	_put(node, data, rect, base, "r:cuttingboard", (rect.position.x + t + unit * 3.5 - rect.position.x) / rect.size.x,
+			(z - rect.position.y) / rect.size.y, 10.0, 1.0, false, 1.0 * f)
+	_put(node, data, rect, base, "r:crate_carrots", 0.9, 0.82, rng.randf_range(-20, 20))
+	_put(node, data, rect, base, "r:crate_tomatoes", 0.78, 0.86, rng.randf_range(-20, 20))
+	_put(node, data, rect, base, "lamp_standing", 0.95, 0.12)
+
+
+## A long table with chairs round it (it sets itself when you walk up), a
+## cabinet, a picture and a lamp.
+static func _furnish_dining(interior: Interior, data: Dictionary, rect: Rect2, base: float, node: Node3D,
+		rng: RandomNumberGenerator) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var table := SettableTable.new()
+	table.name = "DiningTable"
+	table.furniture_scale = f
+	var c := Vector3(rect.get_center().x, base, rect.get_center().y - 1.0)
+	table.position = c
+	node.add_child(table)
+	interior.tables.append(table)
+	_put(node, data, rect, base, "table_medium_long", (c.x - rect.position.x) / rect.size.x, (c.z - rect.position.y) / rect.size.y,
+			0.0, 1.35)
+	var chair := "chair_A_wood" if rng.randf() < 0.5 else "chair_B_wood"
+	var top := 1.0 * f * 1.35 + 0.05
+	var half_x := 1.5 * 1.35 * f
+	var half_z := 1.0 * 1.35 * f
+	for k in 3:
+		var px := c.x - half_x * 0.66 + k * half_x * 0.66
+		for side in [-1.0, 1.0]:
+			var pz: float = c.z + side * (half_z + 0.9 * f)
+			_put(node, data, rect, base, chair, (px - rect.position.x) / rect.size.x, (pz - rect.position.y) / rect.size.y,
+					0.0 if side > 0 else 180.0, 1.35)
+			table.places.append(Vector3(px - c.x, top, side * (half_z - 0.6 * f)))
+	var n_wall := BuildingGenerator._against(data, rect.size.y, 1.0)
+	_put(node, data, rect, base, "cabinet_medium_decorated", 0.2, n_wall, 0.0, 1.2)
+	_put(node, data, rect, base, "lamp_standing", 0.9, n_wall)
+	_put(node, data, rect, base, "pictureframe_large_B", 0.7, (data.get("wall_thickness", 0.5) + 0.3) / rect.size.y, 0.0, 1.3, false, 6.5)
+
+
+## A sofa you can bounce on, armchairs, a low table on a rug, a lamp,
+## pictures and the trophy shelf for dragon treasure.
+static func _furnish_living(interior: Interior, data: Dictionary, rect: Rect2, base: float, node: Node3D,
+		rng: RandomNumberGenerator) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var t: float = data.get("wall_thickness", 0.5)
+	_put(node, data, rect, base, "rug_rectangle_" + ("A" if rng.randf() < 0.5 else "B"), 0.5, 0.55, 0.0, 2.2, false)
+	# The sofa against the east wall, facing into the room (west).
+	var sofa := _put(node, data, rect, base, "couch_pillows", 1.0 - (t + 0.8 * f + 0.4) / rect.size.x, 0.55, -90.0, 1.0, false)
+	if sofa:
+		_bouncy_seat(sofa, f)
+		interior.sofas.append(sofa)
+	_put(node, data, rect, base, "armchair_pillows", 0.55, 0.2, 180.0 + 20.0, 1.0)
+	_put(node, data, rect, base, "armchair_pillows", 0.55, 0.88, -20.0, 1.0)
+	_put(node, data, rect, base, "table_low", 0.62, 0.55, 90.0, 1.0)
+	_put(node, data, rect, base, "lamp_standing", 0.92, (t + 0.5 * f + 0.3) / rect.size.y)
+	_put(node, data, rect, base, "pictureframe_large_A", 0.3, (t + 0.3) / rect.size.y, 0.0, 1.4, false, 6.5)
+	var shelf := TrophyShelf.new()
+	shelf.name = "TrophyShelf"
+	shelf.position = Vector3(rect.position.x + 0.5 * rect.size.x, base + 5.2, rect.end.y - t)
+	shelf.rotation.y = PI  # on the south wall, facing into the room
+	node.add_child(shelf)
+	interior.trophy_shelf = shelf
+
+
+## A sofa's colliders: a low, bouncy seat (you can jump onto it: landing on
+## it bounces you high) and a solid back.
+static func _bouncy_seat(sofa: Node3D, f: float) -> void:
+	var seat := StaticBody3D.new()
+	seat.collision_layer = GameSettings.LAYER_WORLD
+	seat.add_to_group("bouncy")
+	var cs := CollisionShape3D.new()
+	cs.shape = BuildKit.box_shape(Vector3(2.8, 0.5, 1.1))
+	cs.position = Vector3(0, 0.25, 0.15)
+	seat.add_child(cs)
+	sofa.add_child(seat)
+	var back := StaticBody3D.new()
+	back.collision_layer = GameSettings.LAYER_WORLD
+	var bs := CollisionShape3D.new()
+	bs.shape = BuildKit.box_shape(Vector3(3.0, 1.22, 0.45))
+	bs.position = Vector3(0, 0.61, -0.57)
+	back.add_child(bs)
+	sofa.add_child(back)
 
 
 # --- Materials ------------------------------------------------------------------------

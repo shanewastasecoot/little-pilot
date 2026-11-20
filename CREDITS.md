@@ -95,6 +95,7 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 | Schoolhouse ("Schoolhouse") | `assets/environment/school_b.glb` | jeremy | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/5uBxCBp0os0) |
 | Player character bodies, heads and animations ("KayKit Character Pack: Adventurers 1.0": Rogue, Knight, Mage, Barbarian) | `assets/characters/kaykit_adventurers/` (licence file included) | Kay Lousberg ([kaylousberg.com](https://www.kaylousberg.com)) | CC0 1.0 | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0) |
 | Indoor furniture ("KayKit Furniture Bits 1.0": beds, couches, chairs, tables, shelves, rugs, lamps, picture frames, plants) | `assets/furniture/kaykit_furniture_bits/` (licence file included) | Kay Lousberg ([kaylousberg.com](https://www.kaylousberg.com)) | CC0 1.0 | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Furniture-Bits-1.0) |
+| Kitchen and dining things ("KayKit Restaurant Bits 1.0": fridge, oven, stove, counters, sink, cupboards, pots, plates, bowls, food, jars, crates) | `assets/furniture/kaykit_restaurant_bits/` (licence file included) | Kay Lousberg ([kaylousberg.com](https://www.kaylousberg.com)) | CC0 1.0 | [GitHub](https://github.com/KayKit-Game-Assets/KayKit-Restaurant-Bits-1.0) |
 | Townsperson: worker ("Worker") | `assets/characters/people/worker.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/E8079Ahx7k) |
 | Townsperson: suit ("Suit") | `assets/characters/people/suit.glb` | Quaternius | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/sOUciDsoVV) |
 | Townsperson: hoodie ("Hoodie Character") | `assets/characters/people/hoodie.glb` | Quaternius | CC0 1.0 | [Poly Pizza](https://poly.pizza/m/gKLBoRsyKe) |
@@ -108,7 +109,7 @@ Changes: the biplane's propeller is cut out of the body mesh at load time so it 
 
 ## Generated in code
 
-- **Her house** (outside): built in Blender by `tools/blender/build_house.py` (`assets/buildings/her_house/her_house.glb`). Inside: rooms built in code from `resources/buildings/her_house.json` by `scripts/buildings/building_generator.gd`; the toy box, toys and ball are built in code too.
+- **Her house** (outside): built in Blender by `tools/blender/build_house.py` (`assets/buildings/her_house/her_house.glb`). Inside: rooms built in code from `resources/buildings/her_house.json` by `scripts/buildings/building_generator.gd`; the toy box, toys, ball, bubbles, trophy shelf and the sofa's bounce are built in code too.
 
 Everything in the game so far is made by the project's own code (MIT), with no third-party assets:
 

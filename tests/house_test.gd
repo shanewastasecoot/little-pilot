@@ -1,5 +1,6 @@
 extends Node
-## Her house (Phase 3, checkpoint 1: front door, hall, playroom):
+## Her house (Phase 3, checkpoints 1-2: the front door and the ground
+## floor: hall, playroom, kitchen, dining room, living room):
 ##   outside  the house stands on its pad near the airport, outside the
 ##            city plan, with its door facing the runway
 ##   in/out   walking into the front door goes in (INDOORS: outdoor world
@@ -11,7 +12,10 @@ extends Node
 ##            the floor, never stuck in a wall)
 ##   view     a wall between the camera and you fades away
 ##   play     walking up to the toy box opens it and toys pop out; walking
-##            into the ball kicks it; going out tidies them away
+##            into the ball kicks it; the fridge opens when you walk up and
+##            closes when you go; the pot bubbles; the dining table sets
+##            itself; landing on the sofa bounces you up high; the trophy
+##            shelf has its stands; going out tidies everything away
 ##   plane    the plane parked on the doorstep is moved before you come out
 ## Exit code 0 = pass, 1 = fail.
 
@@ -20,6 +24,8 @@ const PATH := "user://test_house.cfg"
 var _main: Node
 var _w: Walker
 var _fails := 0
+var _side := 0.0
+var _side_from := Vector3.ZERO
 
 
 func _ready() -> void:
@@ -58,17 +64,24 @@ func _run() -> void:
 	var interior: Interior = _main.interior
 	var ok_rooms := true
 	var lowest := INF
-	for route in [["playroom", [interior.door_point("hall", "W", 0.5)]], ["hall", [interior.door_point("hall", "W", 0.5)]]]:
-		var goal: Vector3 = interior.room_centre(route[0])
+	var visited := []
+	for room in interior.rooms:
+		var here: String = interior.room_at(_w.global_position).get("id", "hall")
+		var goal: Vector3 = interior.inside_point(room.id, here) if room.id != here else _w.global_position
 		var reached := true
-		for p in route[1] + [goal]:
-			if not await _walk_to(p, 2.5, 600):
+		for p in interior.route(here, room.id) + [goal]:
+			if not await _walk_to(p, 2.5, 700):
 				reached = false
 			lowest = minf(lowest, _w.global_position.y - interior.global_position.y)
-		if not reached or interior.room_at(_w.global_position).get("id", "") != route[0]:
+		if reached and interior.room_at(_w.global_position).get("id", "") == room.id:
+			visited.append(room.id)
+		else:
 			ok_rooms = false
-			print("    couldn't reach ", route[0], " (at ", (_w.global_position - interior.global_position).round(), ")")
-	_check("you can walk to every room through the doorways", ok_rooms)
+			print("    couldn't reach ", room.id, " (at ", (_w.global_position - interior.global_position).round(), ")")
+	print("  note: walked to ", ", ".join(visited))
+	_check("you can walk to every room through the doorways (%d rooms)" % interior.rooms.size(), ok_rooms
+			and interior.rooms.size() >= 5)
+	await _walk_to(interior.room_centre("hall"), 3.0, 600)
 	_check("the floor holds you everywhere (never through it)", lowest > -0.5 and _on_floor())
 	# Bump along every wall of the playroom: never inside or through one.
 	var through := false
@@ -77,8 +90,8 @@ func _run() -> void:
 		if r.id == "playroom":
 			pr = r
 	var rect: Rect2 = pr.rect
-	await _walk_to(interior.door_point("hall", "W", 0.5), 2.5, 600)
-	await _walk_to(interior.room_centre("playroom"), 2.5, 600)
+	for p in interior.route("hall", "playroom") + [interior.room_centre("playroom")]:
+		await _walk_to(p, 2.5, 600)
 	for corner in [Vector2(rect.position.x, rect.position.y), Vector2(rect.end.x, rect.position.y), Vector2(rect.end.x, rect.end.y),
 			Vector2(rect.position.x, rect.end.y)]:
 		await _walk_to(interior.room_centre("playroom"), 2.5, 300)
@@ -109,13 +122,63 @@ func _run() -> void:
 	await _walk_to(ball.global_position + to_ball.normalized() * 3.0, 0.5, 300)
 	await _frames(60)
 	_check("walking into the ball kicks it", ball.global_position.distance_to(ball_at) > 3.0)
+	# Kitchen: the fridge and the pot.
+	await _go_to_room("kitchen")
+	var fridge: KitchenFridge = interior.fridges[0]
+	var pot: BubblingPot = interior.pots[0]
+	_check("the pot bubbles", pot.bubbles.emitting and pot.bubbles.amount > 0)
+	await _walk_to(fridge.global_position + fridge.global_transform.basis.z * 7.0, 1.5, 400)
+	await _frames(30)
+	var opened := fridge.is_open()
+	await _walk_to(interior.room_centre("kitchen") + Vector3(8, 0, 6), 1.5, 400)
+	await _frames(30)
+	_check("the fridge opens when you walk up and closes when you go", opened and not fridge.is_open())
+	# Dining room: the table sets itself.
+	await _go_to_room("dining")
+	var table: SettableTable = interior.tables[0]
+	await _frames(90)
+	_check("the dining table sets itself when you come up", table.is_set() and table._items.size() == table.places.size() * 3)
+	# Living room: bounce on the sofa; the trophy shelf.
+	await _go_to_room("living")
+	var sofa: Node3D = interior.sofas[0]
+	var front := sofa.global_transform.basis.z.normalized() * Vector3(1, 0, 1)
+	# From the gap between the sofa and the coffee table.
+	await _walk_to(sofa.global_position + front * 4.2, 0.8, 400)
+	var bounces := [0]
+	var on_bounce := func(): bounces[0] += 1
+	_w.bounced.connect(on_bounce)
+	var top := -INF
+	var floor_y := _w.global_position.y
+	for i in 240:
+		var d := sofa.global_position - _w.global_position
+		d.y = 0.0
+		_w.camera_yaw = atan2(-d.x, -d.z)
+		_main.indoor_camera.yaw = _w.camera_yaw
+		_w.override_move = Vector2(0, 1) if d.length() > 1.0 else Vector2.ZERO
+		_w.override_jump = i % 25 == 5
+		await get_tree().physics_frame
+		top = maxf(top, _w.global_position.y - floor_y)
+	_w.override_jump = false
+	_w.override_move = Vector2.ZERO
+	_w.bounced.disconnect(on_bounce)
+	print("  note: highest %.1f m above the floor (a plain jump is about 2.2 m)" % top)
+	_check("landing on the sofa bounces you up high", bounces[0] > 0 and top > 4.0)
+	var shelf: TrophyShelf = interior.trophy_shelf
+	shelf.show_trophies(2)
+	await _frames(2)
+	var shown := 0
+	for s in shelf._stands:
+		if s.get_node_or_null("Treasure") != null:
+			shown += 1
+	shelf.show_trophies(0)
+	_check("the trophy shelf has stands for dragon treasure", shelf.stand_count() >= 5 and shown == 2)
 	# --- out, and in and out again -----------------------------------------------------------
 	await _walk_out()
 	_check("walking into the doorway comes out on the doorstep", _main.state == _main.State.ON_FOOT
 			and _flat_dist(_w.global_position, house.doorstep()) < 3.0)
 	_check("outside on safe dry ground, never inside the house", _safe_outside())
-	_check("going out tidies the toys away", not tb.is_open() and tb._toys.is_empty() and ball.global_position.distance_to(
-			interior.to_global(ball.home) if false else ball.get_parent().to_global(ball.home)) < 1.0)
+	_check("going out tidies everything away", not tb.is_open() and tb._toys.is_empty() and ball.global_position.distance_to(
+			ball.get_parent().to_global(ball.home)) < 1.0 and not table.is_set() and table._items.is_empty() and not fridge.is_open())
 	var cycles_ok := true
 	for i in 3:
 		await _walk_up_to_door()
@@ -151,13 +214,28 @@ func _walk_up_to_door() -> void:
 	await _walk_to(house.to_global(HerHouse.DOOR), 0.6, 300)
 
 
+## Walk from wherever you are to the middle of `room_id`, through the doorways.
+func _go_to_room(room_id: String) -> void:
+	var interior: Interior = _main.interior
+	var here: String = interior.room_at(_w.global_position).get("id", "hall")
+	for p in interior.route(here, room_id) + [interior.inside_point(room_id, here)]:
+		await _walk_to(p, 2.5, 700)
+
+
 ## Walk into the doorway you came in by, and wait to be outside.
 func _walk_out() -> void:
 	var interior: Interior = _main.interior
 	var door := interior.door_point("hall", "S", 0.5)
-	await _walk_to(interior.room_centre("hall"), 3.0, 600)
+	await _go_to_room("hall")
 	await _walk_to(door, 0.5, 400)
-	await _until(func(): return _main.state == _main.State.ON_FOOT, 240)
+	if not await _until(func(): return _main.state == _main.State.ON_FOOT, 240):
+		var touching := []
+		for i in _w.get_slide_collision_count():
+			var c := _w.get_slide_collision(i)
+			touching.append("%s %s" % [(c.get_collider() as Node).get_parent().name, c.get_normal().round()])
+		print("    didn't get out: at ", (_w.global_position - interior.global_position).round(), " in ",
+				interior.room_at(_w.global_position).get("id", "?"), " vel ", _w.velocity.round(), " floor ", _w.is_on_floor(),
+				" touching ", touching, " move ", _w.override_move)
 	_w.override_move = Vector2.ZERO
 	await _frames(30)
 
@@ -191,7 +269,11 @@ func _walk_to(p: Vector3, radius: float, max_frames: int) -> bool:
 		else:
 			_main.walk_camera.snap_to(yaw)
 		_w.camera_yaw = yaw
-		_w.override_move = Vector2(0, 1)
+		# Stuck against furniture? Step round it like a child would.
+		if i % 30 == 0:
+			_side = 0.0 if i == 0 or _w.global_position.distance_to(_side_from) > 1.0 else (1.0 if _side <= 0.0 else -1.0)
+			_side_from = _w.global_position
+		_w.override_move = Vector2(_side, 0.4 if _side != 0.0 else 1.0).normalized()
 		_w.override_sprint = d.length() > 8.0
 		await get_tree().physics_frame
 	_w.override_move = Vector2.ZERO

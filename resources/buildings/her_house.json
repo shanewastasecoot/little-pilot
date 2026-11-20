@@ -1,6 +1,6 @@
 {
 	"name": "her_house",
-	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door). Doors and windows sit on a side (N, S, E, W) at a fraction along it. A door with exit = true leads outside. Checkpoint 1: the hall and the playroom.",
+	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door). Doors and windows sit on a side (N, S, E, W) at a fraction along it; a doorway between two rooms is listed on both, at the same spot. A door with exit = true leads outside. Ground floor: hall, playroom, kitchen, dining room, living room.",
 	"storey_height": 11.0,
 	"wall_thickness": 0.5,
 	"door_width": 7.0,
@@ -17,12 +17,13 @@
 			"floor_colour": "c8a27a",
 			"doors": [
 				{"side": "S", "at": 0.5, "exit": true},
-				{"side": "W", "at": 0.5}
+				{"side": "W", "at": 0.5},
+				{"side": "N", "at": 0.5},
+				{"side": "E", "at": 0.5}
 			],
 			"windows": [
 				{"side": "S", "at": 0.17},
-				{"side": "S", "at": 0.83},
-				{"side": "N", "at": 0.3}
+				{"side": "S", "at": 0.83}
 			]
 		},
 		{
@@ -38,8 +39,54 @@
 			"windows": [
 				{"side": "W", "at": 0.3},
 				{"side": "W", "at": 0.7},
-				{"side": "N", "at": 0.5},
 				{"side": "S", "at": 0.5}
+			]
+		},
+		{
+			"id": "dining",
+			"type": "dining",
+			"floor": 0,
+			"rect": [-13, -37, 26, 26],
+			"wall": "e8f5e0",
+			"floor_colour": "b98a5e",
+			"doors": [
+				{"side": "S", "at": 0.5},
+				{"side": "W", "at": 0.4615}
+			],
+			"windows": [
+				{"side": "N", "at": 0.5}
+			]
+		},
+		{
+			"id": "kitchen",
+			"type": "kitchen",
+			"floor": 0,
+			"rect": [-45, -37, 32, 23],
+			"wall": "fff8e1",
+			"floor_colour": "dfe6ec",
+			"doors": [
+				{"side": "E", "at": 0.5217}
+			],
+			"windows": [
+				{"side": "N", "at": 0.82},
+				{"side": "W", "at": 0.5}
+			]
+		},
+		{
+			"id": "living",
+			"type": "living",
+			"floor": 0,
+			"rect": [13, -14, 32, 28],
+			"wall": "ffe4ec",
+			"floor_colour": "c9a27e",
+			"doors": [
+				{"side": "W", "at": 0.5}
+			],
+			"windows": [
+				{"side": "E", "at": 0.3},
+				{"side": "E", "at": 0.7},
+				{"side": "S", "at": 0.5},
+				{"side": "N", "at": 0.5}
 			]
 		}
 	]

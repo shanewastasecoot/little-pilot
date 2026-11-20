@@ -34,6 +34,8 @@ const SHORE_REACH := 1.6
 ## How hard walking into a ball or a toy pushes it (per m/s, per second of contact).
 const PUSH := 9.0
 const PUSH_LIFT := 6.0
+## Landing on something bouncy (a sofa, a bed) springs you up this fast.
+const BOUNCE_SPEED := 19.0
 
 ## The camera's yaw (set by WalkCamera): the stick moves relative to it.
 var camera_yaw := 0.0
@@ -56,6 +58,9 @@ var _last_dry := Vector3.ZERO
 var _active := false
 ## Seconds the stick has been pushed all the way (auto-run).
 var _full_push := 0.0
+## Landed on something bouncy and sprang up.
+signal bounced
+var _bounce := false
 
 
 func _ready() -> void:
@@ -139,11 +144,17 @@ func _physics_process(delta: float) -> void:
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if is_on_floor():
-		velocity.y = JUMP_SPEED if jump else 0.0
+		velocity.y = BOUNCE_SPEED if _bounce else (JUMP_SPEED if jump else 0.0)
+		_bounce = false
 	else:
 		velocity.y -= GRAVITY * delta
+	var was_falling := not is_on_floor() and velocity.y < -2.0
 	move_and_slide()
 	_push_things()
+	if is_on_floor() and was_falling and _on_bouncy():
+		_bounce = true  # springs up on the next step
+		Sfx.play("whoosh", 1.8, -4.0)
+		bounced.emit()
 	if _wet(global_position):
 		global_position = _last_dry
 		velocity = Vector3.ZERO
@@ -155,6 +166,15 @@ func _physics_process(delta: float) -> void:
 	moving = is_on_floor() and flat.length() > 0.3
 	sprinting = moving and sprint
 	model.animate(flat.length(), is_on_floor(), velocity.y > 0.5, sprinting)
+
+
+## Standing on something bouncy (group "bouncy")?
+func _on_bouncy() -> bool:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		if c.get_normal().y > 0.7 and (c.get_collider() as Node).is_in_group("bouncy"):
+			return true
+	return false
 
 
 ## Kick: anything loose you walk into (a ball, toys) gets a push.
