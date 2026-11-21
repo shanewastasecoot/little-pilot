@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -148,6 +148,13 @@ func _draw() -> void:
 			for k in 3:
 				var y := (-0.12 + k * 0.14) * s
 				draw_line(c + Vector2(-0.46, y / s) * s, c + Vector2(-0.24, y / s) * s, color, s * 0.06, true)
+		Icon.PAINT:
+			# A painter's palette: a round board with a thumb hole and paint dots.
+			draw_circle(c + Vector2(0, 0.02) * s, s * 0.42, color)
+			draw_circle(c + Vector2(0.16, 0.2) * s, s * 0.1, Color(0, 0, 0, 0.55))
+			for k in 4:
+				var a := -PI * 0.95 + k * 0.55
+				draw_circle(c + Vector2(cos(a), sin(a)) * s * 0.26, s * 0.075, [Color("ff5fa2"), Color("4fb6ff"), Color("6fd36f"), Color("ffd23f")][k])
 		Icon.CHECK:
 			draw_polyline(PackedVector2Array([c + Vector2(-0.3, 0.0) * s, c + Vector2(-0.08, 0.24) * s, c + Vector2(0.34, -0.26) * s]),
 				color, s * 0.13, true)

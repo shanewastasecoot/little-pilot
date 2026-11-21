@@ -19,6 +19,7 @@ var _news_tween: Tween
 var _prompt: PanelContainer
 var _prompt_icon: UiIcon
 var _prompt_kind := ""
+var _prompt_ring: HoldRing
 var _foot_hints: HBoxContainer
 var _hints_tween: Tween
 
@@ -136,6 +137,9 @@ func _ready() -> void:
 	ybtn.icon = UiIcon.Icon.BUTTON_Y
 	ybtn.custom_minimum_size = Vector2(84, 84)
 	prow.add_child(ybtn)
+	_prompt_ring = HoldRing.new()
+	_prompt_ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ybtn.add_child(_prompt_ring)
 	_prompt_icon = UiIcon.new()
 	_prompt_icon.custom_minimum_size = Vector2(84, 84)
 	prow.add_child(_prompt_icon)
@@ -253,18 +257,43 @@ func bind(stars: StarManager) -> void:
 
 
 ## The Y button prompt: "exit" (get out and walk), "enter" (get back in
-## the plane) or "" (hidden).
+## the plane), "call" (bring the plane), "paint" (choose a colour in her
+## room) or "" (hidden).
 func set_prompt(kind: String) -> void:
 	if kind == _prompt_kind:
 		return
 	_prompt_kind = kind
 	if kind != "":
-		_prompt_icon.icon = UiIcon.Icon.PERSON if kind == "exit" else UiIcon.Icon.PLANE
+		_prompt_icon.icon = UiIcon.Icon.PERSON if kind == "exit" else (UiIcon.Icon.PAINT if kind == "paint" else UiIcon.Icon.PLANE)
 	create_tween().tween_property(_prompt, "modulate:a", 1.0 if kind != "" else 0.0, 0.2)
 
 
 func prompt_kind() -> String:
 	return _prompt_kind
+
+
+## Holding Y to call the plane: a ring fills round the Y button (0..1).
+func set_prompt_hold(progress: float) -> void:
+	_prompt_ring.progress = clampf(progress, 0.0, 1.0)
+
+
+## A ring round a button that fills up while it's held.
+class HoldRing extends Control:
+	var progress := 0.0:
+		set(v):
+			if not is_equal_approx(v, progress):
+				progress = v
+				queue_redraw()
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		if progress <= 0.0:
+			return
+		var c := size * 0.5
+		var r := minf(size.x, size.y) * 0.5 + 6.0
+		draw_arc(c, r, -PI / 2.0, -PI / 2.0 + TAU * progress, 48, Color("ffd23f"), 8.0, true)
 
 
 ## Show the on-foot button hints for a few seconds (or hide them now).

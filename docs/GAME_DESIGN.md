@@ -286,7 +286,7 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 |---|---|
 | **Optional** | A parcel only becomes yours if you walk into it. Ignore the post office and nothing happens. |
 | **No failure** | No timers. The parcel can't be lost, dropped or broken: it stays with you in the plane, through crashes, pauses and quitting (it's saved). Walking up to the wrong person just gets a wave. |
-| **No reading** | The bubble (top left) shows a picture of who it's for, ringed in their colour; an arrow round it points their way; a column of light in their colour shines over them from far away. |
+| **No reading** | The bubble (top left) shows a picture of who it's for, ringed in their colour; an arrow round it points their way; a column of light in their colour shines over them from far away, with a big heart over their head (a heart, not a parcel: only parcels you can pick up look like parcels). When you're not carrying one, a red beacon shows the nearest post office with a parcel waiting. |
 | **No buttons** | Walk into the parcel to pick it up, walk up to them to hand it over. |
 | **Joyful** | They reach out, take it and cheer; confetti, a fanfare, and reward stars fly into the star jar. |
 
@@ -301,7 +301,35 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 
 ---
 
-## 13. Future Ideas
+## 13. Her House (enterable buildings)
+
+Her own house near the airport is the first building you can walk into.
+
+- **Going in and out:** walk into the front door: a quick fade, and you're in the hall (the outdoor world is hidden and paused, indoor lighting on). Walk into the bright doorway to come back out onto the doorstep. Nothing standing on the doorstep (a parked plane is moved aside).
+- **Indoor camera:** closer than the walk camera, looking down over the walls from behind you (no ceilings, dollhouse style). The right stick swings it round; left alone it drifts back behind you. Any wall between the camera and you fades away.
+- **Built from data:** a building is a list of rooms (type, size, storey, doorways, windows) in a JSON file (`resources/buildings/her_house.json`). One generator (`scripts/buildings/building_generator.gd`) builds the floors, walls, doorways, windows and furniture (KayKit Furniture Bits, varied by a seed), so later buildings only need a layout.
+- **Sized for her:** rooms are built for her 5 m character (11 m storeys, 7 m wide doorways); furniture is scaled to match.
+- **Ground floor:**
+  - **Entrance hall** (the front door; doorways to every other room).
+  - **Playroom:** a toy box: walk up and the lid opens, and five toys hop out one by one into tidy rows either side of it (gently, then they can be pushed about); a ball to kick.
+  - **Kitchen** (KayKit Restaurant Bits): the fridge's doors swing open with a cool glow when you walk up, and three meals pop up on bright trays along the south wall: **pizza**, **chicken fingers** and **breakfast** (eggs, bacon, pancakes). Walk into one and you carry it (brushing past another tray never swaps it). A pot of stew bubbles on the stove.
+  - **Dining room:** the table is empty until you bring a meal; walk up to it carrying one and it's served at every place, one after another with rising chimes. Bring a different meal later and it's swapped. The chairs face the table.
+  - **Living room:** a TV on the east wall with the sofa facing it across a low table and armchairs either side. The TV comes on when you come in and plays a little cartoon (drawn in code, no words): a plane looping over the sea with dolphins, a mermaid waving from a rock, a dinosaur bobbing through the jungle; it switches off when you leave (costs nothing when nobody's watching). Jump onto the sofa and it bounces you up high; a trophy shelf on the north wall with five golden stands waits for dragon treasure (Phase 4).
+  - Nothing stands in a doorway (a test checks every doorway).
+  - Everything goes back as it was when you leave (toys in the box, the table cleared, the meals put away, a meal in your arms left behind, the fridge shut, the TVs off).
+- **Stairs:** in a stairwell between the hall and the living room, up the middle with walkways either side. Stepped blocks to see, a smooth solid ramp to walk on (no snagging, nothing to get under), banisters on both sides, and railings round the opening upstairs.
+- **Upstairs** (dollhouse: hidden while you're downstairs, fading in as you climb; once you're up, the rooms downstairs fade out except the stairwell, so their wall tops never show through the floor). Walls stop just under the floor above.
+  - **Landing** over the hall and stairwell; the two east bedrooms have their doors right beside the top of the stairs.
+  - **Four bedrooms**, each with a bed, a nightstand and lamp, a rug, and a big light switch beside the door: walk into it and the room dims, walk into it again and it's bright. Jump onto a bed and it bounces you (each bounce a little lower); stand still on it for a moment and you **lie down** (head on the pillow); push the stick or press A to get up.
+  - **Sophia's room** (the pink one, top right coming up the stairs; set in `resources/buildings/her_house.json` with `"hers": true`), bigger than the others: a painter's easel by the west wall (the walls) and a pink toy chest of folded quilts beside the bed (her quilt). Stand by one and the Y prompt shows a palette; press Y and a colour menu opens with six big paint blobs and a picture of a wall or the bed: the stick moves between them and the room shows each colour straight away, A (green tick) keeps it with a sparkle, B (red cross) puts back what was there. Walking past them never changes anything. Saved (`[house] wall`, `bed`); her own TV with the cartoon; a bookshelf full of books by the door; three mermaid toys round a little blue play pool; stuffies (a teddy and a bunny on the bed by the pillows, another teddy and a dolphin on the floor).
+  - **A hidden star** in a corner of the south-east bedroom: three reward stars, back every visit.
+- **Out of the windows:** the island isn't loaded indoors, so a simple garden is built round the house instead: a lawn, the front path with flowers either side, a clipped hedge with a gap for the path, flower beds along the walls, trees, a beach and the sea out to the horizon, clouds and a soft sky. Unshadowed and cheap.
+- **Saving:** her room's colours, and whether she was inside (new `[house]` keys only). Stopping the game inside starts her outside the front door next time, the plane parked safely nearby.
+- **Edge cases:** calling the plane doesn't work indoors; the dragon (with the rest of the outdoor world) is paused while she's inside; nothing stands on the doorstep when she comes out.
+
+---
+
+## 14. Future Ideas
 
 | Idea | Description | Complexity |
 |---|---|---|
@@ -316,7 +344,7 @@ A gentle job to do, never a chore: pick up a parcel and carry it to someone.
 
 ---
 
-## 14. Open Questions
+## 15. Open Questions
 
 - [ ] Should the jet be available from the start, or unlocked after collecting N stars? *(Recommendation: available from the start. Unlocks add friction for a 4-year-old.)*
 - [ ] Should there be a voice narrator (for example "You found the lighthouse!")? It helps non-readers but needs recording.

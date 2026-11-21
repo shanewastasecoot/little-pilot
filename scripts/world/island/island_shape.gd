@@ -47,6 +47,13 @@ const LAIR_CLEARING := Vector2(-160, -1300)
 const NORTH_BULGE := 430.0      # extra coast distance at the headland
 const NORTH_ANGLE := -1.68      # direction of the headland (atan2 z, x)
 
+# Her house (an enterable two-storey home, scripts/world/landmarks/her_house.gd):
+# south-west of the runway, outside the city's full-grown square, on a
+# flattened pad. Its front door faces north, towards the runway.
+const HOUSE := Vector2(-180, 200)
+const HOUSE_PAD := 42.0
+const HOUSE_HEIGHT := 17.0
+
 # Extra islands (map expansion)
 const PALM_ISLAND := Vector2(2050, 380)
 const PALM_RADIUS := 270.0
@@ -121,6 +128,8 @@ static func height(x: float, z: float) -> float:
 	# The lair: a flat cave floor, and a clearing in front of the mouth.
 	h = lerpf(LAIR_FLOOR, h, smoothstep(LAIR_RADIUS - 6.0, LAIR_RADIUS + 30.0, p.distance_to(LAIR)))
 	h = lerpf(LAIR_FLOOR + 2.0, h, smoothstep(110.0, 190.0, p.distance_to(LAIR_CLEARING)))
+	# Her house: a flat garden-sized pad south-west of the runway.
+	h = lerpf(HOUSE_HEIGHT, h, smoothstep(HOUSE_PAD, HOUSE_PAD + 35.0, p.distance_to(HOUSE)))
 
 	return lerpf(-28.0, h, land)
 

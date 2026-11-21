@@ -93,15 +93,26 @@ func _physics_process(delta: float) -> void:
 				var fwd := d._forward()
 				fwd.y = 0.0
 				# Its patrol route is random: pick a spot ahead that it can
-				# really see (not behind a hill, not over the safe airport).
+				# really see (not behind a hill, not over the safe airport)
+				# with open air ahead for the plane (crashes are on: flying
+				# into a hill would respawn it at the runway, and the dragon
+				# leaves a fresh respawn alone).
 				var p := d.global_position + fwd.normalized() * 180.0 + Vector3.UP * 5.0
-				for turn in [0.0, 0.3, -0.3, 0.6, -0.6]:
-					var dir := fwd.normalized().rotated(Vector3.UP, turn)
-					var q := d.global_position + dir * 180.0 + Vector3.UP * 5.0
-					if d._clear_line(d.global_position, q) and not d._in_sanctuary(q):
-						p = q
-						fwd = dir
+				var found := false
+				for up in [5.0, 40.0, 80.0]:
+					for turn in [0.0, 0.3, -0.3, 0.6, -0.6]:
+						var dir := fwd.normalized().rotated(Vector3.UP, turn)
+						var q: Vector3 = d.global_position + dir * 180.0 + Vector3.UP * float(up)
+						if d._clear_line(d.global_position, q) and d._clear_line(q, q + dir * 500.0) \
+								and not d._in_sanctuary(q):
+							p = q
+							fwd = dir
+							found = true
+							break
+					if found:
 						break
+				if not found:
+					print("  note: no clear spot in front of the dragon; using the default")
 				# Flying away from the dragon, so it has to chase.
 				_plane.teleport(p, atan2(-fwd.x, -fwd.z))
 			if _dragon.state == Dragon.State.HUNT or _dragon.state == Dragon.State.BREATHE:

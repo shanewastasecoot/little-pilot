@@ -1,0 +1,392 @@
+{
+	"name": "her_house",
+	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door), floor = storey (0 down, 1 up). Doors and windows sit on a side (N, S, E, W) at a fraction along it; a doorway between two rooms is listed on both, at the same spot. A door with exit = true leads outside. holes = openings in a room's floor (the stairs come up through one). stairs: a straight flight from a room below to a room above (bottom and top ends on the plan, width). Ground floor: hall, stairwell, playroom, kitchen, dining room, living room. Upstairs: landing and four bedrooms (bedroom_nw is hers: she picks its wall and bed colours).",
+	"storey_height": 11.0,
+	"wall_thickness": 0.5,
+	"door_width": 7.0,
+	"door_height": 8.5,
+	"furniture_scale": 2.27,
+	"seed": 7,
+	"rooms": [
+		{
+			"id": "hall",
+			"type": "hall",
+			"floor": 0,
+			"rect": [
+				-13,
+				-11,
+				26,
+				22
+			],
+			"wall": "fff1d6",
+			"floor_colour": "c8a27a",
+			"doors": [
+				{
+					"side": "S",
+					"at": 0.5,
+					"exit": true
+				},
+				{
+					"side": "W",
+					"at": 0.5
+				},
+				{
+					"side": "N",
+					"at": 0.5
+				},
+				{
+					"side": "E",
+					"at": 0.8182
+				}
+			],
+			"windows": [
+				{
+					"side": "S",
+					"at": 0.17
+				},
+				{
+					"side": "S",
+					"at": 0.83
+				}
+			]
+		},
+		{
+			"id": "stairwell",
+			"type": "stairwell",
+			"floor": 0,
+			"rect": [
+				13,
+				-11,
+				20,
+				22
+			],
+			"wall": "fff1d6",
+			"floor_colour": "c8a27a",
+			"doors": [
+				{
+					"side": "W",
+					"at": 0.8182
+				},
+				{
+					"side": "E",
+					"at": 0.8182
+				}
+			],
+			"windows": []
+		},
+		{
+			"id": "playroom",
+			"type": "playroom",
+			"floor": 0,
+			"rect": [
+				-45,
+				-14,
+				32,
+				28
+			],
+			"wall": "cfe8ff",
+			"floor_colour": "f2c46d",
+			"doors": [
+				{
+					"side": "E",
+					"at": 0.5
+				}
+			],
+			"windows": [
+				{
+					"side": "W",
+					"at": 0.3
+				},
+				{
+					"side": "W",
+					"at": 0.7
+				},
+				{
+					"side": "S",
+					"at": 0.5
+				}
+			]
+		},
+		{
+			"id": "kitchen",
+			"type": "kitchen",
+			"floor": 0,
+			"rect": [
+				-45,
+				-37,
+				32,
+				23
+			],
+			"wall": "fff8e1",
+			"floor_colour": "dfe6ec",
+			"doors": [
+				{
+					"side": "E",
+					"at": 0.5217
+				}
+			],
+			"windows": [
+				{
+					"side": "N",
+					"at": 0.82
+				},
+				{
+					"side": "W",
+					"at": 0.5
+				}
+			]
+		},
+		{
+			"id": "dining",
+			"type": "dining",
+			"floor": 0,
+			"rect": [
+				-13,
+				-37,
+				26,
+				26
+			],
+			"wall": "e8f5e0",
+			"floor_colour": "b98a5e",
+			"doors": [
+				{
+					"side": "S",
+					"at": 0.5
+				},
+				{
+					"side": "W",
+					"at": 0.4615
+				}
+			],
+			"windows": [
+				{
+					"side": "N",
+					"at": 0.5
+				}
+			]
+		},
+		{
+			"id": "living",
+			"type": "living",
+			"floor": 0,
+			"rect": [
+				33,
+				-14,
+				32,
+				28
+			],
+			"wall": "ffe4ec",
+			"floor_colour": "c9a27e",
+			"doors": [
+				{
+					"side": "W",
+					"at": 0.75
+				}
+			],
+			"windows": [
+				{
+					"side": "E",
+					"at": 0.22
+				},
+				{
+					"side": "E",
+					"at": 0.78
+				},
+				{
+					"side": "S",
+					"at": 0.5
+				},
+				{
+					"side": "N",
+					"at": 0.82
+				}
+			]
+		},
+		{
+			"id": "landing",
+			"type": "landing",
+			"floor": 1,
+			"rect": [
+				-13,
+				-11,
+				44,
+				22
+			],
+			"wall": "fff1d6",
+			"floor_colour": "c8a27a",
+			"holes": [
+				[
+					13.5,
+					-6.5,
+					16.5,
+					7.0
+				]
+			],
+			"doors": [
+				{
+					"side": "N",
+					"at": 0.25
+				},
+				{
+					"side": "N",
+					"at": 0.5909
+				},
+				{
+					"side": "S",
+					"at": 0.25
+				},
+				{
+					"side": "S",
+					"at": 0.5909
+				}
+			],
+			"windows": [
+				{
+					"side": "W",
+					"at": 0.5
+				},
+				{
+					"side": "E",
+					"at": 0.6
+				}
+			]
+		},
+		{
+			"id": "bedroom_nw",
+			"type": "bedroom",
+			"floor": 1,
+			"rect": [
+				-25,
+				-43,
+				34,
+				32
+			],
+			"wall": "ffd6e8",
+			"floor_colour": "e9c8a8",
+			"doors": [
+				{
+					"side": "S",
+					"at": 0.6764705882352942
+				}
+			],
+			"windows": [
+				{
+					"side": "N",
+					"at": 0.3
+				},
+				{
+					"side": "N",
+					"at": 0.75
+				},
+				{
+					"side": "W",
+					"at": 0.5
+				}
+			],
+			"hers": true,
+			"name": "Sophia"
+		},
+		{
+			"id": "bedroom_ne",
+			"type": "bedroom",
+			"floor": 1,
+			"rect": [
+				9,
+				-33,
+				22,
+				22
+			],
+			"wall": "d6ecff",
+			"floor_colour": "c9a27e",
+			"doors": [
+				{
+					"side": "S",
+					"at": 0.1818
+				}
+			],
+			"windows": [
+				{
+					"side": "N",
+					"at": 0.5
+				},
+				{
+					"side": "E",
+					"at": 0.5
+				}
+			]
+		},
+		{
+			"id": "bedroom_sw",
+			"type": "bedroom",
+			"floor": 1,
+			"rect": [
+				-13,
+				11,
+				22,
+				22
+			],
+			"wall": "e6f7d6",
+			"floor_colour": "c9a27e",
+			"doors": [
+				{
+					"side": "N",
+					"at": 0.5
+				}
+			],
+			"windows": [
+				{
+					"side": "S",
+					"at": 0.5
+				},
+				{
+					"side": "W",
+					"at": 0.5
+				}
+			]
+		},
+		{
+			"id": "bedroom_se",
+			"type": "bedroom",
+			"floor": 1,
+			"rect": [
+				9,
+				11,
+				22,
+				22
+			],
+			"wall": "fff2c2",
+			"floor_colour": "c9a27e",
+			"doors": [
+				{
+					"side": "N",
+					"at": 0.1818
+				}
+			],
+			"windows": [
+				{
+					"side": "S",
+					"at": 0.5
+				},
+				{
+					"side": "E",
+					"at": 0.5
+				}
+			]
+		}
+	],
+	"stairs": [
+		{
+			"from": "stairwell",
+			"to": "landing",
+			"bottom": [
+				29.5,
+				-3.0
+			],
+			"top": [
+				14.0,
+				-3.0
+			],
+			"width": 6.0
+		}
+	]
+}

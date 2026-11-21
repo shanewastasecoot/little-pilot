@@ -3,7 +3,8 @@ extends CharacterBody3D
 ## The player on foot: gets out of the parked plane, walks about, gets back
 ## in. Storybook-sized like the townspeople (about 5 m tall). The left stick
 ## moves relative to the camera, and how far it's pushed sets the speed
-## (analog walk); B sprints, A jumps. It walks on any ground up to
+## (analog walk); holding the stick all the way for AUTO_RUN_AFTER seconds
+## breaks into a run by itself (B runs straight away), A jumps. It walks on any ground up to
 ## MAX_SLOPE_DEG, bumps into buildings and the plane, and never goes into
 ## the sea: the shore is a soft invisible edge at SHORE_LEVEL (a fixed
 ## height, not the moving waves: big swells may lap at your feet, but the
@@ -14,8 +15,12 @@ extends CharacterBody3D
 
 const HEIGHT := 5.0
 const RADIUS := 0.9
-const WALK_SPEED := 5.0        # m/s with the stick fully pushed (a jog for short legs)
-const SPRINT_SPEED := 9.0
+const WALK_SPEED := 8.0        # m/s with the stick fully pushed
+const SPRINT_SPEED := 15.0     # running (B, or the stick held all the way)
+## Stick pushed all the way for this long: run without needing B.
+const AUTO_RUN_AFTER := 1.5
+## How far is "all the way" (the stick's length, 0..1).
+const FULL_PUSH := 0.92
 const ACCEL := 45.0            # m/s^2 towards the wanted speed
 const AIR_ACCEL := 14.0
 const JUMP_SPEED := 11.0
@@ -26,6 +31,11 @@ const TURN_RATE := 12.0        # how quickly it turns to face where it's going
 ## this far ahead of the feet.
 const SHORE_LEVEL := 1.5
 const SHORE_REACH := 1.6
+## How hard walking into a ball or a toy pushes it (per m/s, per second of contact).
+const PUSH := 9.0
+const PUSH_LIFT := 6.0
+## Landing on something bouncy (a sofa, a bed) springs you up this fast.
+const BOUNCE_SPEED := 19.0
 
 ## The camera's yaw (set by WalkCamera): the stick moves relative to it.
 var camera_yaw := 0.0
@@ -46,6 +56,19 @@ var model: CharacterModel
 ## (sliding down a steep bank), it goes back there.
 var _last_dry := Vector3.ZERO
 var _active := false
+## Seconds the stick has been pushed all the way (auto-run).
+var _full_push := 0.0
+## Landed on something bouncy and sprang up.
+signal bounced
+var _bounce := false
+## Lying in a bed (stand still on one for LIE_AFTER seconds).
+signal lay_down
+var lying := false
+var _getting_up := false
+var _still_on_bed := 0.0
+var _bounce_speed := BOUNCE_SPEED
+var _bed_bounces := 0
+const LIE_AFTER := 1.2
 
 
 func _ready() -> void:
@@ -86,6 +109,9 @@ func set_active(on: bool) -> void:
 	velocity = Vector3.ZERO
 	moving = false
 	sprinting = false
+	_full_push = 0.0
+	lying = false
+	_getting_up = false
 	if on:
 		add_to_group("player_focus")
 	elif is_in_group("player_focus"):
@@ -98,6 +124,8 @@ func is_active() -> bool:
 
 ## Stand at `pos` (feet), facing `yaw`.
 func place(pos: Vector3, yaw: float) -> void:
+	lying = false
+	_getting_up = false
 	global_position = pos
 	_last_dry = pos
 	facing = yaw
@@ -112,6 +140,15 @@ func _physics_process(delta: float) -> void:
 	var sprint := override_sprint if override_enabled else Input.is_action_pressed("sprint")
 	var jump := override_jump if override_enabled else Input.is_action_just_pressed("jump")
 	var amount := move.length()
+	# Lying in bed: stay put until the stick or A gets you up again.
+	if lying:
+		velocity = Vector3.ZERO
+		if (amount > 0.3 or jump) and not _getting_up:
+			_get_up()
+		return
+	# Held all the way for a moment: break into a run by itself.
+	_full_push = _full_push + delta if amount >= FULL_PUSH else 0.0
+	sprint = sprint or _full_push >= AUTO_RUN_AFTER
 	var dir := Vector3.ZERO
 	if amount > 0.01:
 		var forward := Vector3(-sin(camera_yaw), 0.0, -cos(camera_yaw))
@@ -125,10 +162,26 @@ func _physics_process(delta: float) -> void:
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if is_on_floor():
-		velocity.y = JUMP_SPEED if jump else 0.0
+		velocity.y = _bounce_speed if _bounce else (JUMP_SPEED if jump else 0.0)
+		if jump and not _bounce:
+			_bed_bounces = 0  # a fresh jump onto a bed bounces high again
+		_bounce = false
 	else:
 		velocity.y -= GRAVITY * delta
+	var was_falling := not is_on_floor() and velocity.y < -2.0
 	move_and_slide()
+	_push_things()
+	if is_on_floor() and was_falling and _on_bouncy():
+		# Beds: each bounce a little lower, so you settle (and can lie down).
+		var on_bed := _bed_under() != null
+		_bounce_speed = BOUNCE_SPEED if not on_bed or _bed_bounces == 0 else _bounce_speed * 0.6
+		_bed_bounces = _bed_bounces + 1 if on_bed else 0
+		if _bounce_speed > 7.0:
+			_bounce = true  # springs up on the next step
+			Sfx.play("whoosh", 1.8, -4.0)
+			bounced.emit()
+	elif is_on_floor() and not _bounce and _bed_under() == null:
+		_bed_bounces = 0
 	if _wet(global_position):
 		global_position = _last_dry
 		velocity = Vector3.ZERO
@@ -139,7 +192,72 @@ func _physics_process(delta: float) -> void:
 		_visual.rotation.y = facing
 	moving = is_on_floor() and flat.length() > 0.3
 	sprinting = moving and sprint
+	# Standing still on a bed for a moment: lie down.
+	var bed := _bed_under() if is_on_floor() and amount < 0.05 else null
+	_still_on_bed = _still_on_bed + delta if bed else 0.0
+	if bed and _still_on_bed > LIE_AFTER:
+		_lie_down(bed)
+		return
 	model.animate(flat.length(), is_on_floor(), velocity.y > 0.5, sprinting)
+
+
+## The bed you're standing on (group "bed"), or null.
+func _bed_under() -> Node3D:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as Node
+		if c.get_normal().y > 0.7 and body and body.is_in_group("bed"):
+			return body.get_parent() as Node3D
+	return null
+
+
+## Lie down on `bed`, along it with your head on the pillow.
+func _lie_down(bed: Node3D) -> void:
+	lying = true
+	_still_on_bed = 0.0
+	var top := global_position.y
+	global_position = Vector3(bed.global_position.x, top, bed.global_position.z) + bed.global_transform.basis.z.normalized() * 0.6
+	# The bed's head is at its -Z end: lie with the feet towards +Z.
+	facing = bed.global_rotation.y + PI
+	_visual.rotation.y = facing
+	model.play("Lie_Down")
+	model._anim.speed_scale = 1.6
+	get_tree().create_timer(1.8, false).timeout.connect(func():
+		if lying and not _getting_up:
+			model.play("Lie_Idle")
+			model._anim.speed_scale = 1.0)
+	lay_down.emit()
+
+
+func _get_up() -> void:
+	_getting_up = true
+	model.play("Lie_StandUp")
+	model._anim.speed_scale = 2.2
+	get_tree().create_timer(1.0, false).timeout.connect(func():
+		lying = false
+		_getting_up = false
+		model.play("Idle"))
+
+
+## Standing on something bouncy (group "bouncy")?
+func _on_bouncy() -> bool:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		if c.get_normal().y > 0.7 and (c.get_collider() as Node).is_in_group("bouncy"):
+			return true
+	return false
+
+
+## Kick: anything loose you walk into (a ball, toys) gets a push.
+func _push_things() -> void:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as RigidBody3D
+		if body == null:
+			continue
+		var flat := Vector3(velocity.x, 0.0, velocity.z)
+		var push := (-c.get_normal() * Vector3(1, 0, 1)).normalized() * maxf(flat.length(), 2.0) * PUSH
+		body.apply_central_impulse((push + Vector3.UP * PUSH_LIFT) * body.mass * get_physics_process_delta_time())
 
 
 ## Don't walk into the sea: if the ground just ahead is under (or nearly
