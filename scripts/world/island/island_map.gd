@@ -116,8 +116,8 @@ func _place_landmarks() -> void:
 	_add_landmark(CityDistrict.new(), IslandShape.CITY)
 	var her_house := HerHouse.new()
 	her_house.name = "HerHouse"
+	her_house.rotation.y = PI  # front door towards the runway (north); before it builds
 	_add_landmark(her_house, IslandShape.HOUSE)
-	her_house.rotation.y = PI  # front door towards the runway (north)
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)

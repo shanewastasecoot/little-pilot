@@ -55,6 +55,9 @@ var model: CharacterModel
 ## The last spot it stood on dry ground: if it ever ends up over the sea
 ## (sliding down a steep bank), it goes back there.
 var _last_dry := Vector3.ZERO
+## Her feet's height the last time she stood on something (jumps and
+## bounces don't change it; the stairs do, step by step).
+var floor_y := 0.0
 var _active := false
 ## Seconds the stick has been pushed all the way (auto-run).
 var _full_push := 0.0
@@ -129,6 +132,7 @@ func is_active() -> bool:
 
 ## Stand at `pos` (feet), facing `yaw`.
 func place(pos: Vector3, yaw: float) -> void:
+	floor_y = pos.y
 	lying = false
 	sitting = false
 	_getting_up = false
@@ -194,6 +198,8 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector3.ZERO
 	elif is_on_floor():
 		_last_dry = global_position
+	if is_on_floor():
+		floor_y = global_position.y
 	if amount > 0.01:
 		facing = lerp_angle(facing, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 		_visual.rotation.y = facing

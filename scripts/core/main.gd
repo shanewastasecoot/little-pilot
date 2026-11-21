@@ -748,6 +748,9 @@ func open_colour_menu() -> bool:
 			var seat: int = here.seat
 			hud.set_prompt("")
 			walker.sit(table.seat_point(seat), table.seat_yaw(seat), table.stand_point(seat))
+			if interior.family:
+				interior.family.hold("seat%d" % seat, true)
+				walker.stood_up.connect(func(): interior.family.hold("seat%d" % seat, false), CONNECT_ONE_SHOT)
 			get_tree().create_timer(1.2, false).timeout.connect(func():
 				if walker.sitting:
 					table.eat_at(seat))

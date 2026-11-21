@@ -51,6 +51,12 @@ static func build(data: Dictionary) -> Interior:
 	for st: Dictionary in data.get("stairs", []):
 		_build_stairs(interior, data, st)
 	_add_garden(interior, data)
+	if data.get("family", false):
+		var family := Family.new()
+		family.name = "Family"
+		family.interior = interior
+		interior.family = family
+		interior.add_child(family)
 	return interior
 
 

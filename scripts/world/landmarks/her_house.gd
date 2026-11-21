@@ -39,6 +39,10 @@ func build() -> void:
 	garden.outdoor = true
 	garden.footprint = exterior.footprint
 	garden.front_door = Vector2(exterior.door_point.x, exterior.door_point.z)
+	# Plan point -> the island's ground height there, relative to the house.
+	garden.ground_at = func(x: float, z: float) -> float:
+		var w := global_transform * Vector3(x, 0, z)
+		return IslandShape.height(w.x, w.z) - global_position.y
 	add_child(garden)
 	BuildKit.push_volume(self, exterior.footprint.size.length() * 0.5, 40.0, Vector3(exterior.footprint.get_center().x, 16, exterior.footprint.get_center().y))
 	# The front door: walk into it to go in.

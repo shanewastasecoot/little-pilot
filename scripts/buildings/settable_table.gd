@@ -15,7 +15,7 @@ var places: Array[Vector3] = []
 var seats: Array = []
 signal ate(seat: int)
 var _by_place := {}  # place index -> meal node on the table
-var _eating := false
+var _eating := {}  # place index -> being eaten
 var furniture_scale := 2.27
 ## The meal on the table ("" = none yet).
 var meal := ""
@@ -67,7 +67,7 @@ func serve(dish: String) -> void:
 func clear() -> void:
 	meal = ""
 	_by_place.clear()
-	_eating = false
+	_eating.clear()
 	for item in _items:
 		if is_instance_valid(item):
 			item.queue_free()
@@ -78,14 +78,17 @@ func reset() -> void:
 	clear()
 
 
-## The seat nearest `p` (world) within `radius`, or -1.
-func seat_near(p: Vector3, radius := 4.5) -> int:
+## The seat nearest `p` (world) within `radius`, or -1 (seats someone's
+## in, per `taken`, are skipped).
+func seat_near(p: Vector3, radius := 4.5, taken := Callable()) -> int:
 	var best := -1
 	var best_d := radius
 	for i in seats.size():
+		if taken.is_valid() and taken.call(i):
+			continue
 		var sp := seat_point(i)
 		var d := Vector2(p.x, p.z).distance_to(Vector2(sp.x, sp.z))
-		if d < best_d:
+		if d < best_d and absf(p.y - sp.y) < 3.0:  # on this storey
 			best_d = d
 			best = i
 	return best
@@ -116,10 +119,10 @@ func has_food_at(i: int) -> bool:
 ## Eat the meal at seat `i`'s place: three bites (munch, smaller each time),
 ## then it's gone with a little burst of hearts and a happy chime.
 func eat_at(i: int) -> bool:
-	if _eating or not has_food_at(i):
-		return false
-	_eating = true
 	var place := int(seats[i].place)
+	if _eating.has(place) or not has_food_at(i):
+		return false
+	_eating[place] = true
 	var item: Node3D = _by_place[place]
 	var full := item.scale
 	var tw := create_tween()
@@ -141,7 +144,7 @@ func eat_at(i: int) -> bool:
 			_items.erase(item)
 			item.queue_free()
 		_by_place.erase(place)
-		_eating = false
+		_eating.erase(place)
 		Sfx.play("chime", 1.6)
 		ate.emit(i))
 	return true

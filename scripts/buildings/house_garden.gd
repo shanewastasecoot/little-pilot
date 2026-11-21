@@ -29,6 +29,9 @@ const FENCE_H := 3.2
 const GATE := 14.0
 
 var outdoor := false
+## Outdoors: the ground's height at a point on the plan (the yard itself is
+## flat at 0; beyond it the island slopes). Indoors everything's flat.
+var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
 ## The house's footprint on the plan and where the front door is.
 var footprint := Rect2()
 var front_door := Vector2.ZERO
@@ -57,10 +60,18 @@ func _ready() -> void:
 			_disc(Vector3(c.x + cos(a) * r, -1.15, c.y + sin(a) * r), rng.randf_range(14.0, 34.0), 1.0, "b3df62" if i % 2 else LAWN, 20)
 	# The mown lawn inside the fence.
 	_box(Vector3(c.x, 0.04 if outdoor else -1.3, c.y), Vector3(g.size.x, 0.1 if outdoor else 1.0, g.size.y), LAWN)
-	# The path from the front door out through the gate and a little beyond.
-	var path_end := g.end.y + 40.0
-	var path_len := path_end - front_door.y
-	_box(Vector3(front_door.x, 0.12, front_door.y + path_len * 0.5), Vector3(8.0, 0.12, path_len), PATH)
+	# The path from the front door out through the gate, then on a little
+	# way over the real ground (outdoors it follows the slope beyond the yard).
+	var in_len := g.end.y - front_door.y
+	_box(Vector3(front_door.x, 0.12, front_door.y + in_len * 0.5), Vector3(8.0, 0.12, in_len), PATH)
+	var z0 := g.end.y
+	for k in 10:
+		var za := z0 + k * 4.0
+		var zb := za + 4.0
+		var ya := _ground(front_door.x, za) + 0.12
+		var yb := _ground(front_door.x, zb) + 0.12
+		var seg := _box(Vector3(front_door.x, (ya + yb) * 0.5, (za + zb) * 0.5), Vector3(8.0, 0.12, 4.15), PATH)
+		seg.rotation.x = -atan2(yb - ya, 4.0)
 	for k in int((g.end.y - front_door.y - 8.0) / 7.0):
 		var z := front_door.y + 10.0 + k * 7.0
 		for side in [-1.0, 1.0]:
@@ -100,6 +111,10 @@ func _box(at: Vector3, size: Vector3, hex: String) -> MeshInstance3D:
 
 func _ball(at: Vector3, radius: float, hex: String) -> void:
 	BuildKit.add(self, BuildKit.sphere(radius, 8), hex, at).material_override = _mat(hex)
+
+
+func _ground(x: float, z: float) -> float:
+	return float(ground_at.call(x, z)) if outdoor else 0.0
 
 
 func _solid(size: Vector3, at: Vector3) -> void:

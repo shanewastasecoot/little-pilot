@@ -23,6 +23,8 @@ var balls: Array = []
 var fridges: Array = []
 var pots: Array = []
 var tvs: Array[TVSet] = []
+## The people living here (Family), if any.
+var family: Family
 var mermaid_toys: Array[Node3D] = []
 var stuffies: Array[Node3D] = []
 var tables: Array = []
@@ -442,7 +444,8 @@ func interaction_at(walker: Walker) -> Dictionary:
 		if f.is_open() and not walker.model.carrying:
 			return {"kind": "food", "target": f}
 	for t in tables:
-		var i: int = t.seat_near(walker.global_position)
+		var i: int = t.seat_near(walker.global_position, 4.5,
+				func(k: int) -> bool: return family != null and family.is_taken("seat%d" % k))
 		if i >= 0:
 			return {"kind": "sit", "target": t, "seat": i}
 	return {}

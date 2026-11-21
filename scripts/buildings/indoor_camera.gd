@@ -60,7 +60,12 @@ func _physics_process(delta: float) -> void:
 	global_position = global_position.lerp(want, 1.0 - exp(-SMOOTH * delta))
 	_place_camera()
 	if interior:
-		interior.update_view(cam.global_position, target.global_position + Vector3.UP * 2.5, delta)
+		# Which storeys show follows where she's standing (a big bounce on
+		# a bed mustn't fade the room she's in away).
+		var feet := target.global_position
+		if target is Walker and not (target as Walker).is_on_floor():
+			feet.y = minf(feet.y, (target as Walker).floor_y)
+		interior.update_view(cam.global_position, feet + Vector3.UP * 2.5, delta)
 
 
 func _place_camera() -> void:

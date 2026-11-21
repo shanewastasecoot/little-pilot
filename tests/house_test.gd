@@ -11,6 +11,10 @@ extends Node
 ##            doorways, and the floor holds you everywhere (never through
 ##            the floor, never stuck in a wall)
 ##   view     a wall between the camera and you fades away
+##   family   Mum, Dad, a brother and a sister live there: each goes from
+##            room to room doing different things (cooking, eating, TV,
+##            sleeping, playing...), never through the floor, and they say
+##            hello when she comes up
 ##   layout   no furniture, picture or plant stands in any doorway, and
 ##            nothing hangs over or stands in front of a window
 ##   play     walking up to the toy box opens it and the toys hop out into a
@@ -134,6 +138,41 @@ func _run() -> void:
 		if w.room == "playroom" and (w.inward as Vector2).is_equal_approx(Vector2(0, -1)):
 			faded = (w.pieces[0] as GeometryInstance3D).transparency > 0.5
 	_check("the wall between the camera and you fades away", faded)
+	# --- the family -------------------------------------------------------------------------
+	var fam: Family = interior.family
+	var fam_ok := fam != null and fam.members.size() == 4
+	var seen_rooms := {}
+	var seen_acts := {}
+	var fam_low := INF
+	var greets := [0]
+	if fam_ok:
+		for m in fam.members:
+			seen_rooms[m.id] = {}
+			seen_acts[m.id] = {}
+			m.greeted.connect(func(_who): greets[0] += 1)
+		_w.global_position = interior.room_centre("hall") + Vector3(0, 0.5, 12)  # out of their way
+		Engine.time_scale = 4.0
+		for i in 60 * 16:
+			await get_tree().physics_frame
+			if i % 15 == 0:
+				for m in fam.members:
+					seen_rooms[m.id][interior.room_at(m.global_position).get("id", "?")] = true
+					seen_acts[m.id][str(m.activity.get("kind", ""))] = true
+					fam_low = minf(fam_low, m.global_position.y - interior.global_position.y)
+		Engine.time_scale = 1.0
+		# Walk up to each of them: someone says hello.
+		for m in fam.members:
+			_w.global_position = m.global_position + Vector3(0, 0.5, 6.0)
+			await _frames(40)
+	var lively := fam_ok
+	for id in seen_rooms:
+		if seen_rooms[id].size() < 2 or seen_acts[id].size() < 2:
+			lively = false
+		print("  note: %s went to %s; did %s" % [id, ", ".join(seen_rooms[id].keys()), ", ".join(seen_acts[id].keys())])
+	_check("her family (Mum, Dad, brother, sister) live their own lives: each goes room to room doing different things, never through the floor",
+			lively and fam_low > -0.5)
+	_check("the family say hello when she comes up", greets[0] > 0)
+	await _go_to_room("hall")
 	# --- layout -----------------------------------------------------------------------------
 	var blocked := _blocked_doorways(interior)
 	_check("no furniture, picture or plant stands in any doorway", blocked.is_empty())
@@ -208,6 +247,8 @@ func _run() -> void:
 			carrying_meal, table.meal, table._items.size()])
 	# Sit at a chair (Y) and eat: three bites, then it's gone; the stick gets you up.
 	var seat := 0
+	while interior.family and interior.family.is_taken("seat%d" % seat) and seat < table.seats.size() - 1:
+		seat += 1  # a chair nobody in the family is sitting in
 	var seat_stand := table.stand_point(seat)
 	await _walk_to(seat_stand, 1.0, 400)
 	await _walk_to(table.seat_point(seat).lerp(seat_stand, 0.4), 0.8, 200)
