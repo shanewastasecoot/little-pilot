@@ -11,14 +11,21 @@ extends Node
 ##            doorways, and the floor holds you everywhere (never through
 ##            the floor, never stuck in a wall)
 ##   view     a wall between the camera and you fades away
-##   play     walking up to the toy box opens it and toys pop out; walking
-##            into the ball kicks it; the fridge opens when you walk up and
-##            closes when you go; the pot bubbles; the dining table sets
-##            itself; landing on the sofa bounces you up high; the trophy
-##            shelf has its stands; going out tidies everything away
+##   layout   no furniture, picture or plant stands in any doorway
+##   play     walking up to the toy box opens it and the toys hop out into a
+##            tidy row in front of it (none flung away); walking into the
+##            ball kicks it; the fridge opens when you walk up and closes
+##            when you go; the pot bubbles; the dining table stays empty
+##            until you bring a meal: the fridge shows three meals, walking
+##            into one carries it, walking up to the table serves it at
+##            every place; the TV comes on when you come in and goes off
+##            when you leave; landing on the sofa bounces you up high; the
+##            trophy shelf has its stands; going out tidies everything away
 ##   stairs   you can walk up the stairs and down again; downstairs the
-##            upstairs is hidden (dollhouse), upstairs it shows
-##   bedrooms landing on a bed bounces you; walking into the light switch
+##            upstairs is hidden (dollhouse), upstairs it shows and the
+##            rooms downstairs are hidden (their wall tops can't show)
+##   bedrooms landing on a bed bounces you; standing still on it you lie
+##            down, and pushing the stick gets you up; walking into the light switch
 ##            turns the light off and on; in her room, walking into a paint
 ##            pot or a cushion colours the walls or the quilt, and it's saved;
 ##            the hidden star gives reward stars
@@ -119,11 +126,27 @@ func _run() -> void:
 		if w.room == "playroom" and (w.inward as Vector2).is_equal_approx(Vector2(0, -1)):
 			faded = (w.pieces[0] as GeometryInstance3D).transparency > 0.5
 	_check("the wall between the camera and you fades away", faded)
+	# --- layout -----------------------------------------------------------------------------
+	var blocked := _blocked_doorways(interior)
+	_check("no furniture, picture or plant stands in any doorway", blocked.is_empty())
+	for b in blocked:
+		print("    blocked: ", b)
 	# --- play -------------------------------------------------------------------------------
 	var tb: ToyBox = interior.toy_boxes[0]
 	await _walk_to(tb.global_position + tb.global_transform.basis.z * 6.0, 1.5, 400)
 	await _frames(30)
-	_check("walking up to the toy box opens it and toys pop out", tb.is_open() and tb._toys.size() == ToyBox.TOYS)
+	var popped := tb.is_open() and tb._toys.size() == ToyBox.TOYS
+	await _frames(150)
+	# Landed in front of the box, near it, on the floor (not flung about).
+	var tidy := true
+	for toy in tb._toys:
+		var local := tb.to_local((toy as Node3D).global_position)
+		if local.z < -1.0 or local.length() > 12.0 or local.y > 2.5 or local.y < -1.0:
+			tidy = false
+	_check("walking up to the toy box opens it and the toys hop out into a tidy row", popped and tidy)
+	if not tidy:
+		for toy in tb._toys:
+			print("    toy at ", tb.to_local((toy as Node3D).global_position).snappedf(0.1))
 	var ball: BouncyBall = interior.balls[0]
 	# The ball back where it starts (it may have rolled into a corner while
 	# the test walked about), then a run-up from the open middle of the
@@ -149,12 +172,39 @@ func _run() -> void:
 	await _walk_to(interior.room_centre("kitchen") + Vector3(8, 0, 6), 1.5, 400)
 	await _frames(30)
 	_check("the fridge opens when you walk up and closes when you go", opened and not fridge.is_open())
-	# Dining room: the table sets itself.
-	await _go_to_room("dining")
+	# Dining room: empty until you bring a meal from the fridge.
 	var table: SettableTable = interior.tables[0]
-	await _frames(90)
-	_check("the dining table sets itself when you come up", table.is_set() and table._items.size() == table.places.size() * 3)
-	# Living room: bounce on the sofa; the trophy shelf.
+	await _go_to_room("dining")
+	await _frames(60)
+	var empty_first := not table.is_set() and table._items.is_empty()
+	await _go_to_room("kitchen")
+	var meals: MealPicker = interior.meal_pickers[0]
+	await _walk_to(fridge.global_position + fridge.global_transform.basis.z * 7.0, 1.5, 400)
+	await _frames(40)
+	var meals_shown := meals.is_shown()
+	var pizza: Node3D = meals.get_child(0)
+	await _walk_to(pizza.global_position + Vector3(0, 0, -5.0), 1.0, 300)
+	await _walk_to(pizza.global_position, 0.6, 200)
+	await _frames(20)
+	var carrying_meal := _w.model.carrying and _w.model.carry_item == "Meal_Pizza"
+	await _go_to_room("dining")
+	await _walk_to(table.global_position + Vector3(0, 0, 9.0), 1.5, 400)
+	await _frames(120)
+	_check("the table stays empty until you bring a meal from the fridge (three to pick), then it's served at every place",
+			empty_first and meals_shown and carrying_meal and table.meal == "Meal_Pizza" and table._items.size() == table.places.size()
+			and not _w.model.carrying)
+	print("  note: empty %s, meals shown %s, carrying %s, served %s x%d" % [empty_first, meals_shown, carrying_meal, table.meal, table._items.size()])
+	# Living room: the TV, then bounce on the sofa; the trophy shelf.
+	var tv: TVSet = null
+	for t in interior.tvs:
+		if interior.room_at(t.global_position).get("id", "") == "living":
+			tv = t
+	await _go_to_room("living")
+	await _frames(30)
+	var tv_on := tv != null and tv.is_on()
+	await _go_to_room("hall")
+	await _frames(30)
+	_check("the TV comes on when you come in and goes off when you leave", tv_on and not tv.is_on())
 	await _go_to_room("living")
 	var sofa: Node3D = interior.sofas[0]
 	var front := sofa.global_transform.basis.z.normalized() * Vector3(1, 0, 1)
@@ -194,7 +244,8 @@ func _run() -> void:
 	await _go_to_room("landing")
 	var up_y := _w.global_position.y - interior.global_position.y
 	_check("you can walk up the stairs", interior.storey_at(_w.global_position) == 1 and up_y > 10.0 and _on_floor())
-	_check("downstairs the upstairs is hidden; upstairs it shows", upstairs_hidden and _visible_floor(1))
+	_check("downstairs the upstairs is hidden; upstairs it shows and downstairs is hidden",
+			upstairs_hidden and _visible_floor(1) and not (interior.find_room("playroom").node as Node3D).visible)
 	# A bed: jump onto it and bounce.
 	var her: Dictionary = interior.her_room
 	await _go_to_room(her.id)
@@ -222,6 +273,18 @@ func _run() -> void:
 	_w.override_move = Vector2.ZERO
 	_w.bounced.disconnect(on_bed_bounce)
 	_check("landing on a bed bounces you", bed_bounces[0] > 0 and bed_top > 4.0)
+	# Stand still on it: lie down; push the stick: up again.
+	var lay := false
+	for i in 400:
+		await get_tree().physics_frame
+		if _w.lying:
+			lay = true
+			break
+	await _frames(60)
+	_w.override_move = Vector2(0, -1)
+	await _frames(90)
+	_w.override_move = Vector2.ZERO
+	_check("standing still on a bed you lie down, and the stick gets you up", lay and not _w.lying)
 	# Her colours: walk into a paint pot and a cushion.
 	await _go_to_room(her.id)
 	var pots: ColourPicker = her.wall_picker
@@ -432,3 +495,45 @@ func _check(name: String, ok: bool) -> void:
 	print(("PASS  " if ok else "FAIL  ") + name)
 	if not ok:
 		_fails += 1
+
+
+## Doorways with something standing in them: every piece of furniture,
+## picture or plant (not walls, floors or flat rugs) whose box overlaps the
+## clear space through a doorway (a little narrower than the door, 2.5 m
+## either side, up to the top of the door).
+func _blocked_doorways(interior: Interior) -> Array[String]:
+	var out: Array[String] = []
+	var data: Dictionary = interior.data
+	var door_w: float = data.get("door_width", 7.0)
+	var door_h: float = data.get("door_height", 8.0)
+	var wall_bits := {}
+	for w in interior.walls:
+		for gi in w.pieces:
+			wall_bits[gi] = true
+	for room: Dictionary in data.rooms:
+		var r: Array = room.rect
+		var rect := Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
+		var info: Dictionary = interior.find_room(str(room.id))
+		for d: Dictionary in room.get("doors", []):
+			var at := float(d.at)
+			var c: Vector2
+			var along_x := str(d.side) in ["N", "S"]
+			match str(d.side):
+				"N": c = Vector2(rect.position.x + at * rect.size.x, rect.position.y)
+				"S": c = Vector2(rect.position.x + at * rect.size.x, rect.end.y)
+				"W": c = Vector2(rect.position.x, rect.position.y + at * rect.size.y)
+				_: c = Vector2(rect.end.x, rect.position.y + at * rect.size.y)
+			var half := Vector2((door_w - 1.0) * 0.5, 2.5) if along_x else Vector2(2.5, (door_w - 1.0) * 0.5)
+			var clear := AABB(Vector3(c.x - half.x, float(info.base) + 0.3, c.y - half.y), Vector3(half.x * 2.0, door_h - 0.6, half.y * 2.0))
+			for other in interior.rooms:
+				if other.floor != info.floor:
+					continue
+				for gi: GeometryInstance3D in (other.node as Node).find_children("*", "GeometryInstance3D", true, false):
+					if wall_bits.has(gi):
+						continue
+					var box: AABB = interior.global_transform.affine_inverse() * gi.global_transform * gi.get_aabb()
+					if box.size.y < 0.5 or box.size.x > 30.0 or box.size.z > 30.0:
+						continue  # floors, rugs, ceilings
+					if box.intersects(clear):
+						out.append("%s door %s: %s" % [room.id, d.side, gi.get_parent().name])
+	return out

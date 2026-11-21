@@ -311,17 +311,19 @@ Her own house near the airport is the first building you can walk into.
 - **Sized for her:** rooms are built for her 5 m character (11 m storeys, 7 m wide doorways); furniture is scaled to match.
 - **Ground floor:**
   - **Entrance hall** (the front door; doorways to every other room).
-  - **Playroom:** a toy box that pops open with bouncing, squeaking toys; a ball to kick.
-  - **Kitchen** (KayKit Restaurant Bits): the fridge's doors swing open with a cool glow when you walk up; a pot of stew bubbles on the stove.
-  - **Dining room:** walk up and the long table sets itself, place by place, with rising chimes.
-  - **Living room:** jump onto the sofa and it bounces you up high; a trophy shelf with five golden stands waits for dragon treasure (Phase 4).
-  - Everything goes back as it was when you leave (toys in the box, the table cleared, the fridge shut).
+  - **Playroom:** a toy box: walk up and the lid opens, and five toys hop out one by one into tidy rows either side of it (gently, then they can be pushed about); a ball to kick.
+  - **Kitchen** (KayKit Restaurant Bits): the fridge's doors swing open with a cool glow when you walk up, and three meals pop up on bright trays along the south wall: **pizza**, **chicken fingers** and **breakfast** (eggs, bacon, pancakes). Walk into one and you carry it (brushing past another tray never swaps it). A pot of stew bubbles on the stove.
+  - **Dining room:** the table is empty until you bring a meal; walk up to it carrying one and it's served at every place, one after another with rising chimes. Bring a different meal later and it's swapped. The chairs face the table.
+  - **Living room:** a TV on the east wall with the sofa facing it across a low table and armchairs either side. The TV comes on when you come in and plays a little cartoon (drawn in code, no words): a plane looping over the sea with dolphins, a mermaid waving from a rock, a dinosaur bobbing through the jungle; it switches off when you leave (costs nothing when nobody's watching). Jump onto the sofa and it bounces you up high; a trophy shelf on the north wall with five golden stands waits for dragon treasure (Phase 4).
+  - Nothing stands in a doorway (a test checks every doorway).
+  - Everything goes back as it was when you leave (toys in the box, the table cleared, the meals put away, a meal in your arms left behind, the fridge shut, the TVs off).
 - **Stairs:** in a stairwell between the hall and the living room, up the middle with walkways either side. Stepped blocks to see, a smooth solid ramp to walk on (no snagging, nothing to get under), banisters on both sides, and railings round the opening upstairs.
-- **Upstairs** (dollhouse: hidden while you're downstairs, fading in as you climb):
-  - **Landing** over the hall and stairwell.
-  - **Four bedrooms**, each with a bed to bounce on (land on it from a jump), a nightstand and lamp, a rug, and a big light switch by the door: walk into it and the room dims, walk into it again and it's bright.
-  - **Her room** (the north-west one for now; easy to change in `resources/buildings/her_house.json` with `"hers": true`): six paint pots along a wall (walk into one to colour the walls) and six cushions (her quilt). Picture-only, saved (`[house] wall`, `bed`).
+- **Upstairs** (dollhouse: hidden while you're downstairs, fading in as you climb; once you're up, the rooms downstairs fade out except the stairwell, so their wall tops never show through the floor). Walls stop just under the floor above.
+  - **Landing** over the hall and stairwell; the two east bedrooms have their doors right beside the top of the stairs.
+  - **Four bedrooms**, each with a bed, a nightstand and lamp, a rug, and a big light switch beside the door: walk into it and the room dims, walk into it again and it's bright. Jump onto a bed and it bounces you (each bounce a little lower); stand still on it for a moment and you **lie down** (head on the pillow); push the stick or press A to get up.
+  - **Sophia's room** (the pink one, top right coming up the stairs; set in `resources/buildings/her_house.json` with `"hers": true`), bigger than the others: six paint pots along the west wall (walk into one to colour the walls) and six cushions in a row at the foot of the bed (her quilt), picture-only and saved (`[house] wall`, `bed`); her own TV with the cartoon; a bookshelf full of books by the door; three mermaid toys round a little blue play pool; stuffies (a teddy and a bunny on the bed by the pillows, another teddy and a dolphin on the floor).
   - **A hidden star** in a corner of the south-east bedroom: three reward stars, back every visit.
+- **Out of the windows:** the island isn't loaded indoors, so a simple garden is built round the house instead: a lawn, the front path with flowers either side, a clipped hedge with a gap for the path, flower beds along the walls, trees, a beach and the sea out to the horizon, clouds and a soft sky. Unshadowed and cheap.
 - **Saving:** her room's colours, and whether she was inside (new `[house]` keys only). Stopping the game inside starts her outside the front door next time, the plane parked safely nearby.
 - **Edge cases:** calling the plane doesn't work indoors; the dragon (with the rest of the outdoor world) is paused while she's inside; nothing stands on the doorstep when she comes out.
 

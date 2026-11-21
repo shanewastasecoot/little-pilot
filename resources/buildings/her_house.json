@@ -186,11 +186,11 @@
 			"windows": [
 				{
 					"side": "E",
-					"at": 0.3
+					"at": 0.22
 				},
 				{
 					"side": "E",
-					"at": 0.7
+					"at": 0.78
 				},
 				{
 					"side": "S",
@@ -198,7 +198,7 @@
 				},
 				{
 					"side": "N",
-					"at": 0.5
+					"at": 0.82
 				}
 			]
 		},
@@ -229,7 +229,7 @@
 				},
 				{
 					"side": "N",
-					"at": 0.75
+					"at": 0.5909
 				},
 				{
 					"side": "S",
@@ -237,7 +237,7 @@
 				},
 				{
 					"side": "S",
-					"at": 0.75
+					"at": 0.5909
 				}
 			],
 			"windows": [
@@ -256,30 +256,35 @@
 			"type": "bedroom",
 			"floor": 1,
 			"rect": [
-				-13,
-				-33,
-				22,
-				22
+				-25,
+				-43,
+				34,
+				32
 			],
 			"wall": "ffd6e8",
 			"floor_colour": "e9c8a8",
 			"doors": [
 				{
 					"side": "S",
-					"at": 0.5
+					"at": 0.6764705882352942
 				}
 			],
 			"windows": [
 				{
 					"side": "N",
-					"at": 0.5
+					"at": 0.3
+				},
+				{
+					"side": "N",
+					"at": 0.75
 				},
 				{
 					"side": "W",
 					"at": 0.5
 				}
 			],
-			"hers": true
+			"hers": true,
+			"name": "Sophia"
 		},
 		{
 			"id": "bedroom_ne",
@@ -296,7 +301,7 @@
 			"doors": [
 				{
 					"side": "S",
-					"at": 0.5
+					"at": 0.1818
 				}
 			],
 			"windows": [
@@ -354,7 +359,7 @@
 			"doors": [
 				{
 					"side": "N",
-					"at": 0.5
+					"at": 0.1818
 				}
 			],
 			"windows": [

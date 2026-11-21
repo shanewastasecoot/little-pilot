@@ -22,6 +22,10 @@ var toy_boxes: Array = []
 var balls: Array = []
 var fridges: Array = []
 var pots: Array = []
+var meal_pickers: Array[MealPicker] = []
+var tvs: Array[TVSet] = []
+var mermaid_toys: Array[Node3D] = []
+var stuffies: Array[Node3D] = []
 var tables: Array = []
 var sofas: Array = []
 var beds: Array = []
@@ -32,8 +36,8 @@ var house_star: HouseStar
 var her_room: Dictionary = {}
 ## {from, to, bottom (local), top (local)}
 var stairs: Array = []
-var _floor_fade: Dictionary = {}   # storey -> how visible 0..1
-var _floor_items: Dictionary = {}  # storey -> [GeometryInstance3D]
+var _room_fade: Dictionary = {}    # room id -> how visible 0..1
+var _room_items: Dictionary = {}   # room id -> [GeometryInstance3D] (not its walls)
 var _fade: Dictionary = {}    # wall index -> current fade 0..1
 
 
@@ -84,6 +88,14 @@ func reset() -> void:
 		t.reset()
 	for s in switches:
 		s.reset()
+	for m in meal_pickers:
+		m.reset()
+	for tv in tvs:
+		tv.reset()
+	# A meal still in your arms stays in the house.
+	var w := get_tree().get_first_node_in_group("player_focus") as Walker if is_inside_tree() else null
+	if w and w.model.carrying and w.model.carry_item.begins_with("Meal_"):
+		w.model.set_carrying(false)
 	if house_star:
 		house_star.reset()
 
@@ -326,55 +338,61 @@ func update_view(camera_pos: Vector3, player_pos: Vector3, delta: float) -> void
 	var c2 := Vector2(cam.x, cam.z)
 	var m2 := Vector2(me.x, me.z)
 	var my_floor := storey_at(player_pos)
-	var climb := clampf((me.y - float(my_floor) * float(data.get("storey_height", 11.0)) - 4.0) / 5.0, 0.0, 1.0)
+	var vis := {}
+	for r in rooms:
+		vis[r.id] = room_visibility(r, me.y)
 	for i in walls.size():
 		var w: Dictionary = walls[i]
-		var target := 0.0
-		if w.floor > my_floor:
-			target = 1.0 if w.floor > my_floor + 1 else 1.0 - climb
-		elif w.floor == my_floor:
-			# Between us (with a little margin), or facing the camera right
-			# beside us in the same room.
+		var v: float = vis.get(w.room, 1.0)
+		var target := 1.0 - v
+		if w.floor == my_floor and v > 0.99:
+			# Between us (with a little margin): fade it so you're never hidden.
 			var a: Vector2 = w.a
 			var b: Vector2 = w.b
 			var dir := (b - a).normalized()
 			if Geometry2D.segment_intersects_segment(m2, c2, a - dir * 2.0, b + dir * 2.0) != null:
-				target = 1.0
+				target = FADE
 		var cur: float = _fade.get(i, 0.0)
 		cur = move_toward(cur, target, FADE_SPEED * delta)
 		if cur != _fade.get(i, 0.0) or not _fade.has(i):
 			_fade[i] = cur
-			var hide_all: bool = w.floor > my_floor
 			for gi: GeometryInstance3D in w.pieces:
-				gi.visible = not (hide_all and cur >= 0.999)
-				gi.transparency = cur * (1.0 if hide_all else FADE)
-	# Storeys above: hidden; the one just above fades in as you climb the
-	# stairs towards it (and out as you go down).
+				gi.visible = cur < 0.999
+				gi.transparency = cur
 	for r in rooms:
-		var f: int = r.floor
-		var v := 1.0 if f <= my_floor else (climb if f == my_floor + 1 else 0.0)
-		if not is_equal_approx(_floor_fade.get(f, -1.0), v):
-			_floor_fade[f] = v
-			_set_floor_visibility(f, v)
+		var v: float = vis[r.id]
+		if not is_equal_approx(_room_fade.get(r.id, -1.0), v):
+			_room_fade[r.id] = v
+			_set_room_visibility(r, v)
 
 
-## Show storey `f` at visibility `v` (0 hidden .. 1 solid).
-func _set_floor_visibility(f: int, v: float) -> void:
-	if not _floor_items.has(f):
-		var items: Array = []
+## How visible a room is with you at height `h` (local): dollhouse style,
+## storeys above you are hidden, and so are rooms below once you're up
+## (except the stairwell); on the stairs the two storeys cross-fade.
+func room_visibility(r: Dictionary, h: float) -> float:
+	var storey: float = data.get("storey_height", 11.0)
+	var f: int = r.floor
+	var up := 1.0 if f == 0 else clampf((h - float(f - 1) * storey - 4.0) / 5.0, 0.0, 1.0)
+	var down := 1.0
+	if str(r.type) != "stairwell":
+		down = 1.0 - clampf((h - float(f) * storey - 4.0) / 5.0, 0.0, 1.0)
+	return minf(up, down)
+
+
+## Show room `r` (its floor and furniture; walls fade separately) at
+## visibility `v` (0 hidden .. 1 solid).
+func _set_room_visibility(r: Dictionary, v: float) -> void:
+	if not _room_items.has(r.id):
 		var wall_bits := {}
 		for w in walls:
 			for gi in w.pieces:
 				wall_bits[gi] = true
-		for r in rooms:
-			if r.floor == f:
-				for gi in (r.node as Node).find_children("*", "GeometryInstance3D", true, false):
-					if not wall_bits.has(gi):
-						items.append(gi)
-		_floor_items[f] = items
-	for r in rooms:
-		if r.floor == f:
-			(r.node as Node3D).visible = v > 0.02
-	for gi: GeometryInstance3D in _floor_items[f]:
+		var items: Array = []
+		for gi in (r.node as Node).find_children("*", "GeometryInstance3D", true, false):
+			if not wall_bits.has(gi):
+				items.append(gi)
+		_room_items[r.id] = items
+	(r.node as Node3D).visible = v > 0.02
+	for gi: GeometryInstance3D in _room_items[r.id]:
 		if is_instance_valid(gi):
 			gi.transparency = 1.0 - v if v < 0.999 else 0.0

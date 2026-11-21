@@ -1,9 +1,21 @@
-[gd_resource type="Environment" format=3]
+[gd_resource type="Environment" load_steps=3 format=3]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.36, 0.62, 0.95, 1)
+sky_horizon_color = Color(0.78, 0.89, 0.98, 1)
+ground_bottom_color = Color(0.25, 0.55, 0.85, 1)
+ground_horizon_color = Color(0.78, 0.89, 0.98, 1)
+sun_angle_max = 30.0
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+radiance_size = 0
 
 [resource]
-background_mode = 1
-background_color = Color(0.56, 0.74, 0.9, 1)
+background_mode = 2
+sky = SubResource("sky")
 ambient_light_source = 2
 ambient_light_color = Color(1, 0.96, 0.9, 1)
 ambient_light_energy = 0.42
+reflected_light_source = 1
 tonemap_mode = 2

@@ -9,9 +9,13 @@ extends RefCounted
 ## clear take-off run ahead (TAKEOFF_RUN m of flat, landable ground with
 ## nothing in the way), so it can fly off again from where it's put.
 
-## Rings searched, nearest first (metres from the person).
-const RINGS := [16.0, 22.0, 30.0, 40.0, 52.0]
+## Rings searched, nearest first (metres from the person); far out too, so
+## there's nearly always somewhere (towns and hills have few flat, open
+## spots close by). The beacon then shows where it came down.
+const RINGS := [16.0, 22.0, 30.0, 40.0, 52.0, 66.0, 82.0, 100.0, 124.0, 150.0, 180.0, 215.0, 250.0]
 const PER_RING := 16
+## Far rings get more spots (they're longer).
+const SPOT_SPACING := 9.0
 ## Clear space the plane needs round its centre (a bit over the wingspan's half).
 const CLEAR_RADIUS := 10.0
 ## Every point under the plane within this height of the centre.
@@ -28,8 +32,9 @@ const RUN_CLEAR := 6.0
 static func find_spot(aircraft: Aircraft, from: Vector3) -> Dictionary:
 	var space := aircraft.get_world_3d().direct_space_state
 	for r: float in RINGS:
-		for k in PER_RING:
-			var a := TAU * k / PER_RING + r * 0.13  # rings out of step
+		var count := maxi(PER_RING, int(TAU * r / SPOT_SPACING / 4.0))
+		for k in count:
+			var a := TAU * k / count + r * 0.13  # rings out of step
 			var at := from + Vector3(cos(a), 0.0, sin(a)) * r
 			var spot := check_spot(aircraft, space, at, from.y)
 			if spot.is_empty():

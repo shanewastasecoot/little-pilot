@@ -61,6 +61,14 @@ var _full_push := 0.0
 ## Landed on something bouncy and sprang up.
 signal bounced
 var _bounce := false
+## Lying in a bed (stand still on one for LIE_AFTER seconds).
+signal lay_down
+var lying := false
+var _getting_up := false
+var _still_on_bed := 0.0
+var _bounce_speed := BOUNCE_SPEED
+var _bed_bounces := 0
+const LIE_AFTER := 1.2
 
 
 func _ready() -> void:
@@ -102,6 +110,8 @@ func set_active(on: bool) -> void:
 	moving = false
 	sprinting = false
 	_full_push = 0.0
+	lying = false
+	_getting_up = false
 	if on:
 		add_to_group("player_focus")
 	elif is_in_group("player_focus"):
@@ -114,6 +124,8 @@ func is_active() -> bool:
 
 ## Stand at `pos` (feet), facing `yaw`.
 func place(pos: Vector3, yaw: float) -> void:
+	lying = false
+	_getting_up = false
 	global_position = pos
 	_last_dry = pos
 	facing = yaw
@@ -128,6 +140,12 @@ func _physics_process(delta: float) -> void:
 	var sprint := override_sprint if override_enabled else Input.is_action_pressed("sprint")
 	var jump := override_jump if override_enabled else Input.is_action_just_pressed("jump")
 	var amount := move.length()
+	# Lying in bed: stay put until the stick or A gets you up again.
+	if lying:
+		velocity = Vector3.ZERO
+		if (amount > 0.3 or jump) and not _getting_up:
+			_get_up()
+		return
 	# Held all the way for a moment: break into a run by itself.
 	_full_push = _full_push + delta if amount >= FULL_PUSH else 0.0
 	sprint = sprint or _full_push >= AUTO_RUN_AFTER
@@ -144,7 +162,9 @@ func _physics_process(delta: float) -> void:
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if is_on_floor():
-		velocity.y = BOUNCE_SPEED if _bounce else (JUMP_SPEED if jump else 0.0)
+		velocity.y = _bounce_speed if _bounce else (JUMP_SPEED if jump else 0.0)
+		if jump and not _bounce:
+			_bed_bounces = 0  # a fresh jump onto a bed bounces high again
 		_bounce = false
 	else:
 		velocity.y -= GRAVITY * delta
@@ -152,9 +172,16 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_push_things()
 	if is_on_floor() and was_falling and _on_bouncy():
-		_bounce = true  # springs up on the next step
-		Sfx.play("whoosh", 1.8, -4.0)
-		bounced.emit()
+		# Beds: each bounce a little lower, so you settle (and can lie down).
+		var on_bed := _bed_under() != null
+		_bounce_speed = BOUNCE_SPEED if not on_bed or _bed_bounces == 0 else _bounce_speed * 0.6
+		_bed_bounces = _bed_bounces + 1 if on_bed else 0
+		if _bounce_speed > 7.0:
+			_bounce = true  # springs up on the next step
+			Sfx.play("whoosh", 1.8, -4.0)
+			bounced.emit()
+	elif is_on_floor() and not _bounce and _bed_under() == null:
+		_bed_bounces = 0
 	if _wet(global_position):
 		global_position = _last_dry
 		velocity = Vector3.ZERO
@@ -165,7 +192,51 @@ func _physics_process(delta: float) -> void:
 		_visual.rotation.y = facing
 	moving = is_on_floor() and flat.length() > 0.3
 	sprinting = moving and sprint
+	# Standing still on a bed for a moment: lie down.
+	var bed := _bed_under() if is_on_floor() and amount < 0.05 else null
+	_still_on_bed = _still_on_bed + delta if bed else 0.0
+	if bed and _still_on_bed > LIE_AFTER:
+		_lie_down(bed)
+		return
 	model.animate(flat.length(), is_on_floor(), velocity.y > 0.5, sprinting)
+
+
+## The bed you're standing on (group "bed"), or null.
+func _bed_under() -> Node3D:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as Node
+		if c.get_normal().y > 0.7 and body and body.is_in_group("bed"):
+			return body.get_parent() as Node3D
+	return null
+
+
+## Lie down on `bed`, along it with your head on the pillow.
+func _lie_down(bed: Node3D) -> void:
+	lying = true
+	_still_on_bed = 0.0
+	var top := global_position.y
+	global_position = Vector3(bed.global_position.x, top, bed.global_position.z) + bed.global_transform.basis.z.normalized() * 0.6
+	# The bed's head is at its -Z end: lie with the feet towards +Z.
+	facing = bed.global_rotation.y + PI
+	_visual.rotation.y = facing
+	model.play("Lie_Down")
+	model._anim.speed_scale = 1.6
+	get_tree().create_timer(1.8, false).timeout.connect(func():
+		if lying and not _getting_up:
+			model.play("Lie_Idle")
+			model._anim.speed_scale = 1.0)
+	lay_down.emit()
+
+
+func _get_up() -> void:
+	_getting_up = true
+	model.play("Lie_StandUp")
+	model._anim.speed_scale = 2.2
+	get_tree().create_timer(1.0, false).timeout.connect(func():
+		lying = false
+		_getting_up = false
+		model.play("Idle"))
 
 
 ## Standing on something bouncy (group "bouncy")?

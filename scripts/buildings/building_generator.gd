@@ -17,6 +17,11 @@ const FURNITURE := "res://assets/furniture/kaykit_furniture_bits/"
 const RESTAURANT := "res://assets/furniture/kaykit_restaurant_bits/"
 const WINDOW_SIZE := Vector2(5.0, 4.6)
 const WINDOW_Y := 5.6
+## Walls stop this far below the storey above (under its floor slab).
+const WALL_GAP := 0.7
+## Sophia's toys: mermaids about 1.6 m (a 5 m girl), stuffies about 2 m.
+const MERMAID_TOY_SCALE := 1.7
+const STUFFY_SCALE := 3.0
 
 
 static func load_data(path: String) -> Dictionary:
@@ -45,7 +50,34 @@ static func build(data: Dictionary) -> Interior:
 		_build_room(interior, data, room, rng)
 	for st: Dictionary in data.get("stairs", []):
 		_build_stairs(interior, data, st)
+	_add_garden(interior, data)
 	return interior
+
+
+## The view out of the windows: a garden round the ground floor's footprint
+## with the path out from the front door.
+static func _add_garden(interior: Interior, data: Dictionary) -> void:
+	var footprint := Rect2()
+	var first := true
+	var door := Vector2.ZERO
+	for room: Dictionary in data.get("rooms", []):
+		var r: Array = room.rect
+		var rect := Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
+		footprint = rect if first else footprint.merge(rect)
+		first = false
+		for d: Dictionary in room.get("doors", []):
+			if d.get("exit", false):
+				var at := float(d.at)
+				match str(d.side):
+					"S": door = Vector2(rect.position.x + at * rect.size.x, rect.end.y)
+					"N": door = Vector2(rect.position.x + at * rect.size.x, rect.position.y)
+					"W": door = Vector2(rect.position.x, rect.position.y + at * rect.size.y)
+					_: door = Vector2(rect.end.x, rect.position.y + at * rect.size.y)
+	var garden := HouseGarden.new()
+	garden.name = "Garden"
+	garden.footprint = footprint
+	garden.front_door = door
+	interior.add_child(garden)
 
 
 static func _build_room(interior: Interior, data: Dictionary, room: Dictionary, rng: RandomNumberGenerator) -> void:
@@ -118,12 +150,15 @@ static func _build_side(interior: Interior, data: Dictionary, room: Dictionary, 
 	gaps.sort_custom(func(a, b): return a[0] < b[0])
 	var pieces: Array[GeometryInstance3D] = []
 	var u := 0.0
+	# Walls stop just under the floor above (their tops can't show through
+	# it or flicker against it).
+	var top := storey - WALL_GAP
 	var spans: Array = []
 	for g in gaps:
-		spans.append([u, g[0], 0.0, storey])          # full-height piece before the gap
-		spans.append([g[0], g[1], door_h, storey])    # lintel over the gap
+		spans.append([u, g[0], 0.0, top])          # full-height piece before the gap
+		spans.append([g[0], g[1], door_h, top])    # lintel over the gap
 		u = g[1]
-	spans.append([u, length, 0.0, storey])
+	spans.append([u, length, 0.0, top])
 	for sp in spans:
 		var a: float = sp[0]
 		var b: float = sp[1]
@@ -234,9 +269,9 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			var n_wall := _against(data, rect.size.y, 1.1)
 			_put(node, data, rect, base, "cabinet_small_decorated", 0.15 + jitter.call(), n_wall)
 			_put(node, data, rect, base, "lamp_standing", 0.9, _against(data, rect.size.y, 1.0))
-			_put(node, data, rect, base, ab.call("pictureframe_large"), 0.62, (data.get("wall_thickness", 0.5) + 0.3) / rect.size.y,
+			_put(node, data, rect, base, ab.call("pictureframe_large"), 0.25, (data.get("wall_thickness", 0.5) + 0.3) / rect.size.y,
 					0.0, 1.3, false, 6.5)
-			_put(node, data, rect, base, ab.call("cactus_medium"), 0.92, 0.84, rng.randf() * 360.0, 1.3)
+			_put(node, data, rect, base, ab.call("cactus_medium"), 0.1, 0.86, rng.randf() * 360.0, 1.3)
 		"playroom":
 			_put(node, data, rect, base, ab.call("rug_oval"), 0.52, 0.52, 0.0, 2.2, false)
 			var tb := ToyBox.new()
@@ -284,6 +319,15 @@ static func _furnish_kitchen(interior: Interior, data: Dictionary, rect: Rect2, 
 	fridge.position = Vector3(x, base, rect.position.y + t + 0.75 * f + 0.25)
 	node.add_child(fridge)
 	interior.fridges.append(fridge)
+	var meals := MealPicker.new()
+	meals.name = "Meals"
+	meals.fridge = fridge
+	meals.furniture_scale = f
+	# A row along the south wall, facing the fridge: off the way to it,
+	# so walking up to the fridge doesn't pick one up by accident.
+	meals.position = Vector3(rect.position.x + 12.0, base, rect.end.y - t - 3.0)
+	node.add_child(meals)
+	interior.meal_pickers.append(meals)
 	x += unit
 	var row := ["r:kitchencounter_straight_A_backsplash", "r:kitchencounter_sink_backsplash", "r:kitchencounter_straight_A_decorated",
 		"stove", "r:kitchencounter_straight_A_backsplash"]
@@ -336,7 +380,7 @@ static func _furnish_dining(interior: Interior, data: Dictionary, rect: Rect2, b
 		for side in [-1.0, 1.0]:
 			var pz: float = c.z + side * (half_z + 0.9 * f)
 			_put(node, data, rect, base, chair, (px - rect.position.x) / rect.size.x, (pz - rect.position.y) / rect.size.y,
-					0.0 if side > 0 else 180.0, 1.35)
+					180.0 if side > 0 else 0.0, 1.35)
 			table.places.append(Vector3(px - c.x, top, side * (half_z - 0.6 * f)))
 	var n_wall := BuildingGenerator._against(data, rect.size.y, 1.0)
 	_put(node, data, rect, base, "cabinet_medium_decorated", 0.2, n_wall, 0.0, 1.2)
@@ -350,21 +394,32 @@ static func _furnish_living(interior: Interior, data: Dictionary, rect: Rect2, b
 		rng: RandomNumberGenerator) -> void:
 	var f: float = data.get("furniture_scale", 2.27)
 	var t: float = data.get("wall_thickness", 0.5)
-	_put(node, data, rect, base, "rug_rectangle_" + ("A" if rng.randf() < 0.5 else "B"), 0.5, 0.55, 0.0, 2.2, false)
-	# The sofa against the east wall, facing into the room (west).
-	var sofa := _put(node, data, rect, base, "couch_pillows", 1.0 - (t + 0.8 * f + 0.4) / rect.size.x, 0.55, -90.0, 1.0, false)
+	_put(node, data, rect, base, "rug_rectangle_" + ("A" if rng.randf() < 0.5 else "B"), 0.56, 0.5, 90.0, 2.2, false)
+	var tv := TVSet.new()
+	tv.name = "TV"
+	tv.furniture_scale = f
+	tv.position = Vector3(rect.end.x - t - 0.5 * f - 0.4, base, rect.get_center().y)
+	tv.rotation.y = -PI * 0.5  # facing west, into the room
+	node.add_child(tv)
+	interior.tvs.append(tv)
+	# The sofa facing the TV (east) from the middle of the room.
+	var sofa_x := rect.position.x + 0.36 * rect.size.x
+	var sofa := _put(node, data, rect, base, "couch_pillows", 0.36, 0.5, 90.0, 1.0, false)
 	if sofa:
 		_bouncy_seat(sofa, f)
 		interior.sofas.append(sofa)
-	_put(node, data, rect, base, "armchair_pillows", 0.55, 0.2, 180.0 + 20.0, 1.0)
-	_put(node, data, rect, base, "armchair_pillows", 0.55, 0.88, -20.0, 1.0)
-	_put(node, data, rect, base, "table_low", 0.62, 0.55, 90.0, 1.0)
-	_put(node, data, rect, base, "lamp_standing", 0.92, (t + 0.5 * f + 0.3) / rect.size.y)
-	_put(node, data, rect, base, "pictureframe_large_A", 0.3, (t + 0.3) / rect.size.y, 0.0, 1.4, false, 6.5)
+	_put(node, data, rect, base, "table_low", (sofa_x + 8.0 - rect.position.x) / rect.size.x, 0.5, 90.0, 1.0)
+	# Armchairs either side, turned towards the TV.
+	var tvp := Vector2(tv.position.x, tv.position.z)
+	for fz in [0.18, 0.82]:
+		var at := Vector2(rect.position.x + 0.5 * rect.size.x, rect.position.y + fz * rect.size.y)
+		var to := tvp - at
+		_put(node, data, rect, base, "armchair_pillows", 0.5, fz, rad_to_deg(atan2(to.x, to.y)), 1.0)
+	_put(node, data, rect, base, "lamp_standing", (t + 0.5 * f + 0.3) / rect.size.x, (t + 0.5 * f + 0.3) / rect.size.y)
+	_put(node, data, rect, base, "pictureframe_large_A", 0.3, 1.0 - (t + 0.3) / rect.size.y, 180.0, 1.4, false, 6.5)
 	var shelf := TrophyShelf.new()
 	shelf.name = "TrophyShelf"
-	shelf.position = Vector3(rect.position.x + 0.5 * rect.size.x, base + 5.2, rect.end.y - t)
-	shelf.rotation.y = PI  # on the south wall, facing into the room
+	shelf.position = Vector3(rect.position.x + 0.45 * rect.size.x, base + 5.2, rect.position.y + t)
 	node.add_child(shelf)
 	interior.trophy_shelf = shelf
 
@@ -536,8 +591,10 @@ static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Diction
 	var t: float = data.get("wall_thickness", 0.5)
 	var info: Dictionary = interior.find_room(str(room.id))
 	var door_side := "S"
+	var door_at := 0.5
 	for d: Dictionary in room.get("doors", []):
 		door_side = str(d.side)
+		door_at = float(d.at)
 	var back_north := door_side == "S"
 	var back_z := (t + 1.5 * f + 0.4) / rect.size.y
 	var bz := back_z if back_north else 1.0 - back_z
@@ -548,6 +605,7 @@ static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Diction
 		var seat := StaticBody3D.new()
 		seat.collision_layer = GameSettings.LAYER_WORLD
 		seat.add_to_group("bouncy")
+		seat.add_to_group("bed")
 		var cs := CollisionShape3D.new()
 		var bw := 3.1 if double else 1.6
 		cs.shape = BuildKit.box_shape(Vector3(bw, 0.55, 2.9))
@@ -569,14 +627,17 @@ static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Diction
 	_put(node, data, rect, base, "cabinet_small", side_x, bz - (0.25 if back_north else -0.25) * 0.0 + (-0.04 if back_north else 0.04), 0.0 if back_north else 180.0)
 	_put(node, data, rect, base, "lamp_table", side_x, bz + (-0.04 if back_north else 0.04), 0.0, 1.0, false, 1.0 * f)
 	_put(node, data, rect, base, "rug_oval_" + ("A" if rng.randf() < 0.5 else "B"), 0.5, 0.55 if back_north else 0.45, 0.0, 1.6, false)
-	_put(node, data, rect, base, "pictureframe_medium", 0.25, (t + 0.3) / rect.size.y if back_north else 1.0 - (t + 0.3) / rect.size.y,
-			0.0 if back_north else 180.0, 1.5, false, 6.5)
-	_put(node, data, rect, base, "shelf_A_small", 1.0 - (t + 0.6) / rect.size.x, 0.5, -90.0, 1.4, false, 5.0)
+	if not room.get("hers", false):
+		_put(node, data, rect, base, "pictureframe_medium", 0.25, (t + 0.3) / rect.size.y if back_north else 1.0 - (t + 0.3) / rect.size.y,
+				0.0 if back_north else 180.0, 1.5, false, 6.5)
+		_put(node, data, rect, base, "shelf_A_small", 1.0 - (t + 0.6) / rect.size.x, 0.5, -90.0, 1.4, false, 5.0)
 	# Light switch on the door wall, beside the door.
 	var sw := LightSwitch.new()
 	sw.name = "LightSwitch"
 	var door_w: float = data.get("door_width", 7.0)
-	var sx := rect.position.x + rect.size.x * 0.5 + door_w * 0.5 + 2.2
+	var sx := rect.position.x + rect.size.x * door_at + door_w * 0.5 + 2.2
+	if sx > rect.end.x - t - 1.0:
+		sx = rect.position.x + rect.size.x * door_at - door_w * 0.5 - 2.2
 	var sz := rect.end.y - t if back_north else rect.position.y + t
 	sw.position = Vector3(sx, base + 4.0, sz)
 	sw.rotation.y = PI if back_north else 0.0
@@ -597,13 +658,16 @@ static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Diction
 		cushions.name = "BedColours"
 		cushions.kind = "cushion"
 		cushions.spacing = 3.4
-		cushions.position = Vector3(rect.get_center().x, base, rect.position.y + rect.size.y * (0.72 if back_north else 0.28))
+		# In a row just past the foot of the bed.
+		var foot := 1.5 * f + 3.2
+		cushions.position = Vector3(rect.get_center().x - 3.0, base, rect.position.y + rect.size.y * bz + (foot if back_north else -foot))
 		node.add_child(cushions)
 		interior.her_room = info
 		info["wall_picker"] = pots
 		info["bed_picker"] = cushions
 		pots.picked.connect(func(i): interior.paint_her_walls(i, true))
 		cushions.picked.connect(func(i): interior.colour_her_quilt(i, true))
+		_furnish_sophia(interior, data, rect, base, node)
 	# The hidden star: tucked into the far corner of the south-east bedroom.
 	if str(room.id) == "bedroom_se":
 		var star := HouseStar.new()
@@ -657,3 +721,85 @@ static func _glow_mat(c: Color) -> StandardMaterial3D:
 		m.emission_energy_multiplier = 0.6
 		_mats[key] = m
 	return _mats[key]
+
+
+## Sophia's room extras: a TV on the east wall, a bookshelf by the door,
+## mermaid toys round a little blue play pool and stuffies on and by the bed.
+static func _furnish_sophia(interior: Interior, data: Dictionary, rect: Rect2, base: float, node: Node3D) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var t: float = data.get("wall_thickness", 0.5)
+	var tv := TVSet.new()
+	tv.name = "TV"
+	tv.furniture_scale = f
+	tv.screen_size = Vector2(6.4, 3.7)
+	tv.position = Vector3(rect.end.x - t - 0.5 * f - 0.4, base, rect.position.y + rect.size.y * 0.55)
+	tv.rotation.y = -PI * 0.5
+	node.add_child(tv)
+	interior.tvs.append(tv)
+	# The bookshelf: on the south wall between the west wall and the door.
+	var shelf := Node3D.new()
+	shelf.name = "Bookshelf"
+	shelf.position = Vector3(rect.position.x + 6.0, base, rect.end.y - t - 1.0)
+	shelf.rotation.y = PI
+	node.add_child(shelf)
+	var wood := _mat("c8a27a")
+	for part in [[Vector3(7.0, 0.3, 1.8), Vector3(0, 0.15, 0)], [Vector3(7.0, 0.3, 1.8), Vector3(0, 7.0, 0)],
+			[Vector3(0.3, 7.15, 1.8), Vector3(-3.35, 3.58, 0)], [Vector3(0.3, 7.15, 1.8), Vector3(3.35, 3.58, 0)],
+			[Vector3(7.0, 7.15, 0.2), Vector3(0, 3.58, -0.8)], [Vector3(6.4, 0.25, 1.6), Vector3(0, 2.4, 0)],
+			[Vector3(6.4, 0.25, 1.6), Vector3(0, 4.7, 0)]]:
+		BuildKit.add(shelf, BuildKit.box(part[0]), "c8a27a", part[1]).material_override = wood
+	BuildKit.collider(shelf, BuildKit.box_shape(Vector3(7.0, 7.2, 1.8)), Vector3(0, 3.6, 0))
+	var books: PackedScene = load(FURNITURE + "book_set.gltf")
+	for y in [0.3, 2.53, 4.83]:
+		for k in 3:
+			var b: Node3D = books.instantiate()
+			b.scale = Vector3.ONE * f
+			b.position = Vector3(-2.2 + k * 2.2, y, 0.1)
+			b.rotation.y = [0.0, PI, 0.15][k]
+			shelf.add_child(b)
+	# Mermaid toys round a little play pool in the north-east corner.
+	var pool_at := Vector3(rect.end.x - 6.0, base, rect.position.y + 7.0)
+	var pool := MeshInstance3D.new()
+	pool.mesh = BuildKit.cyl(3.4, 0.5, -1, 32)
+	pool.position = pool_at + Vector3(0, 0.25, 0)
+	var pool_mat := StandardMaterial3D.new()
+	pool_mat.albedo_color = Color("5ec8f0")
+	pool_mat.roughness = 0.3
+	pool.material_override = pool_mat
+	node.add_child(pool)
+	var rim := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 3.3
+	torus.outer_radius = 4.0
+	rim.mesh = torus
+	rim.position = pool_at + Vector3(0, 0.4, 0)
+	rim.material_override = _mat("ff9ecb")
+	node.add_child(rim)
+	BuildKit.collider(node, BuildKit.cyl_shape(4.0, 0.8), pool_at + Vector3(0, 0.4, 0))
+	var mermaid: PackedScene = load("res://scenes/characters/mermaid.tscn")
+	var tails := [Color("ff7eb9"), Color("7b6cff"), Color("3cc9a8")]
+	for k in 3:
+		var m: Node3D = mermaid.instantiate()
+		m.set("tail_color", tails[k])
+		# On the pool's east, south and north sides (the cushions are west).
+		var a: float = [0.0, PI * 0.5, -PI * 0.5][k]
+		m.position = pool_at + Vector3(cos(a) * 4.4, 0.0, sin(a) * 4.4)
+		m.rotation.y = atan2(-cos(a), -sin(a))  # facing the pool
+		m.scale = Vector3.ONE * MERMAID_TOY_SCALE
+		m.name = "MermaidToy%d" % k
+		node.add_child(m)
+		interior.mermaid_toys.append(m)
+	# Stuffies: a teddy and a bunny on the bed by the pillow, a dolphin and
+	# another bear sitting on the rug.
+	var bed_z := rect.position.y + t + 1.5 * f + 0.4
+	var cx := rect.get_center().x
+	for st in [["Teddy_Bear", Vector3(cx - 2.2, base + 1.05 * f, bed_z - 1.8), 0.0],
+			["Plush_Bunny", Vector3(cx + 2.2, base + 1.05 * f, bed_z - 1.8), 0.0],
+			["Plush_Dolphin", Vector3(rect.end.x - 5.0, base, rect.end.y - 5.0), -2.4],
+			["Teddy_Bear", Vector3(rect.position.x + 4.0, base, rect.position.y + 4.0), 0.8]]:
+		var toy := CharacterLook.prop(st[0])
+		toy.scale = Vector3.ONE * STUFFY_SCALE
+		toy.position = st[1]
+		toy.rotation.y = PI + float(st[2])  # props face -Y in Blender: turn to face into the room
+		node.add_child(toy)
+		interior.stuffies.append(toy)

@@ -46,22 +46,29 @@ func is_open() -> bool:
 	return _open
 
 
-## Flip the lid and pop the toys out.
+## Open the lid; the toys hop out one by one and land in tidy rows either
+## side of the box (gently, no flying about). Then they can be pushed.
 func open() -> void:
 	if _open:
 		return
 	_open = true
-	create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).tween_property(_lid, "rotation:x", deg_to_rad(-110), 0.45)
-	Sfx.play("pop", 1.3)
+	create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(_lid, "rotation:x", deg_to_rad(-100), 0.6)
+	Sfx.play("pop", 0.9, -6.0)
 	for i in TOYS:
 		var toy := _make_toy(i)
+		toy.freeze = true  # carried by the tween until it lands
 		add_child(toy)
-		toy.global_position = global_position + Vector3(randf_range(-2.0, 2.0), SIZE.y + 1.5, randf_range(-0.8, 0.8))
-		toy.apply_central_impulse(Vector3(randf_range(-4.0, 4.0), randf_range(9.0, 13.0), randf_range(3.0, 7.0)) * toy.mass)
-		toy.apply_torque_impulse(Vector3(randf(), randf(), randf()) * 3.0 * toy.mass)
+		var start := Vector3((i - (TOYS - 1) * 0.5) * 1.0, SIZE.y - 0.6, 0.0)
+		# In tidy rows either side of the box (clear of where you're standing).
+		var side := -1.0 if i % 2 == 0 else 1.0
+		var land := Vector3(side * (SIZE.x * 0.5 + 1.5), 1.0, 0.8 + (i / 2) * 2.3)
+		toy.position = start
+		var tw := create_tween()
+		tw.tween_interval(0.35 + i * 0.3)
+		tw.tween_callback(func(): Sfx.play("pop", 1.4 + i * 0.1, -10.0))
+		tw.tween_method(func(f: float): toy.position = start.lerp(land, f) + Vector3.UP * (4.0 * f * (1.0 - f)) * 3.0, 0.0, 1.0, 0.5)
+		tw.tween_callback(func(): toy.freeze = false)
 		_toys.append(toy)
-		var pitch := 1.6 + i * 0.12
-		get_tree().create_timer(0.15 * i, false).timeout.connect(func(): Sfx.play("honk", pitch, -8.0))
 
 
 ## Close the lid, toys gone (back in the box).

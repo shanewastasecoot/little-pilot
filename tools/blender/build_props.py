@@ -513,13 +513,104 @@ def heart_marker():
     return finish("Heart_Marker", parts, voxel=0.014, target_tris=900)
 
 
+# --- House: meals (picked from the fridge) and stuffies (Sophia's room) ----------
+
+def _plate(parts, r=0.46):
+    parts.append(loft([(Vector((0, 0, 0.0)), r * 0.7, r * 0.7), (Vector((0, 0, 0.04)), r, r), (Vector((0, 0, 0.07)), r, r)], "ffffff", segs=28))
+
+
+def meal_pizza():
+    """A whole pizza on a board: crust, sauce, cheese and pepperoni."""
+    parts = [loft([(Vector((0, 0, 0.0)), 0.5, 0.5), (Vector((0, 0, 0.05)), 0.5, 0.5)], "c98b4b", segs=28)]
+    parts.append(torus(Vector((0, 0, 0.08)), 0.42, 0.06, "e3a857", segs=32, tube=8))
+    parts.append(loft([(Vector((0, 0, 0.05)), 0.42, 0.42), (Vector((0, 0, 0.09)), 0.4, 0.4)], "ffd35c", segs=28))
+    for k, (x, y) in enumerate([(0.18, 0.1), (-0.15, 0.18), (-0.2, -0.12), (0.1, -0.2), (0.0, 0.0), (0.24, -0.08)]):
+        parts.append(sphere(Vector((x, y, 0.1)), (0.07, 0.07, 0.025), "d93a2b", segs=12, rings=6))
+    return finish("Meal_Pizza", parts, voxel=0.01, target_tris=700)
+
+
+def meal_chicken():
+    """Chicken fingers on a plate with a blob of ketchup."""
+    parts = []
+    _plate(parts)
+    for k in range(5):
+        a = -0.6 + k * 0.3
+        c = Vector((math.cos(a) * 0.12, math.sin(a) * 0.12 - 0.05, 0.12))
+        d = Vector((math.cos(a), math.sin(a), 0)) * 0.16
+        parts.append(cone(c - d, c + d, 0.055, 0.05, "e0a040", segs=10))
+        parts.append(sphere(c + d, (0.055, 0.055, 0.05), "e0a040", segs=10, rings=6))
+        parts.append(sphere(c - d, (0.055, 0.055, 0.05), "e0a040", segs=10, rings=6))
+    parts.append(sphere(Vector((-0.24, 0.18, 0.1)), (0.09, 0.09, 0.04), "d62828", segs=12, rings=6))
+    return finish("Meal_Chicken", parts, voxel=0.01, target_tris=800)
+
+
+def meal_breakfast():
+    """Breakfast: two fried eggs, bacon and a stack of pancakes with butter."""
+    parts = []
+    _plate(parts, 0.5)
+    for x, y in [(-0.2, 0.15), (0.05, 0.25)]:
+        parts.append(sphere(Vector((x, y, 0.09)), (0.13, 0.11, 0.02), "ffffff", segs=14, rings=6))
+        parts.append(sphere(Vector((x, y, 0.11)), (0.05, 0.05, 0.035), "ffc21a", segs=12, rings=6))
+    for k in range(2):
+        pts = [Vector((-0.3 + i * 0.06, -0.12 - k * 0.09, 0.09 + 0.012 * math.sin(i * 1.7))) for i in range(9)]
+        parts.append(tube(pts, 0.025, "b5442c", tube_segs=6))
+    for k in range(3):
+        parts.append(loft([(Vector((0.2, -0.1, 0.08 + k * 0.05)), 0.17, 0.17), (Vector((0.2, -0.1, 0.12 + k * 0.05)), 0.17, 0.17)],
+                          "e8b864", segs=20))
+    parts.append(box(Vector((0.2, -0.1, 0.25)), (0.08, 0.08, 0.04), "fff1a8", None))
+    return finish("Meal_Breakfast", parts, voxel=0.01, target_tris=900)
+
+
+def _plush(name, body, belly, ears, snout=None, extra=None):
+    """A soft stuffed animal sitting up (about 0.9 m: a big cuddly toy)."""
+    parts = [sphere(Vector((0, 0, 0.28)), (0.26, 0.22, 0.28), body, segs=20, rings=14),
+             sphere(Vector((0, -0.12, 0.24)), (0.16, 0.1, 0.18), belly, segs=16, rings=10),
+             sphere(Vector((0, 0, 0.66)), (0.21, 0.19, 0.2), body, segs=20, rings=14)]
+    for s in (1, -1):
+        parts.append(sphere(Vector((0.2 * s, -0.08, 0.32)), (0.08, 0.08, 0.13), body, segs=12, rings=8))   # arms
+        parts.append(sphere(Vector((0.13 * s, -0.16, 0.06)), (0.09, 0.12, 0.07), body, segs=12, rings=8))  # feet
+        parts.append(sphere(Vector((0.07 * s, -0.17, 0.7)), (0.025, 0.02, 0.03), "1c1a24", segs=8, rings=6))  # eyes
+        parts += ears(s)
+    if snout:
+        parts.append(sphere(Vector((0, -0.18, 0.62)), (0.08, 0.06, 0.06), snout, segs=12, rings=8))
+        parts.append(sphere(Vector((0, -0.23, 0.64)), (0.025, 0.02, 0.02), "1c1a24", segs=8, rings=6))
+    if extra:
+        parts += extra
+    return finish(name, parts, voxel=0.012, target_tris=1100)
+
+
+def teddy_bear():
+    return _plush("Teddy_Bear", "b07a4a", "e3c49a",
+                  lambda s: [sphere(Vector((0.15 * s, 0.0, 0.84)), (0.07, 0.04, 0.07), "b07a4a", segs=12, rings=8)], snout="e3c49a")
+
+
+def plush_bunny():
+    return _plush("Plush_Bunny", "ffc8dd", "ffffff",
+                  lambda s: [sphere(Vector((0.08 * s, 0.02, 0.95)), (0.05, 0.035, 0.18), "ffc8dd", segs=12, rings=8)])
+
+
+def plush_dolphin():
+    """A blue dolphin cuddly toy lying down."""
+    parts = [sphere(Vector((0, 0, 0.2)), (0.18, 0.42, 0.18), "5aa9e6", segs=20, rings=14),
+             sphere(Vector((0, -0.05, 0.16)), (0.13, 0.32, 0.12), "dff1ff", segs=16, rings=10),
+             cone(Vector((0, -0.4, 0.22)), Vector((0, -0.56, 0.2)), 0.07, 0.04, "5aa9e6", segs=10),
+             cone(Vector((0, 0.05, 0.34)), Vector((0, 0.15, 0.48)), 0.1, 0.02, "5aa9e6", segs=10),
+             cone(Vector((0, 0.38, 0.2)), Vector((0.16, 0.5, 0.22)), 0.06, 0.02, "5aa9e6", segs=8),
+             cone(Vector((0, 0.38, 0.2)), Vector((-0.16, 0.5, 0.22)), 0.06, 0.02, "5aa9e6", segs=8)]
+    for s in (1, -1):
+        parts.append(sphere(Vector((0.1 * s, -0.3, 0.27)), (0.025, 0.02, 0.025), "1c1a24", segs=8, rings=6))
+        parts.append(cone(Vector((0.14 * s, -0.08, 0.14)), Vector((0.3 * s, -0.02, 0.08)), 0.05, 0.02, "5aa9e6", segs=8))
+    return finish("Plush_Dolphin", parts, voxel=0.012, target_tris=900)
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     print("PROPS")
     for build in (pilot_cap, pilot_scarf, princess_tiara, princess_gown, astro_helmet, astro_pack,
                   hero_cape, hero_emblem, dino_hood, dino_tail, face_smile,
                   package, straw_hat, sun_hat, flat_cap, beanie, postie_cap, mail_bag, balloon,
-                  chef_hat, ranger_hat, beret, heart_marker):
+                  chef_hat, ranger_hat, beret, heart_marker,
+                  meal_pizza, meal_chicken, meal_breakfast, teddy_bear, plush_bunny, plush_dolphin):
         build()
     for o in bpy.context.scene.objects:
         o.select_set(True)

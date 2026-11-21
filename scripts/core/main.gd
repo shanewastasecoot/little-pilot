@@ -54,7 +54,7 @@ var _near_plane := false
 const DOOR_RADIUS := 9.0
 ## On foot further than this from the plane: a beacon shows where it is,
 ## and holding Y for PLANE_CALL_HOLD seconds brings it over (PlaneCall).
-const PLANE_FAR := 60.0
+const PLANE_FAR := 30.0
 const PLANE_CALL_HOLD := 1.0
 var plane_beacon: DeliveryBeacon
 ## Her house: the landmark outside, the inside (built once, the first time
