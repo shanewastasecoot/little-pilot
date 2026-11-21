@@ -253,8 +253,8 @@ func _process(delta: float) -> void:
 		hud.set_prompt("enter")
 	elif state == State.ON_FOOT and plane_far():
 		hud.set_prompt("call")
-	elif state == State.INDOORS and interior and not colour_menu.is_open() and interior.station_near():
-		hud.set_prompt("paint")
+	elif state == State.INDOORS and interior and not colour_menu.is_open() and not interior.interaction_at(walker).is_empty():
+		hud.set_prompt(interior.interaction_at(walker).kind)
 	elif _playing():
 		hud.set_prompt("")
 	_update_plane_call(delta)
@@ -717,28 +717,51 @@ func _on_all_stars() -> void:
 		await get_tree().create_timer(0.2, false).timeout
 
 
-## Indoors, standing at a paint station: open the colour chooser for it.
-## True if it opened.
+## Indoors, Y does what's here: at a paint station or the open fridge it
+## opens the chooser; by a dining chair she sits down (and eats her meal if
+## there's one at her place). True if it did something.
 func open_colour_menu() -> bool:
 	if state != State.INDOORS or interior == null or colour_menu.is_open() or _doorway_busy:
 		return false
-	var st := interior.station_near()
-	if st == null:
+	var here := interior.interaction_at(walker)
+	if here.is_empty():
 		return false
-	var walls := st.kind == "walls"
-	colour_menu.preview = func(i: int):
-		if walls:
-			interior.paint_her_walls(i)
-		else:
-			interior.colour_her_quilt(i)
-	_hold_walker(true)
-	hud.set_prompt("")
-	colour_menu.open(st.kind, SaveManager.house_wall if walls else SaveManager.house_bed)
+	match str(here.kind):
+		"paint":
+			var st: PaintStation = here.target
+			var walls := st.kind == "walls"
+			colour_menu.preview = func(i: int):
+				if walls:
+					interior.paint_her_walls(i)
+				else:
+					interior.colour_her_quilt(i)
+			_hold_walker(true)
+			hud.set_prompt("")
+			colour_menu.open(st.kind, SaveManager.house_wall if walls else SaveManager.house_bed)
+		"food":
+			colour_menu.preview = func(_i: int): pass
+			_hold_walker(true)
+			hud.set_prompt("")
+			colour_menu.open("meal", 0)
+		"sit":
+			var table: SettableTable = here.target
+			var seat: int = here.seat
+			hud.set_prompt("")
+			walker.sit(table.seat_point(seat), table.seat_yaw(seat), table.stand_point(seat))
+			get_tree().create_timer(1.2, false).timeout.connect(func():
+				if walker.sitting:
+					table.eat_at(seat))
 	return true
 
 
 func _on_colour_chosen(i: int) -> void:
 	_hold_walker(false)
+	if colour_menu.kind == "meal":
+		walker.model.set_carrying(true, ColourMenu.MEALS[i])
+		var burst := PickupBurst.new(24, 7.0)
+		burst.position = walker.global_position + Vector3.UP * 3.0
+		add_child(burst)
+		return
 	var st := interior.station_near() if interior else null
 	if colour_menu.kind == "walls":
 		interior.paint_her_walls(i, true)

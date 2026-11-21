@@ -252,6 +252,36 @@ static func _put(node: Node3D, data: Dictionary, rect: Rect2, base: float, item:
 	return piece
 
 
+static func _room_data(data: Dictionary, id: String) -> Dictionary:
+	for r: Dictionary in data.get("rooms", []):
+		if str(r.id) == id:
+			return r
+	return {}
+
+
+## A spot along `side` of `room` (fraction) for something `width` m wide
+## hung on the wall, clear of its windows and doors, or -1 if there's none.
+static func _free_spot(data: Dictionary, room: Dictionary, side: String, width: float) -> float:
+	var r: Array = room.rect
+	var length := float(r[2]) if side in ["N", "S"] else float(r[3])
+	var blocked: Array = []
+	for w: Dictionary in room.get("windows", []):
+		if str(w.side) == side:
+			blocked.append([float(w.at) * length, WINDOW_SIZE.x * 0.5 + 1.0])
+	for d: Dictionary in room.get("doors", []):
+		if str(d.side) == side:
+			blocked.append([float(d.at) * length, float(data.get("door_width", 7.0)) * 0.5 + 1.0])
+	for at in [0.25, 0.75, 0.5, 0.15, 0.85, 0.35, 0.65]:
+		var x: float = at * length
+		var ok := x - width * 0.5 > 1.5 and x + width * 0.5 < length - 1.5
+		for b: Array in blocked:
+			if absf(x - float(b[0])) < float(b[1]) + width * 0.5:
+				ok = false
+		if ok:
+			return at
+	return -1.0
+
+
 ## Distance from a wall (fraction of the room) for something `depth` m deep
 ## (in furniture units) standing against it.
 static func _against(data: Dictionary, rect_len: float, depth: float) -> float:
@@ -287,8 +317,10 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			_put(node, data, rect, base, "table_small", 0.2, 0.78, 0.0, 1.0)
 			_put(node, data, rect, base, "chair_stool", 0.2 - 0.07, 0.78, 0.0, 1.0)
 			_put(node, data, rect, base, "chair_stool", 0.2 + 0.07, 0.78, 0.0, 1.0)
-			_put(node, data, rect, base, "shelf_B_large_decorated", (data.get("wall_thickness", 0.5) + 0.7) / rect.size.x, 0.5, 90.0, 1.2,
-					false, 5.0)
+			var shelf_at := _free_spot(data, room, "W", 5.4)
+			if shelf_at >= 0.0:
+				_put(node, data, rect, base, "shelf_B_large_decorated", (data.get("wall_thickness", 0.5) + 0.7) / rect.size.x, shelf_at, 90.0, 1.2,
+						false, 5.0)
 			_put(node, data, rect, base, "pillow_A", 0.82, 0.84, rng.randf() * 360.0, 2.0, false)
 			_put(node, data, rect, base, "pillow_B", 0.88, 0.76, rng.randf() * 360.0, 2.0, false)
 			_put(node, data, rect, base, "lamp_standing", 0.07, _against(data, rect.size.y, 1.0))
@@ -319,15 +351,6 @@ static func _furnish_kitchen(interior: Interior, data: Dictionary, rect: Rect2, 
 	fridge.position = Vector3(x, base, rect.position.y + t + 0.75 * f + 0.25)
 	node.add_child(fridge)
 	interior.fridges.append(fridge)
-	var meals := MealPicker.new()
-	meals.name = "Meals"
-	meals.fridge = fridge
-	meals.furniture_scale = f
-	# A row along the south wall, facing the fridge: off the way to it,
-	# so walking up to the fridge doesn't pick one up by accident.
-	meals.position = Vector3(rect.position.x + 12.0, base, rect.end.y - t - 3.0)
-	node.add_child(meals)
-	interior.meal_pickers.append(meals)
 	x += unit
 	var row := ["r:kitchencounter_straight_A_backsplash", "r:kitchencounter_sink_backsplash", "r:kitchencounter_straight_A_decorated",
 		"stove", "r:kitchencounter_straight_A_backsplash"]
@@ -382,10 +405,14 @@ static func _furnish_dining(interior: Interior, data: Dictionary, rect: Rect2, b
 			_put(node, data, rect, base, chair, (px - rect.position.x) / rect.size.x, (pz - rect.position.y) / rect.size.y,
 					180.0 if side > 0 else 0.0, 1.35)
 			table.places.append(Vector3(px - c.x, top, side * (half_z - 0.6 * f)))
+			# Her seat: on the floor where the chair is, facing the table.
+			table.seats.append({"at": Vector3(px - c.x, 0.0, pz - c.z), "yaw": 0.0 if side > 0 else PI, "place": table.places.size() - 1})
 	var n_wall := BuildingGenerator._against(data, rect.size.y, 1.0)
 	_put(node, data, rect, base, "cabinet_medium_decorated", 0.2, n_wall, 0.0, 1.2)
 	_put(node, data, rect, base, "lamp_standing", 0.9, n_wall)
-	_put(node, data, rect, base, "pictureframe_large_B", 0.7, (data.get("wall_thickness", 0.5) + 0.3) / rect.size.y, 0.0, 1.3, false, 6.5)
+	var pic_at := _free_spot(data, _room_data(data, "dining"), "N", 4.0)
+	if pic_at >= 0.0:
+		_put(node, data, rect, base, "pictureframe_large_B", pic_at, (data.get("wall_thickness", 0.5) + 0.3) / rect.size.y, 0.0, 1.3, false, 6.5)
 
 
 ## A sofa you can bounce on, armchairs, a low table on a rug, a lamp,
@@ -628,9 +655,20 @@ static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Diction
 	_put(node, data, rect, base, "lamp_table", side_x, bz + (-0.04 if back_north else 0.04), 0.0, 1.0, false, 1.0 * f)
 	_put(node, data, rect, base, "rug_oval_" + ("A" if rng.randf() < 0.5 else "B"), 0.5, 0.55 if back_north else 0.45, 0.0, 1.6, false)
 	if not room.get("hers", false):
-		_put(node, data, rect, base, "pictureframe_medium", 0.25, (t + 0.3) / rect.size.y if back_north else 1.0 - (t + 0.3) / rect.size.y,
-				0.0 if back_north else 180.0, 1.5, false, 6.5)
-		_put(node, data, rect, base, "shelf_A_small", 1.0 - (t + 0.6) / rect.size.x, 0.5, -90.0, 1.4, false, 5.0)
+		# A picture on the back wall and a shelf on a side wall, each where
+		# there's no window or door.
+		var back := "N" if back_north else "S"
+		var pf := _free_spot(data, room, back, 2.6)
+		if pf >= 0.0:
+			_put(node, data, rect, base, "pictureframe_medium", pf, (t + 0.3) / rect.size.y if back_north else 1.0 - (t + 0.3) / rect.size.y,
+					0.0 if back_north else 180.0, 1.5, false, 6.5)
+		for side in ["E", "W"]:
+			var sf := _free_spot(data, room, side, 3.2)
+			if sf >= 0.0:
+				var east: bool = side == "E"
+				_put(node, data, rect, base, "shelf_A_small", (1.0 - (t + 0.6) / rect.size.x) if east else (t + 0.6) / rect.size.x, sf,
+						-90.0 if east else 90.0, 1.4, false, 5.0)
+				break
 	# Light switch on the door wall, beside the door.
 	var sw := LightSwitch.new()
 	sw.name = "LightSwitch"
@@ -791,13 +829,15 @@ static func _furnish_sophia(interior: Interior, data: Dictionary, rect: Rect2, b
 	# another bear sitting on the rug.
 	var bed_z := rect.position.y + t + 1.5 * f + 0.4
 	var cx := rect.get_center().x
-	for st in [["Teddy_Bear", Vector3(cx - 2.2, base + 1.05 * f, bed_z - 1.8), 0.0],
-			["Plush_Bunny", Vector3(cx + 2.2, base + 1.05 * f, bed_z - 1.8), 0.0],
-			["Plush_Dolphin", Vector3(rect.end.x - 5.0, base, rect.end.y - 5.0), -2.4],
-			["Teddy_Bear", Vector3(rect.position.x + 4.0, base, rect.position.y + 4.0), 0.8]]:
+	# [prop, where, which way it looks (yaw: 0 = +Z, into the room from the north wall)].
+	# On the bed they sit on the mattress either side of the pillows.
+	for st in [["Teddy_Bear", Vector3(cx - 2.6, base + 0.55 * f, bed_z - 1.6), 0.0],
+			["Plush_Bunny", Vector3(cx + 2.6, base + 0.55 * f, bed_z - 1.6), 0.0],
+			["Plush_Dolphin", Vector3(rect.end.x - 5.0, base, rect.end.y - 5.0), -2.36],
+			["Teddy_Bear", Vector3(rect.position.x + 4.0, base, rect.position.y + 4.0), 0.79]]:
 		var toy := CharacterLook.prop(st[0])
 		toy.scale = Vector3.ONE * STUFFY_SCALE
 		toy.position = st[1]
-		toy.rotation.y = PI + float(st[2])  # props face -Y in Blender: turn to face into the room
+		toy.rotation.y = float(st[2])  # the props face +Z
 		node.add_child(toy)
 		interior.stuffies.append(toy)

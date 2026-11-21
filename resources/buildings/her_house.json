@@ -1,6 +1,6 @@
 {
 	"name": "her_house",
-	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door), floor = storey (0 down, 1 up). Doors and windows sit on a side (N, S, E, W) at a fraction along it; a doorway between two rooms is listed on both, at the same spot. A door with exit = true leads outside. holes = openings in a room's floor (the stairs come up through one). stairs: a straight flight from a room below to a room above (bottom and top ends on the plan, width). Ground floor: hall, stairwell, playroom, kitchen, dining room, living room. Upstairs: landing and four bedrooms (bedroom_nw is hers: she picks its wall and bed colours).",
+	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door), floor = storey (0 down, 1 up). Doors and windows sit on a side (N, S, E, W) at a fraction along it; a doorway between two rooms is listed on both, at the same spot. A door with exit = true leads outside. holes = openings in a room's floor (the stairs come up through one). stairs: a straight flight from a room below to a room above (bottom and top ends on the plan, width). Ground floor: hall, stairwell, playroom, kitchen, dining room, living room. Upstairs: landing and four bedrooms (bedroom_nw is Sophia's: she picks its wall and bed colours). Upstairs sits wholly on top of the ground floor (one rectangle), so the outside house (BuildingGenerator.build_exterior, from this same plan) is a real two-storey house with single-storey wings.",
 	"storey_height": 11.0,
 	"wall_thickness": 0.5,
 	"door_width": 7.0,
@@ -16,7 +16,7 @@
 				-13,
 				-11,
 				26,
-				22
+				40
 			],
 			"wall": "fff1d6",
 			"floor_colour": "c8a27a",
@@ -28,7 +28,7 @@
 				},
 				{
 					"side": "W",
-					"at": 0.5
+					"at": 0.275
 				},
 				{
 					"side": "N",
@@ -36,7 +36,7 @@
 				},
 				{
 					"side": "E",
-					"at": 0.8182
+					"at": 0.45
 				}
 			],
 			"windows": [
@@ -58,21 +58,26 @@
 				13,
 				-11,
 				20,
-				22
+				40
 			],
 			"wall": "fff1d6",
 			"floor_colour": "c8a27a",
 			"doors": [
 				{
 					"side": "W",
-					"at": 0.8182
+					"at": 0.45
 				},
 				{
 					"side": "E",
-					"at": 0.8182
+					"at": 0.45
 				}
 			],
-			"windows": []
+			"windows": [
+				{
+					"side": "S",
+					"at": 0.5
+				}
+			]
 		},
 		{
 			"id": "playroom",
@@ -82,24 +87,24 @@
 				-45,
 				-14,
 				32,
-				28
+				43
 			],
 			"wall": "cfe8ff",
 			"floor_colour": "f2c46d",
 			"doors": [
 				{
 					"side": "E",
-					"at": 0.5
+					"at": 0.3256
 				}
 			],
 			"windows": [
 				{
 					"side": "W",
-					"at": 0.3
+					"at": 0.25
 				},
 				{
 					"side": "W",
-					"at": 0.7
+					"at": 0.6
 				},
 				{
 					"side": "S",
@@ -143,7 +148,7 @@
 			"rect": [
 				-13,
 				-37,
-				26,
+				46,
 				26
 			],
 			"wall": "e8f5e0",
@@ -151,7 +156,7 @@
 			"doors": [
 				{
 					"side": "S",
-					"at": 0.5
+					"at": 0.2826
 				},
 				{
 					"side": "W",
@@ -161,7 +166,11 @@
 			"windows": [
 				{
 					"side": "N",
-					"at": 0.5
+					"at": 0.45
+				},
+				{
+					"side": "N",
+					"at": 0.7
 				}
 			]
 		},
@@ -173,24 +182,24 @@
 				33,
 				-14,
 				32,
-				28
+				43
 			],
 			"wall": "ffe4ec",
 			"floor_colour": "c9a27e",
 			"doors": [
 				{
 					"side": "W",
-					"at": 0.75
+					"at": 0.4884
 				}
 			],
 			"windows": [
 				{
 					"side": "E",
-					"at": 0.22
+					"at": 0.2
 				},
 				{
 					"side": "E",
-					"at": 0.78
+					"at": 0.8
 				},
 				{
 					"side": "S",
@@ -198,7 +207,7 @@
 				},
 				{
 					"side": "N",
-					"at": 0.82
+					"at": 0.85
 				}
 			]
 		},
@@ -207,10 +216,10 @@
 			"type": "landing",
 			"floor": 1,
 			"rect": [
-				-13,
+				-25,
 				-11,
-				44,
-				22
+				56,
+				18
 			],
 			"wall": "fff1d6",
 			"floor_colour": "c8a27a",
@@ -225,19 +234,19 @@
 			"doors": [
 				{
 					"side": "N",
-					"at": 0.25
+					"at": 0.4107
 				},
 				{
 					"side": "N",
-					"at": 0.5909
+					"at": 0.6786
 				},
 				{
 					"side": "S",
-					"at": 0.25
+					"at": 0.4107
 				},
 				{
 					"side": "S",
-					"at": 0.5909
+					"at": 0.6786
 				}
 			],
 			"windows": [
@@ -247,7 +256,7 @@
 				},
 				{
 					"side": "E",
-					"at": 0.6
+					"at": 0.5
 				}
 			]
 		},
@@ -257,26 +266,26 @@
 			"floor": 1,
 			"rect": [
 				-25,
-				-43,
+				-37,
 				34,
-				32
+				26
 			],
 			"wall": "ffd6e8",
 			"floor_colour": "e9c8a8",
 			"doors": [
 				{
 					"side": "S",
-					"at": 0.6764705882352942
+					"at": 0.6765
 				}
 			],
 			"windows": [
 				{
 					"side": "N",
-					"at": 0.3
+					"at": 0.18
 				},
 				{
 					"side": "N",
-					"at": 0.75
+					"at": 0.85
 				},
 				{
 					"side": "W",
@@ -292,9 +301,9 @@
 			"floor": 1,
 			"rect": [
 				9,
-				-33,
+				-37,
 				22,
-				22
+				26
 			],
 			"wall": "d6ecff",
 			"floor_colour": "c9a27e",
@@ -320,9 +329,9 @@
 			"type": "bedroom",
 			"floor": 1,
 			"rect": [
-				-13,
-				11,
-				22,
+				-25,
+				7,
+				34,
 				22
 			],
 			"wall": "e6f7d6",
@@ -330,13 +339,17 @@
 			"doors": [
 				{
 					"side": "N",
-					"at": 0.5
+					"at": 0.6765
 				}
 			],
 			"windows": [
 				{
 					"side": "S",
-					"at": 0.5
+					"at": 0.18
+				},
+				{
+					"side": "S",
+					"at": 0.85
 				},
 				{
 					"side": "W",
@@ -350,7 +363,7 @@
 			"floor": 1,
 			"rect": [
 				9,
-				11,
+				7,
 				22,
 				22
 			],

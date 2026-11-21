@@ -11,14 +11,15 @@ extends Node
 ##            doorways, and the floor holds you everywhere (never through
 ##            the floor, never stuck in a wall)
 ##   view     a wall between the camera and you fades away
-##   layout   no furniture, picture or plant stands in any doorway
+##   layout   no furniture, picture or plant stands in any doorway, and
+##            nothing hangs over or stands in front of a window
 ##   play     walking up to the toy box opens it and the toys hop out into a
 ##            tidy row in front of it (none flung away); walking into the
 ##            ball kicks it; the fridge opens when you walk up and closes
 ##            when you go; the pot bubbles; the dining table stays empty
-##            until you bring a meal: the fridge shows three meals, walking
-##            into one carries it, walking up to the table serves it at
-##            every place; the TV comes on when you come in and goes off
+##            until you bring a meal: at the open fridge Y shows three meal
+##            pictures, A takes one to carry, walking up to the table serves
+##            it at every place; by a chair Y sits you down and you eat it; the TV comes on when you come in and goes off
 ##            when you leave; landing on the sofa bounces you up high; the
 ##            trophy shelf has its stands; going out tidies everything away
 ##   stairs   you can walk up the stairs and down again; downstairs the
@@ -77,6 +78,8 @@ func _run() -> void:
 	_check("inside: the outdoor world is hidden and paused, the indoor camera is live", not _main.map.visible
 			and _main.map.process_mode == Node.PROCESS_MODE_DISABLED and _main.indoor_camera.cam.current)
 	_check("you stand on the hall floor", _on_floor() and _main.interior.room_at(_w.global_position).get("id", "") == "hall")
+	print("  note: arrived in %s, on floor %s, at %s" % [_main.interior.room_at(_w.global_position).get("id", "?"), _on_floor(),
+			str((_w.global_position - _main.interior.global_position).round())])
 	# --- every room ----------------------------------------------------------------------
 	var interior: Interior = _main.interior
 	var ok_rooms := true
@@ -95,6 +98,8 @@ func _run() -> void:
 		else:
 			ok_rooms = false
 			print("    couldn't reach ", room.id, " (at ", (_w.global_position - interior.global_position).round(), ")")
+			for q in interior.route(here, room.id) + [goal]:
+				print("      via ", (q - interior.global_position).round())
 	print("  note: walked to ", ", ".join(visited))
 	_check("you can walk to every room through the doorways and up the stairs (%d rooms)" % interior.rooms.size(), ok_rooms
 			and interior.rooms.size() >= 11)
@@ -120,7 +125,8 @@ func _run() -> void:
 			print("    left the room at ", lp.round())
 	_check("walking into the walls never goes through them", not through and _on_floor())
 	# --- the view --------------------------------------------------------------------------
-	await _walk_to(interior.room_centre("playroom"), 2.0, 300)
+	# Near the playroom's south wall, the camera behind you (to the south).
+	await _walk_to(interior.room_centre("playroom") + Vector3(0, 0, 14.0), 2.0, 300)
 	_main.indoor_camera.snap_to(0.0)  # camera to the south: the south wall is between
 	await _frames(60)
 	var faded := false
@@ -133,6 +139,10 @@ func _run() -> void:
 	_check("no furniture, picture or plant stands in any doorway", blocked.is_empty())
 	for b in blocked:
 		print("    blocked: ", b)
+	var covered := _covered_windows(interior)
+	_check("nothing hangs over or stands in front of a window", covered.is_empty())
+	for c in covered:
+		print("    window: ", c)
 	# --- play -------------------------------------------------------------------------------
 	var tb: ToyBox = interior.toy_boxes[0]
 	await _walk_to(tb.global_position + tb.global_transform.basis.z * 6.0, 1.5, 400)
@@ -180,22 +190,41 @@ func _run() -> void:
 	await _frames(60)
 	var empty_first := not table.is_set() and table._items.is_empty()
 	await _go_to_room("kitchen")
-	var meals: MealPicker = interior.meal_pickers[0]
 	await _walk_to(fridge.global_position + fridge.global_transform.basis.z * 7.0, 1.5, 400)
-	await _frames(40)
-	var meals_shown := meals.is_shown()
-	var pizza: Node3D = meals.get_child(0)
-	await _walk_to(pizza.global_position + Vector3(0, 0, -5.0), 1.0, 300)
-	await _walk_to(pizza.global_position, 0.6, 200)
 	await _frames(20)
+	var food_prompt: bool = _main.hud.prompt_kind() == "food"
+	var food_menu: bool = _main.open_colour_menu() and _main.colour_menu.is_open() and _main.colour_menu.kind == "meal"
+	var choices: int = _main.colour_menu.count()
+	_main.colour_menu.confirm()  # the first one: pizza
+	await _frames(10)
 	var carrying_meal := _w.model.carrying and _w.model.carry_item == "Meal_Pizza"
 	await _go_to_room("dining")
 	await _walk_to(table.global_position + Vector3(0, 0, 9.0), 1.5, 400)
 	await _frames(120)
-	_check("the table stays empty until you bring a meal from the fridge (three to pick), then it's served at every place",
-			empty_first and meals_shown and carrying_meal and table.meal == "Meal_Pizza" and table._items.size() == table.places.size()
-			and not _w.model.carrying)
-	print("  note: empty %s, meals shown %s, carrying %s, served %s x%d" % [empty_first, meals_shown, carrying_meal, table.meal, table._items.size()])
+	_check("the table stays empty until you choose a meal at the fridge (Y, three pictures, A) and carry it in; then it's served at every place",
+			empty_first and food_prompt and food_menu and choices == 3 and carrying_meal and table.meal == "Meal_Pizza"
+			and table._items.size() == table.places.size() and not _w.model.carrying)
+	print("  note: empty %s, prompt %s, menu %s (%d), carrying %s, served %s x%d" % [empty_first, food_prompt, food_menu, choices,
+			carrying_meal, table.meal, table._items.size()])
+	# Sit at a chair (Y) and eat: three bites, then it's gone; the stick gets you up.
+	var seat := 0
+	var seat_stand := table.stand_point(seat)
+	await _walk_to(seat_stand, 1.0, 400)
+	await _walk_to(table.seat_point(seat).lerp(seat_stand, 0.4), 0.8, 200)
+	await _frames(10)
+	var sit_prompt: bool = _main.hud.prompt_kind() == "sit"
+	var sat: bool = _main.open_colour_menu() and _w.sitting
+	var ate := [false]
+	table.ate.connect(func(_i): ate[0] = true, CONNECT_ONE_SHOT)
+	await _frames(60 * 7)
+	var eaten: bool = ate[0] and not table.has_food_at(seat)
+	_w.override_move = Vector2(0, -1)
+	await _frames(20)
+	_w.override_move = Vector2.ZERO
+	await _frames(70)
+	_check("by a chair Y sits you down at the table and you eat your meal; the stick gets you up again",
+			sit_prompt and sat and eaten and not _w.sitting and _on_floor())
+	print("  note: sit prompt %s, sat %s, ate %s, sitting now %s" % [sit_prompt, sat, eaten, _w.sitting])
 	# Living room: the TV, then bounce on the sofa; the trophy shelf.
 	var tv: TVSet = null
 	for t in interior.tvs:
@@ -382,6 +411,7 @@ func _run() -> void:
 		await _walk_out()
 		if not (inside and _main.state == _main.State.ON_FOOT and _safe_outside()):
 			cycles_ok = false
+			print("  note: cycle %d: in %s, state %s, safe outside %s, at %s" % [i, inside, _main.state, _safe_outside(), str(_w.global_position.round())])
 	_check("in and out again and again", cycles_ok)
 	# --- the plane on the doorstep ---------------------------------------------------------
 	await _walk_up_to_door()
@@ -423,7 +453,7 @@ func _walk_up_to_door() -> void:
 		_main.toggle_plane()
 		await _frames(10)
 	await _walk_to(house.doorstep(), 2.0, 600)
-	await _walk_to(house.to_global(HerHouse.DOOR), 0.6, 300)
+	await _walk_to(house.to_global(house.door_local()), 0.6, 300)
 
 
 ## Walk from wherever you are to the middle of `room_id`, through the doorways.
@@ -468,15 +498,20 @@ func _on_floor() -> bool:
 func _safe_outside() -> bool:
 	var p := _w.global_position
 	var house: HerHouse = _main.house
-	var lp := house.to_local(p)
-	var inside_walls := absf(lp.x) < HerHouse.SIZE.x * 0.5 and absf(lp.z) < HerHouse.SIZE.z * 0.5
+	var inside_walls := house.is_inside_walls(p)
 	var ground := IslandShape.height(p.x, p.z)
 	return _main.map.visible and not inside_walls and absf(p.y - ground) < 2.5 and ground > Walker.SHORE_LEVEL
 
 
 ## Walk (sprinting) towards `p`; the camera follows. False if it never got there.
 func _walk_to(p: Vector3, radius: float, max_frames: int) -> bool:
+	var start_state = _main.state
 	for i in max_frames:
+		# Went in or out on the way (through a door): stop there.
+		if _main.state != start_state:
+			_w.override_move = Vector2.ZERO
+			_w.override_sprint = false
+			return false
 		var d := p - _w.global_position
 		d.y = 0.0
 		if d.length() < radius:
@@ -571,3 +606,42 @@ func _her_wall_colour(her: Dictionary) -> Color:
 		if m.get_meta("wall", false):
 			return m.albedo_color
 	return Color.BLACK
+
+
+## Windows with something in front of them: any piece (not walls, floors or
+## rugs, and not the wall the window is in) overlapping the window's opening
+## from the wall out to 2 m into the room.
+func _covered_windows(interior: Interior) -> Array[String]:
+	var out: Array[String] = []
+	var data: Dictionary = interior.data
+	var ws := BuildingGenerator.WINDOW_SIZE
+	var wall_bits := {}
+	for w in interior.walls:
+		for gi in w.pieces:
+			wall_bits[gi] = true
+	for room: Dictionary in data.rooms:
+		var r: Array = room.rect
+		var rect := Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
+		var info: Dictionary = interior.find_room(str(room.id))
+		var y := float(info.base) + BuildingGenerator.WINDOW_Y
+		for w: Dictionary in room.get("windows", []):
+			var at := float(w.at)
+			var box: AABB
+			match str(w.side):
+				"N": box = AABB(Vector3(rect.position.x + at * rect.size.x - ws.x * 0.5, y - ws.y * 0.5, rect.position.y + 0.3), Vector3(ws.x, ws.y, 2.0))
+				"S": box = AABB(Vector3(rect.position.x + at * rect.size.x - ws.x * 0.5, y - ws.y * 0.5, rect.end.y - 2.3), Vector3(ws.x, ws.y, 2.0))
+				"W": box = AABB(Vector3(rect.position.x + 0.3, y - ws.y * 0.5, rect.position.y + at * rect.size.y - ws.x * 0.5), Vector3(2.0, ws.y, ws.x))
+				_: box = AABB(Vector3(rect.end.x - 2.3, y - ws.y * 0.5, rect.position.y + at * rect.size.y - ws.x * 0.5), Vector3(2.0, ws.y, ws.x))
+			for gi: GeometryInstance3D in (info.node as Node).find_children("*", "GeometryInstance3D", true, false):
+				if wall_bits.has(gi) or gi.get_parent() is LightSwitch:
+					continue
+				var b: AABB = interior.global_transform.affine_inverse() * gi.global_transform * gi.get_aabb()
+				if b.size.y < 0.5 or b.size.x > 30.0 or b.size.z > 30.0:
+					continue
+				# The window's own frame and glass sit in the wall: skip pieces
+				# that are flat against it.
+				if (str(w.side) in ["N", "S"] and b.size.z < 0.6) or (str(w.side) in ["E", "W"] and b.size.x < 0.6):
+					continue
+				if b.intersects(box):
+					out.append("%s window %s %.2f: %s" % [room.id, w.side, at, gi.get_parent().name])
+	return out

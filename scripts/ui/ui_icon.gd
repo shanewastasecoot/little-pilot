@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -148,6 +148,20 @@ func _draw() -> void:
 			for k in 3:
 				var y := (-0.12 + k * 0.14) * s
 				draw_line(c + Vector2(-0.46, y / s) * s, c + Vector2(-0.24, y / s) * s, color, s * 0.06, true)
+		Icon.FOOD:
+			# A plate with a fork and a spoon either side.
+			draw_circle(c, s * 0.3, color)
+			draw_circle(c, s * 0.2, Color(0, 0, 0, 0.25))
+			draw_line(c + Vector2(-0.44, -0.32) * s, c + Vector2(-0.44, 0.38) * s, color, s * 0.07, true)
+			for k in 3:
+				draw_line(c + Vector2(-0.5 + k * 0.06, -0.38) * s, c + Vector2(-0.5 + k * 0.06, -0.2) * s, color, s * 0.035, true)
+			draw_line(c + Vector2(0.44, -0.1) * s, c + Vector2(0.44, 0.38) * s, color, s * 0.07, true)
+			draw_circle(c + Vector2(0.44, -0.24) * s, s * 0.09, color)
+		Icon.SIT:
+			# A chair seen from the side.
+			draw_line(c + Vector2(-0.22, -0.42) * s, c + Vector2(-0.22, 0.4) * s, color, s * 0.1, true)
+			draw_line(c + Vector2(-0.22, 0.02) * s, c + Vector2(0.28, 0.02) * s, color, s * 0.12, true)
+			draw_line(c + Vector2(0.26, 0.02) * s, c + Vector2(0.26, 0.4) * s, color, s * 0.1, true)
 		Icon.PAINT:
 			# A painter's palette: a round board with a thumb hole and paint dots.
 			draw_circle(c + Vector2(0, 0.02) * s, s * 0.42, color)

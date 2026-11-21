@@ -1,50 +1,46 @@
 class_name HerHouse
 extends Landmark
-## Her own two-storey house south-west of the runway (built in Blender by
-## tools/blender/build_house.py), the first building you can walk into.
-## Walking into the front door (on the porch, facing north towards the
-## runway) takes you inside (main.gd's INDOORS state); coming out puts you
-## back on the doorstep. Placed by IslandMap on its flattened pad
-## (IslandShape.HOUSE), outside the city plan.
+## Her own two-storey house south-west of the runway, the first building you
+## can walk into. The outside is built from the same floor plan as the
+## inside (HouseExterior, from resources/buildings/her_house.json), so every
+## wall, window and the front door are where they are inside; round it is a
+## big fenced garden (HouseGarden) with a backyard to play in, the same one
+## you see out of the windows. Walking into the front door takes you inside
+## (main.gd's INDOORS state); coming out puts you back on the doorstep.
+## Placed by IslandMap on its flattened pad (IslandShape.HOUSE_YARD), outside
+## the city plan, turned so the front door faces north (the runway).
 
 signal door_entered
 
-const MODEL := "res://assets/buildings/her_house/her_house.glb"
-## House size (metres, matching build_house.py): footprint and wall height.
-const SIZE := Vector3(30.0, 19.2, 20.0)
-## The front door, in the house's own space (its front faces +Z here, which
-## the house's rotation turns to face north).
-const DOOR := Vector3(0.0, 1.2, 10.8)
-## Standing here (in front of the porch steps) when you come out.
-const DOORSTEP := Vector3(0.0, 0.0, 22.0)
-const DOOR_RADIUS := 3.2
+const DATA := "res://resources/buildings/her_house.json"
+## Standing this far out from the front door when you come out.
+const DOORSTEP_OUT := 24.0
+const DOOR_RADIUS := 4.0
 
+var exterior: HouseExterior
+var garden: HouseGarden
 var _door: Area3D
 
 
 func _init() -> void:
 	landmark_name = "Her House"
-	discovery_radius = 120.0
+	discovery_radius = 160.0
 	discovery_sound = "ding"
 
 
 func build() -> void:
-	var model: Node3D = (load(MODEL) as PackedScene).instantiate()
-	add_child(model)
-	# The house is coloured with vertex colours: give it the toon look the
-	# characters wear (soft outline, cel shading).
-	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
-		for s in mi.mesh.get_surface_count():
-			mi.set_surface_override_material(s, CharacterLook.material(null, 0.08))
-		mi.visibility_range_end = 0.0
-	# Solid: walls and roof as one box (you bump into it; the plane crashes).
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(SIZE.x, SIZE.y + 11.0, SIZE.z)), Vector3(0, (SIZE.y + 11.0) * 0.5, 0))
-	BuildKit.push_volume(self, 34.0, 48.0, Vector3(0, 16, 0))
-	# The porch: a floor to stand on and an invisible gentle ramp up from
-	# the path (so you walk up instead of sinking into the steps).
-	BuildKit.collider(self, BuildKit.box_shape(Vector3(11.0, 1.4, 6.0)), Vector3(0, 0.7, 13.0))
-	var ramp := BuildKit.collider(self, BuildKit.box_shape(Vector3(7.0, 0.4, 5.0)), Vector3(0, 0.55, 18.0))
-	ramp.rotation.x = atan2(1.4, 5.0)  # high end at the porch, low end at the path
+	var data := BuildingGenerator.load_data(DATA)
+	exterior = HouseExterior.new()
+	exterior.name = "Exterior"
+	exterior.data = data
+	add_child(exterior)
+	garden = HouseGarden.new()
+	garden.name = "Garden"
+	garden.outdoor = true
+	garden.footprint = exterior.footprint
+	garden.front_door = Vector2(exterior.door_point.x, exterior.door_point.z)
+	add_child(garden)
+	BuildKit.push_volume(self, exterior.footprint.size.length() * 0.5, 40.0, Vector3(exterior.footprint.get_center().x, 16, exterior.footprint.get_center().y))
 	# The front door: walk into it to go in.
 	_door = Area3D.new()
 	_door.name = "FrontDoor"
@@ -54,7 +50,7 @@ func build() -> void:
 	shape.radius = DOOR_RADIUS
 	var cs := CollisionShape3D.new()
 	cs.shape = shape
-	cs.position = DOOR + Vector3(0, 2.0, 1.2)
+	cs.position = door_local() + exterior.door_out * 1.5 + Vector3(0, 2.5, 0)
 	_door.add_child(cs)
 	add_child(_door)
 	_door.body_entered.connect(func(b): if b is Walker: door_entered.emit())
@@ -63,17 +59,27 @@ func build() -> void:
 func react() -> void:
 	# A little hop of the whole house when the plane first flies by.
 	var tw := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var model: Node3D = get_child(0)
-	tw.tween_property(model, "position:y", 2.0, 0.2)
-	tw.tween_property(model, "position:y", 0.0, 0.5)
+	tw.tween_property(exterior, "position:y", 2.0, 0.2)
+	tw.tween_property(exterior, "position:y", 0.0, 0.5)
+
+
+## The front door in the house's own space (on the ground, at the wall).
+func door_local() -> Vector3:
+	return exterior.door_point
 
 
 ## Where you stand when you come out (world space, on the ground).
 func doorstep() -> Vector3:
-	return to_global(DOORSTEP)
+	return to_global(exterior.door_point + exterior.door_out * DOORSTEP_OUT)
 
 
-## Which way you face when you come out: away from the door (the house's
-## front, its local +Z; a walker's yaw 0 faces -Z).
+## Which way you face when you come out: away from the door.
 func doorstep_yaw() -> float:
-	return wrapf(global_rotation.y + PI, -PI, PI)
+	var out := global_transform.basis * exterior.door_out
+	return atan2(-out.x, -out.z)
+
+
+## Is this world point inside the house's walls (not out in the garden)?
+func is_inside_walls(p: Vector3) -> bool:
+	var l := to_local(p)
+	return exterior.footprint.grow(0.8).has_point(Vector2(l.x, l.z)) and l.y < 30.0

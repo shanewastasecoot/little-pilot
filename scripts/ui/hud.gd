@@ -258,13 +258,15 @@ func bind(stars: StarManager) -> void:
 
 ## The Y button prompt: "exit" (get out and walk), "enter" (get back in
 ## the plane), "call" (bring the plane), "paint" (choose a colour in her
-## room) or "" (hidden).
+## room), "food" (choose a meal at the fridge), "sit" (sit at the table) or
+## "" (hidden).
 func set_prompt(kind: String) -> void:
 	if kind == _prompt_kind:
 		return
 	_prompt_kind = kind
 	if kind != "":
-		_prompt_icon.icon = UiIcon.Icon.PERSON if kind == "exit" else (UiIcon.Icon.PAINT if kind == "paint" else UiIcon.Icon.PLANE)
+		_prompt_icon.icon = {"exit": UiIcon.Icon.PERSON, "paint": UiIcon.Icon.PAINT, "food": UiIcon.Icon.FOOD,
+				"sit": UiIcon.Icon.SIT}.get(kind, UiIcon.Icon.PLANE)
 	create_tween().tween_property(_prompt, "modulate:a", 1.0 if kind != "" else 0.0, 0.2)
 
 

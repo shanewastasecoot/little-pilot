@@ -168,7 +168,7 @@ func _open_meadow(x: float, z: float) -> bool:
 		return false
 	if IslandShape.in_city_area(x, z, 40.0) or p.distance_to(IslandShape.FARM) < 200.0:
 		return false
-	if p.distance_to(IslandShape.HANGAR) < 90.0 or IslandShape.p_in_forest(x, z):
+	if p.distance_to(IslandShape.HANGAR) < 90.0 or IslandShape.p_in_forest(x, z) or IslandShape.in_house_yard(x, z, 20.0):
 		return false
 	return true
 

@@ -22,7 +22,6 @@ var toy_boxes: Array = []
 var balls: Array = []
 var fridges: Array = []
 var pots: Array = []
-var meal_pickers: Array[MealPicker] = []
 var tvs: Array[TVSet] = []
 var mermaid_toys: Array[Node3D] = []
 var stuffies: Array[Node3D] = []
@@ -88,8 +87,6 @@ func reset() -> void:
 		t.reset()
 	for s in switches:
 		s.reset()
-	for m in meal_pickers:
-		m.reset()
 	for tv in tvs:
 		tv.reset()
 	# A meal still in your arms stays in the house.
@@ -207,14 +204,26 @@ func route(from_room: String, to_room: String) -> Array:
 					queue.append(b)
 	if not prev.has(to_room):
 		return []
+	var chain := [to_room]
+	while chain[0] != from_room:
+		chain.push_front(prev[chain[0]])
 	var path := []
-	var cur := to_room
-	while cur != from_room:
-		var pts: Array = via[cur]
-		path.push_front(pts[1])
-		if not (pts[0] as Vector3).is_equal_approx(pts[1]):
-			path.push_front(pts[0])
-		cur = prev[cur]
+	for idx in range(1, chain.size()):
+		var pts: Array = via[chain[idx]]
+		var door_in: Vector3 = pts[0]
+		# Two doorways in the same wall of the room between them: step out
+		# into that room first (not along the wall from one to the other).
+		if not path.is_empty():
+			var last: Vector3 = path[-1]
+			var same_z := absf(last.z - door_in.z) < 0.5
+			if same_z or absf(last.x - door_in.x) < 0.5:
+				var c := room_centre(chain[idx - 1])
+				var step := Vector3(0, 0, signf(c.z - last.z) * 3.5) if same_z else Vector3(signf(c.x - last.x) * 3.5, 0, 0)
+				path.append(last + step)
+				path.append(door_in + step)
+		if path.is_empty() or not (door_in as Vector3).is_equal_approx(pts[1]):
+			path.append(door_in)
+		path.append(pts[1])
 	return _around_obstacles(path)
 
 
@@ -419,3 +428,21 @@ func station_near() -> PaintStation:
 		if st and st.is_player_near():
 			return st
 	return null
+
+
+## What she can do with Y where she's standing: {"kind": "paint" | "food" |
+## "sit", "target": the station, fridge or table, "seat": index}, or {}.
+func interaction_at(walker: Walker) -> Dictionary:
+	if walker.sitting or walker.lying:
+		return {}
+	var st := station_near()
+	if st:
+		return {"kind": "paint", "target": st}
+	for f in fridges:
+		if f.is_open() and not walker.model.carrying:
+			return {"kind": "food", "target": f}
+	for t in tables:
+		var i: int = t.seat_near(walker.global_position)
+		if i >= 0:
+			return {"kind": "sit", "target": t, "seat": i}
+	return {}

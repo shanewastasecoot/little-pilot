@@ -64,6 +64,10 @@ var _bounce := false
 ## Lying in a bed (stand still on one for LIE_AFTER seconds).
 signal lay_down
 var lying := false
+## Sitting on a chair (sit()).
+var sitting := false
+signal stood_up
+var _stand_at := Vector3.ZERO
 var _getting_up := false
 var _still_on_bed := 0.0
 var _bounce_speed := BOUNCE_SPEED
@@ -111,6 +115,7 @@ func set_active(on: bool) -> void:
 	sprinting = false
 	_full_push = 0.0
 	lying = false
+	sitting = false
 	_getting_up = false
 	if on:
 		add_to_group("player_focus")
@@ -125,6 +130,7 @@ func is_active() -> bool:
 ## Stand at `pos` (feet), facing `yaw`.
 func place(pos: Vector3, yaw: float) -> void:
 	lying = false
+	sitting = false
 	_getting_up = false
 	global_position = pos
 	_last_dry = pos
@@ -140,8 +146,9 @@ func _physics_process(delta: float) -> void:
 	var sprint := override_sprint if override_enabled else Input.is_action_pressed("sprint")
 	var jump := override_jump if override_enabled else Input.is_action_just_pressed("jump")
 	var amount := move.length()
-	# Lying in bed: stay put until the stick or A gets you up again.
-	if lying:
+	# Lying in bed or sitting on a chair: stay put until the stick or A
+	# gets you up again.
+	if lying or sitting:
 		velocity = Vector3.ZERO
 		if (amount > 0.3 or jump) and not _getting_up:
 			_get_up()
@@ -231,12 +238,34 @@ func _lie_down(bed: Node3D) -> void:
 
 func _get_up() -> void:
 	_getting_up = true
-	model.play("Lie_StandUp")
+	model.play("Sit_Chair_StandUp" if sitting else "Lie_StandUp")
 	model._anim.speed_scale = 2.2
-	get_tree().create_timer(1.0, false).timeout.connect(func():
+	get_tree().create_timer(0.8 if sitting else 1.0, false).timeout.connect(func():
+		if sitting:
+			global_position = _stand_at
 		lying = false
+		sitting = false
 		_getting_up = false
+		stood_up.emit()
 		model.play("Idle"))
+
+
+## Sit on a chair at `seat` (world, on the floor), looking along `yaw`;
+## getting up steps back out to `stand_at`.
+func sit(seat: Vector3, yaw: float, stand_at: Vector3) -> void:
+	sitting = true
+	_getting_up = false
+	_stand_at = stand_at
+	velocity = Vector3.ZERO
+	global_position = seat
+	facing = yaw
+	_visual.rotation.y = yaw
+	model.play("Sit_Chair_Down")
+	model._anim.speed_scale = 1.6
+	get_tree().create_timer(1.0, false).timeout.connect(func():
+		if sitting and not _getting_up:
+			model.play("Sit_Chair_Idle")
+			model._anim.speed_scale = 1.0)
 
 
 ## Standing on something bouncy (group "bouncy")?

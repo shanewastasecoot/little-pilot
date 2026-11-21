@@ -101,7 +101,7 @@ func _build() -> void:
 	add_child(_model)
 	_skel = _model.find_children("*", "Skeleton3D", true, false)[0]
 	_anim = _model.find_children("*", "AnimationPlayer", true, false)[0]
-	for a in ["Idle", "Walking_A", "Running_A", "Jump_Idle", "Cheer", "Lie_Idle"]:
+	for a in ["Idle", "Walking_A", "Running_A", "Jump_Idle", "Cheer", "Lie_Idle", "Sit_Chair_Idle"]:
 		if _anim.has_animation(a):
 			_anim.get_animation(a).loop_mode = Animation.LOOP_LINEAR
 	# Keep the base's body, arms and legs; hide its head, hat, cape, weapons.
