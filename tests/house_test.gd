@@ -26,8 +26,10 @@ extends Node
 ##            rooms downstairs are hidden (their wall tops can't show)
 ##   bedrooms landing on a bed bounces you; standing still on it you lie
 ##            down, and pushing the stick gets you up; walking into the light switch
-##            turns the light off and on; in her room, walking into a paint
-##            pot or a cushion colours the walls or the quilt, and it's saved;
+##            turns the light off and on; in her room, standing at the easel
+##            or the quilt chest and pressing Y opens a colour menu (stick to
+##            look, A to keep, B to put back) and walking past them changes
+##            nothing; the colours are saved;
 ##            the hidden star gives reward stars
 ##   plane    the plane parked on the doorstep is moved before you come out
 ##   restart  stopping the game while inside starts you outside the front
@@ -285,34 +287,59 @@ func _run() -> void:
 	await _frames(90)
 	_w.override_move = Vector2.ZERO
 	_check("standing still on a bed you lie down, and the stick gets you up", lay and not _w.lying)
-	# Her colours: walk into a paint pot and a cushion.
+	# Her colours: stand at the easel or the quilt chest and press Y; walking
+	# past them never changes anything.
 	await _go_to_room(her.id)
-	var pots: ColourPicker = her.wall_picker
-	var cushions: ColourPicker = her.bed_picker
-	# Straight up to each one from in front of its row (not brushing the others).
-	var pot2: Node3D = pots.get_child(2)
-	var pots_out := (interior.room_centre(her.id) - pots.global_position) * Vector3(1, 0, 1)
-	await _walk_to(pot2.global_position + pots_out.normalized() * 5.0, 0.6, 400)
-	await _walk_to(pot2.global_position, 0.6, 300)
+	var easel: PaintStation = her.wall_station
+	var chest: PaintStation = her.bed_station
+	var walls_before := _her_wall_colour(her)
+	var easel_front := easel.global_transform.basis.z.normalized() * Vector3(1, 0, 1)
+	await _walk_to(easel.global_position + easel_front * 3.5, 0.8, 400)
 	await _frames(10)
-	await _walk_to(pot2.global_position + pots_out.normalized() * 5.0, 0.6, 300)
-	var cushion4: Node3D = cushions.get_child(4)
-	var cushions_out := (interior.room_centre(her.id) - cushions.global_position) * Vector3(1, 0, 1)
-	if cushions_out.length() < 1.0:
-		cushions_out = Vector3(0, 0, 1)
-	await _walk_to(cushion4.global_position + cushions_out.normalized() * 5.0, 0.6, 400)
-	await _walk_to(cushion4.global_position, 0.6, 300)
+	var prompt_shown: bool = _main.hud.prompt_kind() == "paint"
+	await _walk_to(interior.room_centre(her.id), 2.0, 300)
 	await _frames(10)
-	var wall_col: Color = Color.BLACK
-	for m: StandardMaterial3D in her.mats:
-		if m.get_meta("wall", false):
-			wall_col = m.albedo_color
-	print("  note: walls %s (want %s), quilt %s (want %s), saved wall %d bed %d, at %s" % [wall_col.to_html(false),
-			(ColourPicker.COLOURS[2] as Color).lightened(0.35).to_html(false), (her.quilt as StandardMaterial3D).albedo_color.to_html(false),
-			(ColourPicker.COLOURS[4] as Color).to_html(false), SaveManager.house_wall, SaveManager.house_bed,
-			str((_w.global_position - interior.global_position).round())])
-	_check("in her room, a paint pot colours the walls and a cushion the quilt", wall_col.is_equal_approx(
-			(ColourPicker.COLOURS[2] as Color).lightened(0.35)) and (her.quilt as StandardMaterial3D).albedo_color.is_equal_approx(ColourPicker.COLOURS[4]))
+	var unchanged: bool = _her_wall_colour(her).is_equal_approx(walls_before) and _main.hud.prompt_kind() != "paint"
+	_check("by the easel the Y prompt shows; walking past changes nothing", prompt_shown and unchanged)
+	print("  note: prompt by the easel %s, unchanged after %s, easel near %s, at %s, easel %s" % [prompt_shown, unchanged, easel.is_player_near(),
+			str((_w.global_position - interior.global_position).round()), str((easel.global_position - interior.global_position).round())])
+	# Y: the menu opens and she stands still; the stick shows each colour on
+	# the walls; B puts it back.
+	await _walk_to(easel.global_position + easel_front * 3.5, 0.8, 400)
+	await _frames(10)
+	var menu_opened: bool = _main.open_colour_menu()
+	var menu: ColourMenu = _main.colour_menu
+	var stand := _w.global_position
+	_w.override_move = Vector2(1, 0)
+	await _frames(30)
+	_w.override_move = Vector2.ZERO
+	var held := _flat_dist(stand, _w.global_position) < 0.2
+	menu.move(1)
+	menu.move(1)
+	var previewed := _her_wall_colour(her).is_equal_approx((PaintStation.COLOURS[2] as Color).lightened(0.35))
+	menu.cancel()
+	await _frames(10)
+	var put_back := _her_wall_colour(her).is_equal_approx(walls_before) and SaveManager.house_wall == -1
+	_check("Y opens the colour menu (she stands still), the stick shows each colour, B puts it back",
+			menu_opened and held and previewed and put_back and not menu.is_open())
+	# Choose with A: walls colour 2, quilt colour 4.
+	_main.open_colour_menu()
+	menu.move(2)
+	menu.confirm()
+	await _frames(10)
+	var chest_front := chest.global_transform.basis.z.normalized() * Vector3(1, 0, 1)
+	await _walk_to(chest.global_position + chest_front * 4.0, 0.8, 400)
+	await _frames(10)
+	var chest_opened: bool = _main.open_colour_menu()
+	menu.move(4)
+	menu.confirm()
+	await _frames(10)
+	var wall_col := _her_wall_colour(her)
+	print("  note: walls %s (want %s), quilt %s (want %s), saved wall %d bed %d, menu at the chest %s" % [wall_col.to_html(false),
+			(PaintStation.COLOURS[2] as Color).lightened(0.35).to_html(false), (her.quilt as StandardMaterial3D).albedo_color.to_html(false),
+			(PaintStation.COLOURS[4] as Color).to_html(false), SaveManager.house_wall, SaveManager.house_bed, chest_opened])
+	_check("A keeps the colour: the easel colours the walls and the quilt chest the quilt", chest_opened and wall_col.is_equal_approx(
+			(PaintStation.COLOURS[2] as Color).lightened(0.35)) and (her.quilt as StandardMaterial3D).albedo_color.is_equal_approx(PaintStation.COLOURS[4]))
 	SaveManager.save_now()
 	SaveManager.use_path(PATH)
 	_check("her colours are saved", SaveManager.house_wall == 2 and SaveManager.house_bed == 4)
@@ -537,3 +564,10 @@ func _blocked_doorways(interior: Interior) -> Array[String]:
 					if box.intersects(clear):
 						out.append("%s door %s: %s" % [room.id, d.side, gi.get_parent().name])
 	return out
+
+
+func _her_wall_colour(her: Dictionary) -> Color:
+	for m: StandardMaterial3D in her.mats:
+		if m.get_meta("wall", false):
+			return m.albedo_color
+	return Color.BLACK

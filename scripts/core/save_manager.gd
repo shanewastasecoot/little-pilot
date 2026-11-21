@@ -61,7 +61,7 @@ var deliveries: int = 0
 var delivered_to: Array[String] = []
 ## Parent setting: the delivery arrow (the picture bubble still shows).
 var delivery_arrow: bool = true
-## Her house: her bedroom's wall and quilt colours (ColourPicker index, -1 =
+## Her house: her bedroom's wall and quilt colours (PaintStation.COLOURS index, -1 =
 ## as built), and whether she was inside when the game last stopped (then
 ## she starts outside the front door).
 var house_wall: int = -1
@@ -369,7 +369,7 @@ func set_delivery_arrow(on: bool) -> void:
 	request_save()
 
 
-## Her bedroom's colours (ColourPicker indices, -1 = as built).
+## Her bedroom's colours (PaintStation.COLOURS indices, -1 = as built).
 func set_house_colours(wall: int, bed: int) -> void:
 	house_wall = clampi(wall, -1, 5)
 	house_bed = clampi(bed, -1, 5)

@@ -57,6 +57,8 @@ const DOOR_RADIUS := 9.0
 const PLANE_FAR := 30.0
 const PLANE_CALL_HOLD := 1.0
 var plane_beacon: DeliveryBeacon
+## Her room's colour chooser (opened with Y at a PaintStation).
+var colour_menu: ColourMenu
 ## Her house: the landmark outside, the inside (built once, the first time
 ## you go in, by BuildingGenerator from resources/buildings/her_house.json),
 ## the indoor camera and lighting.
@@ -133,6 +135,11 @@ func _ready() -> void:
 	_door.body_entered.connect(func(b): if b == walker: _near_plane = true)
 	_door.body_exited.connect(func(b): if b == walker: _near_plane = false)
 	SaveManager.settings_changed.connect(func(): aircraft.crashes = SaveManager.crashes)
+	colour_menu = ColourMenu.new()
+	colour_menu.name = "ColourMenu"
+	hud.add_child(colour_menu)
+	colour_menu.chosen.connect(_on_colour_chosen)
+	colour_menu.cancelled.connect(func(): _hold_walker(false))
 	var fade_layer := CanvasLayer.new()
 	fade_layer.layer = 40
 	add_child(fade_layer)
@@ -246,6 +253,8 @@ func _process(delta: float) -> void:
 		hud.set_prompt("enter")
 	elif state == State.ON_FOOT and plane_far():
 		hud.set_prompt("call")
+	elif state == State.INDOORS and interior and not colour_menu.is_open() and interior.station_near():
+		hud.set_prompt("paint")
 	elif _playing():
 		hud.set_prompt("")
 	_update_plane_call(delta)
@@ -322,6 +331,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _in_plane() and event.is_action_pressed("paint_prev"):
 		aircraft.cycle_paint(-1)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("interact") and open_colour_menu():
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and toggle_plane():
@@ -703,3 +715,42 @@ func _on_all_stars() -> void:
 		burst.position = aircraft.global_position + Vector3(cos(a) * 12.0, 6.0 + (i % 2) * 6.0, sin(a) * 12.0)
 		add_child(burst)
 		await get_tree().create_timer(0.2, false).timeout
+
+
+## Indoors, standing at a paint station: open the colour chooser for it.
+## True if it opened.
+func open_colour_menu() -> bool:
+	if state != State.INDOORS or interior == null or colour_menu.is_open() or _doorway_busy:
+		return false
+	var st := interior.station_near()
+	if st == null:
+		return false
+	var walls := st.kind == "walls"
+	colour_menu.preview = func(i: int):
+		if walls:
+			interior.paint_her_walls(i)
+		else:
+			interior.colour_her_quilt(i)
+	_hold_walker(true)
+	hud.set_prompt("")
+	colour_menu.open(st.kind, SaveManager.house_wall if walls else SaveManager.house_bed)
+	return true
+
+
+func _on_colour_chosen(i: int) -> void:
+	_hold_walker(false)
+	var st := interior.station_near() if interior else null
+	if colour_menu.kind == "walls":
+		interior.paint_her_walls(i, true)
+	else:
+		interior.colour_her_quilt(i, true)
+	if st:
+		st.celebrate(i)
+
+
+## Keep her standing still (while a menu is open).
+func _hold_walker(on: bool) -> void:
+	walker.set_physics_process(not on)
+	if on:
+		walker.velocity = Vector3.ZERO
+		walker.model.animate(0.0, true, false, false)

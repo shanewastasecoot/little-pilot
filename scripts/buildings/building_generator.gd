@@ -646,27 +646,25 @@ static func _furnish_bedroom(interior: Interior, data: Dictionary, room: Diction
 		sw.materials.append(m)
 	node.add_child(sw)
 	interior.switches.append(sw)
-	# Her room: paint pots for the walls, cushions for the quilt.
+	# Her room: a painter's easel for the walls and a quilt chest at the
+	# foot of the bed (stand by one and press Y to choose a colour).
 	if room.get("hers", false):
-		var pots := ColourPicker.new()
-		pots.name = "WallPaint"
-		pots.kind = "pot"
-		pots.position = Vector3(rect.position.x + t + 2.0, base, rect.get_center().y)
-		pots.rotation.y = PI * 0.5
-		node.add_child(pots)
-		var cushions := ColourPicker.new()
-		cushions.name = "BedColours"
-		cushions.kind = "cushion"
-		cushions.spacing = 3.4
-		# In a row just past the foot of the bed.
-		var foot := 1.5 * f + 3.2
-		cushions.position = Vector3(rect.get_center().x - 3.0, base, rect.position.y + rect.size.y * bz + (foot if back_north else -foot))
-		node.add_child(cushions)
+		var easel := PaintStation.new()
+		easel.name = "WallEasel"
+		easel.kind = "walls"
+		easel.position = Vector3(rect.position.x + t + 2.4, base, rect.position.y + rect.size.y * 0.76)
+		easel.rotation.y = PI * 0.5  # facing into the room (east)
+		node.add_child(easel)
+		var chest := PaintStation.new()
+		chest.name = "QuiltChest"
+		chest.kind = "quilt"
+		# Beside the bed (the side without the nightstand), facing out.
+		chest.position = Vector3(rect.get_center().x - (1.55 * f + 2.4), base, rect.position.y + rect.size.y * bz)
+		chest.rotation.y = -PI * 0.5  # facing west, away from the bed
+		node.add_child(chest)
 		interior.her_room = info
-		info["wall_picker"] = pots
-		info["bed_picker"] = cushions
-		pots.picked.connect(func(i): interior.paint_her_walls(i, true))
-		cushions.picked.connect(func(i): interior.colour_her_quilt(i, true))
+		info["wall_station"] = easel
+		info["bed_station"] = chest
 		_furnish_sophia(interior, data, rect, base, node)
 	# The hidden star: tucked into the far corner of the south-east bedroom.
 	if str(room.id) == "bedroom_se":

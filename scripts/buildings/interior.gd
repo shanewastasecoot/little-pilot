@@ -124,25 +124,39 @@ func find_room(room_id: String) -> Dictionary:
 	return {}
 
 
-## Her room's walls in colour `i` of ColourPicker.COLOURS (saved if `save`).
+## Her room's walls in colour `i` of PaintStation.COLOURS (saved if `save`).
+## i = -1: back to the colour it was built with.
 func paint_her_walls(i: int, save := false) -> void:
-	if her_room.is_empty() or i < 0 or i >= ColourPicker.COLOURS.size():
+	if her_room.is_empty() or i < -1 or i >= PaintStation.COLOURS.size():
+		return
+	if i == -1:
+		for m: StandardMaterial3D in her_room.mats:
+			if m.has_meta("built"):
+				m.albedo_color = m.get_meta("built")
+		if her_room.has("wall_station"):
+			(her_room.wall_station as PaintStation).show_colour(-1)
 		return
 	for s in switches:
 		if s.get_parent() == her_room.node and not s.on:
 			s.set_on(true)
 	for m: StandardMaterial3D in her_room.mats:
 		if m.get_meta("wall", false):
-			m.albedo_color = (ColourPicker.COLOURS[i] as Color).lightened(0.35)
+			if not m.has_meta("built"):
+				m.set_meta("built", m.albedo_color)
+			m.albedo_color = (PaintStation.COLOURS[i] as Color).lightened(0.35)
+	if her_room.has("wall_station"):
+		(her_room.wall_station as PaintStation).show_colour(i)
 	if save:
 		SaveManager.set_house_colours(i, SaveManager.house_bed)
 
 
 ## Her bed's quilt in colour `i` (saved if `save`).
 func colour_her_quilt(i: int, save := false) -> void:
-	if her_room.is_empty() or not her_room.has("quilt") or i < 0 or i >= ColourPicker.COLOURS.size():
+	if her_room.is_empty() or not her_room.has("quilt") or i < -1 or i >= PaintStation.COLOURS.size():
 		return
-	(her_room.quilt as StandardMaterial3D).albedo_color = ColourPicker.COLOURS[i]
+	(her_room.quilt as StandardMaterial3D).albedo_color = Color.WHITE if i == -1 else PaintStation.COLOURS[i]
+	if her_room.has("bed_station"):
+		(her_room.bed_station as PaintStation).show_colour(i)
 	if save:
 		SaveManager.set_house_colours(SaveManager.house_wall, i)
 
@@ -396,3 +410,12 @@ func _set_room_visibility(r: Dictionary, v: float) -> void:
 	for gi: GeometryInstance3D in _room_items[r.id]:
 		if is_instance_valid(gi):
 			gi.transparency = 1.0 - v if v < 0.999 else 0.0
+
+
+## The paint station you're standing at (her room), or null.
+func station_near() -> PaintStation:
+	for k in ["wall_station", "bed_station"]:
+		var st := her_room.get(k) as PaintStation
+		if st and st.is_player_near():
+			return st
+	return null
