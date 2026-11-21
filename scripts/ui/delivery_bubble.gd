@@ -13,10 +13,12 @@ var show_arrow := true
 var colour := Color("ffd23f")
 ## Where they are (a little picture at the bubble's bottom left).
 var place := ""
+const MERMAID_PORTRAIT_SCALE := 4.0
+const MERMAID_PORTRAIT_Y := 0.2
 var _t := 0.0
 var _viewport: SubViewport
 var _stage: Node3D
-var _who: CharacterModel
+var _who: Node3D
 var _picture: TextureRect
 
 const MASK := """
@@ -82,10 +84,19 @@ func set_recipient(who: RecipientData) -> void:
 		return
 	colour = who.colour
 	place = who.place
-	_who = (load("res://scenes/characters/player_character.tscn") as PackedScene).instantiate() as CharacterModel
-	_who.look_override = who.look
-	_who.head_override = who.head
-	_who.rotation.y = PI + 0.35  # facing the camera, a little turned
+	if who.kind == "mermaid":
+		# A mermaid's portrait: her model, framed like the people.
+		_who = (load("res://scenes/characters/mermaid.tscn") as PackedScene).instantiate()
+		_who.set("tail_color", who.tail_colour)
+		_who.scale = Vector3.ONE * MERMAID_PORTRAIT_SCALE
+		_who.position = Vector3(0, MERMAID_PORTRAIT_Y, 0)
+	else:
+		var person := (load("res://scenes/characters/player_character.tscn") as PackedScene).instantiate() as CharacterModel
+		person.look_override = who.look
+		person.head_override = who.head
+		_who = person
+	# Facing the camera, a little turned (the mermaid model faces the other way).
+	_who.rotation.y = 0.35 if who.kind == "mermaid" else PI + 0.35
 	_stage.add_child(_who)
 	show()
 	_render_portrait()
@@ -150,6 +161,14 @@ func _draw_place(b: Vector2, r: float) -> void:
 	draw_circle(b, r, Color.WHITE)
 	var k := r / 26.0
 	match place:
+		"sea":
+			# Waves and a rock.
+			draw_circle(b + Vector2(0, 2) * k, 9.0 * k, Color("8a8f99"))
+			for row in 2:
+				var pts := PackedVector2Array()
+				for i in 9:
+					pts.append(b + Vector2(-16 + i * 4, 8 + row * 6 + (2.0 if i % 2 else -2.0)) * k)
+				draw_polyline(pts, Color("3a8fd9"), 3.0 * k, true)
 		"airport":
 			# A little plane seen from above.
 			draw_rect(Rect2(b + Vector2(-3, -15) * k, Vector2(6, 30) * k), Color("e63946"))

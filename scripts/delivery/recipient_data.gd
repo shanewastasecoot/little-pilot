@@ -23,6 +23,11 @@ extends Resource
 @export var place := "airport"
 ## A good place to land the plane for them (tests walk from here).
 @export var land_at := Vector2.ZERO
+## "person" (walk up and hand it over) or "mermaid" (sits on a rock in the
+## sea: fly low over her and the parcel parachutes down, she leaps for it).
+@export var kind := "person"
+## A mermaid's tail colour.
+@export var tail_colour := Color("ff7eb9")
 
 
 static func make(p_id: String, p_look: OutfitData, p_head: Array, p_spot: Vector2, p_face: float,
@@ -38,4 +43,18 @@ static func make(p_id: String, p_look: OutfitData, p_head: Array, p_spot: Vector
 	r.tier = p_tier
 	r.land_at = p_land_at
 	r.deliverable = p_deliverable
+	return r
+
+
+## A mermaid at sea (no outfit: the mermaid model, her tail in `tail`).
+static func mermaid(p_id: String, p_spot: Vector2, p_face: float, p_colour: Color, p_tail: Color, p_tier := 2) -> RecipientData:
+	var r := RecipientData.new()
+	r.id = p_id
+	r.kind = "mermaid"
+	r.spot = p_spot
+	r.face_deg = p_face
+	r.colour = p_colour
+	r.tail_colour = p_tail
+	r.place = "sea"
+	r.tier = p_tier
 	return r

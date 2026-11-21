@@ -104,4 +104,8 @@ static func _build() -> Array[RecipientData]:
 	list.append(RecipientData.make("knight",
 			OutfitData.make("knight", "Knight", {"r1c0": Color("9b5de5")}, [], [], [], ["Knight_Helmet", "Knight_Cape"]),
 			["Knight", {}], Vector2(-480, 3500), 60.0, Color("9b5de5"), "castle", 2, Vector2(-440, 3520)))
+	# --- Mermaid mail: on rocks at sea; fly low over them to drop the parcel -----------------
+	list.append(RecipientData.mermaid("mermaid_beach", Vector2(1400, 160), 90.0, Color("ff7eb9"), Color("ff7eb9"), 1))
+	list.append(RecipientData.mermaid("mermaid_cove", Vector2(-620, 2220), 270.0, Color("7b6cff"), Color("7b6cff")))
+	list.append(RecipientData.mermaid("mermaid_lagoon", Vector2(-120, -1980), 0.0, Color("3cc9a8"), Color("3cc9a8")))
 	return list
