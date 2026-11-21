@@ -22,7 +22,7 @@ extends Node3D
 signal plane_hit(where: Vector3, by_fire: bool)
 signal state_changed(state: int)
 
-enum State { SLEEP, WAKE, EMERGE, PATROL, INVESTIGATE, HUNT, BREATHE, RETURN, ENTER, GLOAT }
+enum State { SLEEP, WAKE, EMERGE, PATROL, INVESTIGATE, HUNT, BREATHE, RETURN, ENTER, GLOAT, GRUMPY }
 
 const MODEL := "res://assets/environment/dragon.glb"
 const SCALE := 9.0
@@ -74,6 +74,10 @@ var level := 0
 var state: int = State.SLEEP
 ## 0..1: how sure it is the plane is there. Hunts at 1.
 var alert := 0.0
+## Someone took its treasure: it hunts her plane the next time it flies.
+var angry := false
+var _treasure_at := Vector3.ZERO
+var _stomp := 0.0
 var lair: DragonLair
 var plane: Node3D
 var velocity := Vector3.ZERO
@@ -156,6 +160,20 @@ func forgive(seconds := 10.0) -> void:
 		_set_state(State.GLOAT)
 
 
+## A piece of its treasure was taken (at `at`): woken at home, it's grumpy
+## (roars, stomps, huffs smoke at the nest; never hurts anyone on foot),
+## then hunts the plane once she takes off. Out flying, it roars and will
+## hunt the plane as soon as it sees it fly.
+func treasure_taken(at: Vector3) -> void:
+	angry = true
+	_treasure_at = at
+	var home := lair != null and global_position.distance_to(lair.to_global(lair.nest())) < 150.0
+	if home and state in [State.SLEEP, State.WAKE, State.ENTER, State.GLOAT, State.GRUMPY]:
+		_set_state(State.GRUMPY)
+	else:
+		Sfx.play_at("roar", global_position, 0.9, 6.0)
+
+
 ## Wake up and come out now (tests, and when the plane buzzes the cave).
 func wake() -> void:
 	if state == State.SLEEP:
@@ -186,6 +204,7 @@ func _physics_process(delta: float) -> void:
 		State.RETURN: _return_step(delta)
 		State.ENTER: _enter_step(delta)
 		State.GLOAT: _gloat_step(delta)
+		State.GRUMPY: _grumpy_step(delta)
 	_check_hits()
 	_animate(delta)
 
@@ -297,6 +316,12 @@ func _set_state(s: int) -> void:
 			_plan_route()
 		State.GLOAT:
 			Sfx.play_at("roar", global_position, 1.15)
+		State.GRUMPY:
+			_stomp = 0.0
+			speed = 0.0
+			velocity = Vector3.ZERO
+			if lair:
+				lair.set_sleeping(false)
 	state_changed.emit(s)
 
 
@@ -335,9 +360,50 @@ func _emerge_step(delta: float) -> void:
 	_fly_direct(exit, PATROL_SPEED, delta)
 	if global_position.distance_to(exit) < 25.0:
 		_set_state(State.PATROL)
+		_hunt_if_angry()
+
+
+## Treasure was taken and her plane is flying: straight after it.
+func _hunt_if_angry() -> void:
+	if angry and _plane_flying() and _ignore <= 0.0:
+		angry = false
+		alert = 1.0
+		_seen_ago = 0.0
+		_last_seen = plane.global_position
+		_set_state(State.HUNT)
+
+
+## Woken by a thief: at the nest, facing where the treasure was, a roar, a
+## stomp and a huff of smoke every couple of seconds. When her plane takes
+## off it flies out after it; if she stays on foot it settles down again
+## (still angry: it hunts the plane next time it's out).
+func _grumpy_step(delta: float) -> void:
+	var to := _treasure_at - global_position
+	to.y = 0.0
+	if to.length() > 1.0:
+		global_basis = global_basis.slerp(Basis.looking_at(-to.normalized()), 0.06).orthonormalized()
+	_stomp -= delta
+	if _stomp <= 0.0:
+		_stomp = 2.4
+		Sfx.play_at("roar", global_position, randf_range(0.85, 1.0), 5.0)
+		var puff := PickupBurst.new(30, 10.0, [Color("666666"), Color("888888"), Color("ff7b2e")])
+		(lair if lair else self).add_child(puff)
+		puff.global_position = global_position + _forward() * 22.0 + Vector3.UP * 14.0
+		var base := global_position.y
+		var tw := create_tween()
+		tw.tween_property(self, "global_position:y", base + 4.0, 0.25).set_ease(Tween.EASE_OUT)
+		tw.tween_property(self, "global_position:y", base, 0.2).set_ease(Tween.EASE_IN)
+		tw.tween_callback(func(): Sfx.play_at("boom", global_position, 0.6, 2.0))
+	if _t_state > 6.0 and _plane_flying():
+		_set_state(State.EMERGE)
+	elif _t_state > 45.0:
+		_sleep_now()
 
 
 func _patrol_step(delta: float) -> void:
+	_hunt_if_angry()
+	if state != State.PATROL:
+		return
 	if alert >= 1.0:
 		_set_state(State.HUNT)
 		return

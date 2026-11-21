@@ -67,6 +67,10 @@ var delivery_arrow: bool = true
 var house_wall: int = -1
 var house_bed: int = -1
 var house_inside: bool = false
+## Dragon treasure she's taken from the lair (shown on her trophy shelf), and
+## the playtime (s) when the next piece is back on the hoard.
+var treasures: int = 0
+var treasure_ready_at: float = 0.0
 var invert_y: bool = false
 const LOOK_SENSITIVITY_MIN := 0.4
 const LOOK_SENSITIVITY_MAX := 2.5
@@ -190,6 +194,12 @@ func _load_file() -> void:
 	var hi = cfg.get_value("house", "inside", false)
 	if hi is bool:
 		house_inside = hi
+	var tr = cfg.get_value("dragon", "treasures", 0)
+	if tr is int and tr >= 0 and tr < 1000:
+		treasures = tr
+	var tra = cfg.get_value("dragon", "treasure_ready_at", 0.0)
+	if (tra is float or tra is int) and float(tra) >= 0.0:
+		treasure_ready_at = float(tra)
 	var met = cfg.get_value("delivery", "delivered_to", [])
 	if met is Array:
 		for m in met:
@@ -246,6 +256,8 @@ func save_now() -> void:
 	cfg.set_value("house", "wall", house_wall)
 	cfg.set_value("house", "bed", house_bed)
 	cfg.set_value("house", "inside", house_inside)
+	cfg.set_value("dragon", "treasures", treasures)
+	cfg.set_value("dragon", "treasure_ready_at", treasure_ready_at)
 	# Write to a temp file, then swap it in, so a crash mid-write
 	# can't leave a broken save behind.
 	var tmp := path + ".tmp"
@@ -369,6 +381,14 @@ func set_delivery_arrow(on: bool) -> void:
 	request_save()
 
 
+## She took a piece of dragon treasure: one more on her shelf; the next is
+## back on the hoard after `refill` seconds of play.
+func add_treasure(refill: float) -> void:
+	treasures += 1
+	treasure_ready_at = playtime + refill
+	request_save()
+
+
 ## Her bedroom's colours (PaintStation.COLOURS indices, -1 = as built).
 func set_house_colours(wall: int, bed: int) -> void:
 	house_wall = clampi(wall, -1, 5)
@@ -430,6 +450,8 @@ func _reset_to_defaults() -> void:
 	house_wall = -1
 	house_bed = -1
 	house_inside = false
+	treasures = 0
+	treasure_ready_at = 0.0
 	char_body = "M"
 	char_hair = 1
 	char_outfit = 1
