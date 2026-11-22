@@ -31,6 +31,11 @@ const TURN_RATE := 12.0        # how quickly it turns to face where it's going
 ## this far ahead of the feet.
 const SHORE_LEVEL := 1.5
 const SHORE_REACH := 1.6
+## How hard walking into a ball or a toy pushes it (per m/s, per second of contact).
+const PUSH := 9.0
+const PUSH_LIFT := 6.0
+## Landing on something bouncy (a sofa, a bed) springs you up this fast.
+const BOUNCE_SPEED := 19.0
 
 ## The camera's yaw (set by WalkCamera): the stick moves relative to it.
 var camera_yaw := 0.0
@@ -50,9 +55,27 @@ var model: CharacterModel
 ## The last spot it stood on dry ground: if it ever ends up over the sea
 ## (sliding down a steep bank), it goes back there.
 var _last_dry := Vector3.ZERO
+## Her feet's height the last time she stood on something (jumps and
+## bounces don't change it; the stairs do, step by step).
+var floor_y := 0.0
 var _active := false
 ## Seconds the stick has been pushed all the way (auto-run).
 var _full_push := 0.0
+## Landed on something bouncy and sprang up.
+signal bounced
+var _bounce := false
+## Lying in a bed (stand still on one for LIE_AFTER seconds).
+signal lay_down
+var lying := false
+## Sitting on a chair (sit()).
+var sitting := false
+signal stood_up
+var _stand_at := Vector3.ZERO
+var _getting_up := false
+var _still_on_bed := 0.0
+var _bounce_speed := BOUNCE_SPEED
+var _bed_bounces := 0
+const LIE_AFTER := 1.2
 
 
 func _ready() -> void:
@@ -94,6 +117,9 @@ func set_active(on: bool) -> void:
 	moving = false
 	sprinting = false
 	_full_push = 0.0
+	lying = false
+	sitting = false
+	_getting_up = false
 	if on:
 		add_to_group("player_focus")
 	elif is_in_group("player_focus"):
@@ -106,6 +132,10 @@ func is_active() -> bool:
 
 ## Stand at `pos` (feet), facing `yaw`.
 func place(pos: Vector3, yaw: float) -> void:
+	floor_y = pos.y
+	lying = false
+	sitting = false
+	_getting_up = false
 	global_position = pos
 	_last_dry = pos
 	facing = yaw
@@ -120,6 +150,13 @@ func _physics_process(delta: float) -> void:
 	var sprint := override_sprint if override_enabled else Input.is_action_pressed("sprint")
 	var jump := override_jump if override_enabled else Input.is_action_just_pressed("jump")
 	var amount := move.length()
+	# Lying in bed or sitting on a chair: stay put until the stick or A
+	# gets you up again.
+	if lying or sitting:
+		velocity = Vector3.ZERO
+		if (amount > 0.3 or jump) and not _getting_up:
+			_get_up()
+		return
 	# Held all the way for a moment: break into a run by itself.
 	_full_push = _full_push + delta if amount >= FULL_PUSH else 0.0
 	sprint = sprint or _full_push >= AUTO_RUN_AFTER
@@ -136,21 +173,126 @@ func _physics_process(delta: float) -> void:
 	velocity.x = flat.x
 	velocity.z = flat.z
 	if is_on_floor():
-		velocity.y = JUMP_SPEED if jump else 0.0
+		velocity.y = _bounce_speed if _bounce else (JUMP_SPEED if jump else 0.0)
+		if jump and not _bounce:
+			_bed_bounces = 0  # a fresh jump onto a bed bounces high again
+		_bounce = false
 	else:
 		velocity.y -= GRAVITY * delta
+	var was_falling := not is_on_floor() and velocity.y < -2.0
 	move_and_slide()
+	_push_things()
+	if is_on_floor() and was_falling and _on_bouncy():
+		# Beds: each bounce a little lower, so you settle (and can lie down).
+		var on_bed := _bed_under() != null
+		_bounce_speed = BOUNCE_SPEED if not on_bed or _bed_bounces == 0 else _bounce_speed * 0.6
+		_bed_bounces = _bed_bounces + 1 if on_bed else 0
+		if _bounce_speed > 7.0:
+			_bounce = true  # springs up on the next step
+			Sfx.play("whoosh", 1.8, -4.0)
+			bounced.emit()
+	elif is_on_floor() and not _bounce and _bed_under() == null:
+		_bed_bounces = 0
 	if _wet(global_position):
 		global_position = _last_dry
 		velocity = Vector3.ZERO
 	elif is_on_floor():
 		_last_dry = global_position
+	if is_on_floor():
+		floor_y = global_position.y
 	if amount > 0.01:
 		facing = lerp_angle(facing, atan2(-dir.x, -dir.z), 1.0 - exp(-TURN_RATE * delta))
 		_visual.rotation.y = facing
 	moving = is_on_floor() and flat.length() > 0.3
 	sprinting = moving and sprint
+	# Standing still on a bed for a moment: lie down.
+	var bed := _bed_under() if is_on_floor() and amount < 0.05 else null
+	_still_on_bed = _still_on_bed + delta if bed else 0.0
+	if bed and _still_on_bed > LIE_AFTER:
+		_lie_down(bed)
+		return
 	model.animate(flat.length(), is_on_floor(), velocity.y > 0.5, sprinting)
+
+
+## The bed you're standing on (group "bed"), or null.
+func _bed_under() -> Node3D:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as Node
+		if c.get_normal().y > 0.7 and body and body.is_in_group("bed"):
+			return body.get_parent() as Node3D
+	return null
+
+
+## Lie down on `bed`, along it with your head on the pillow.
+func _lie_down(bed: Node3D) -> void:
+	lying = true
+	_still_on_bed = 0.0
+	var top := global_position.y
+	global_position = Vector3(bed.global_position.x, top, bed.global_position.z) + bed.global_transform.basis.z.normalized() * 0.6
+	# The bed's head is at its -Z end: lie with the feet towards +Z.
+	facing = bed.global_rotation.y + PI
+	_visual.rotation.y = facing
+	model.play("Lie_Down")
+	model._anim.speed_scale = 1.6
+	get_tree().create_timer(1.8, false).timeout.connect(func():
+		if lying and not _getting_up:
+			model.play("Lie_Idle")
+			model._anim.speed_scale = 1.0)
+	lay_down.emit()
+
+
+func _get_up() -> void:
+	_getting_up = true
+	model.play("Sit_Chair_StandUp" if sitting else "Lie_StandUp")
+	model._anim.speed_scale = 2.2
+	get_tree().create_timer(0.8 if sitting else 1.0, false).timeout.connect(func():
+		if sitting:
+			global_position = _stand_at
+		lying = false
+		sitting = false
+		_getting_up = false
+		stood_up.emit()
+		model.play("Idle"))
+
+
+## Sit on a chair at `seat` (world, on the floor), looking along `yaw`;
+## getting up steps back out to `stand_at`.
+func sit(seat: Vector3, yaw: float, stand_at: Vector3) -> void:
+	sitting = true
+	_getting_up = false
+	_stand_at = stand_at
+	velocity = Vector3.ZERO
+	global_position = seat
+	facing = yaw
+	_visual.rotation.y = yaw
+	model.play("Sit_Chair_Down")
+	model._anim.speed_scale = 1.6
+	get_tree().create_timer(1.0, false).timeout.connect(func():
+		if sitting and not _getting_up:
+			model.play("Sit_Chair_Idle")
+			model._anim.speed_scale = 1.0)
+
+
+## Standing on something bouncy (group "bouncy")?
+func _on_bouncy() -> bool:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		if c.get_normal().y > 0.7 and (c.get_collider() as Node).is_in_group("bouncy"):
+			return true
+	return false
+
+
+## Kick: anything loose you walk into (a ball, toys) gets a push.
+func _push_things() -> void:
+	for i in get_slide_collision_count():
+		var c := get_slide_collision(i)
+		var body := c.get_collider() as RigidBody3D
+		if body == null:
+			continue
+		var flat := Vector3(velocity.x, 0.0, velocity.z)
+		var push := (-c.get_normal() * Vector3(1, 0, 1)).normalized() * maxf(flat.length(), 2.0) * PUSH
+		body.apply_central_impulse((push + Vector3.UP * PUSH_LIFT) * body.mass * get_physics_process_delta_time())
 
 
 ## Don't walk into the sea: if the ground just ahead is under (or nearly

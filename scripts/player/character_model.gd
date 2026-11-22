@@ -30,8 +30,14 @@ const SCALE := Walker.HEIGHT / MODEL_HEIGHT
 ## Walking_A 0.75 m/s, Running_A 1.5 m/s at model scale, times SCALE).
 const WALK_NATURAL := 0.75 * SCALE
 const RUN_NATURAL := 1.5 * SCALE
-## Faster than this the walk becomes a jog (the legs are short).
-const JOG_FROM := 2.0
+## Faster than this the walk becomes a run, slower than WALK_FROM back to a
+## walk (a gap between the two so it never flickers between them).
+const JOG_FROM := 4.8
+const WALK_FROM := 3.8
+## Playback-speed limits: legs spinning faster than this look like shaking
+## (at a full sprint the feet slide a little instead).
+const RUN_MAX_SCALE := 2.3
+const WALK_MAX_SCALE := 2.4
 const BLEND := 0.15
 
 var body := "M"
@@ -44,6 +50,9 @@ var look_override: OutfitData
 var head_override: Array = []
 ## Holding a parcel in both arms (CarryPose bends the arms round it).
 var carrying := false
+## What's carried (a CharacterLook prop name).
+var carry_item := "Package"
+const CARRY_SCALE := {"Meal_Pizza": 0.75, "Meal_Chicken": 0.75, "Meal_Breakfast": 0.75}
 
 var _model: Node3D
 var _skel: Skeleton3D
@@ -92,7 +101,7 @@ func _build() -> void:
 	add_child(_model)
 	_skel = _model.find_children("*", "Skeleton3D", true, false)[0]
 	_anim = _model.find_children("*", "AnimationPlayer", true, false)[0]
-	for a in ["Idle", "Walking_A", "Running_A", "Jump_Idle", "Cheer"]:
+	for a in ["Idle", "Walking_A", "Running_A", "Jump_Idle", "Cheer", "Lie_Idle", "Sit_Chair_Idle"]:
 		if _anim.has_animation(a):
 			_anim.get_animation(a).loop_mode = Animation.LOOP_LINEAR
 	# Keep the base's body, arms and legs; hide its head, hat, cape, weapons.
@@ -213,8 +222,13 @@ func set_outline(on: bool) -> void:
 
 
 ## Hold a parcel in both arms (or put it down).
-func set_carrying(on: bool) -> void:
+## `item`: which prop is in her arms (a parcel, or a meal from the fridge).
+func set_carrying(on: bool, item := "Package") -> void:
+	if on and _parcel != null and item != carry_item:
+		_parcel.get_parent().queue_free()
+		_parcel = null
 	carrying = on
+	carry_item = item
 	if _carry_pose:
 		_carry_pose.active = on
 	if on and _parcel == null and _skel:
@@ -233,9 +247,11 @@ func _add_parcel() -> void:
 	var holder := BoneAttachment3D.new()
 	holder.bone_name = "chest"
 	_skel.add_child(holder)
-	_parcel = CharacterLook.prop("Package")
+	_parcel = CharacterLook.prop(carry_item)
 	# In front of the chest, at hand height (model space: +Z is forward).
-	var at := Transform3D(Basis.IDENTITY, CarryPose.PARCEL_AT)
+	# Meals are carried flat, a little lower, like a tray.
+	var s: float = CARRY_SCALE.get(carry_item, 1.0)
+	var at := Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * s), CarryPose.PARCEL_AT + Vector3(0, -0.12 if s != 1.0 else 0.0, 0))
 	_parcel.transform = _skel.get_bone_global_rest(_skel.find_bone("chest")).affine_inverse() * at
 	holder.add_child(_parcel)
 
@@ -252,13 +268,17 @@ func animate(speed: float, on_floor: bool, rising: bool, _sprinting: bool) -> vo
 	if speed < 0.3:
 		play("Idle")
 		_anim.speed_scale = 1.0
-	elif speed > JOG_FROM:
+		return
+	var running := speed > JOG_FROM or (anim == "Running_A" and speed > WALK_FROM)
+	var want: float
+	if running:
 		play("Running_A")
-		# Up to the fastest run (Walker.SPRINT_SPEED) with the feet keeping up.
-		_anim.speed_scale = clampf(speed / RUN_NATURAL, 0.7, Walker.SPRINT_SPEED / RUN_NATURAL + 0.1)
+		want = clampf(speed / RUN_NATURAL, 0.9, RUN_MAX_SCALE)
 	else:
 		play("Walking_A")
-		_anim.speed_scale = clampf(speed / WALK_NATURAL, 0.5, 2.0)
+		want = clampf(speed / WALK_NATURAL, 0.6, WALK_MAX_SCALE)
+	# Ease the playback speed (the ground speed wobbles a little as you steer).
+	_anim.speed_scale = lerpf(_anim.speed_scale, want, 0.2)
 
 
 ## A little wave (the cheer) then back to idle: for the character screen.

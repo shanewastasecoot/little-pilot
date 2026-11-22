@@ -16,7 +16,7 @@ case "${1:-}" in
   editor) $GODOT --path . --editor ;;
   run)    if [[ "${2:-}" == full ]]; then $GODOT --path . --fullscreen; else $GODOT --path .; fi ;;
   test)   fail=0
-          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test stress_test; do
+          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test stress_test; do
             echo "=== $t"
             # Capture the exit code directly (a pipe would lose it).
             out=$($GODOT --headless --path . --fixed-fps 60 "res://tests/$t.tscn" 2>&1) && status=0 || status=$?

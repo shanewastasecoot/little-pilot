@@ -181,8 +181,15 @@ func _physics_process(delta: float) -> void:
 	var nose_down := pitch < -deg_to_rad(LAND_NOSE_DOWN_DEG) or input.stick.y < -0.1
 	var heading_down := nose_down and velocity.y < -LAND_SINK and input.stick.y < LAND_PULL_UP \
 			and _airborne > LAND_AFTER_LIFTOFF
-	safety.landing = height < LAND_ASSIST_HEIGHT and can_land_on(below) \
+	var start_landing := height < LAND_ASSIST_HEIGHT and can_land_on(below) \
 			and (input.throttle < -0.2 or (heading_down and _room_to_roll(below)))
+	# Once coming in, stay coming in until touchdown, unless she pulls up or
+	# flies off the landable ground: the flare slows the sink below LAND_SINK
+	# just before touchdown, and dropping out of landing then would pop the
+	# plane back up off the ground (a hiccup in the landing).
+	var keep_landing := safety.landing and height < LAND_ASSIST_HEIGHT and can_land_on(below) \
+			and input.stick.y < LAND_PULL_UP
+	safety.landing = start_landing or keep_landing
 	safety.evaluate(global_position, velocity, turn)
 	# Auto-flare: the lower it is, the slower it may sink (so a dive onto a
 	# meadow eases into a landing); boosting is eased off near the ground.
@@ -233,6 +240,10 @@ func _physics_process(delta: float) -> void:
 	if crashes and _grace <= 0.0 and (get_slide_collision_count() > 0 or global_position.y < _water_y()):
 		_crash()
 		return
+	# Coming in to land but now over ground you can't land on (a slope, the
+	# water's edge, a roof): the usual floor applies again straight away.
+	if safety.landing and not can_land_on(_ground_ray(global_position)):
+		safety.landing = false
 	safety.enforce()
 
 	visuals.update_visuals(turn, speed, stats, delta, boost_amount, input.trick_held)
@@ -502,6 +513,10 @@ func lift_off() -> void:
 	pitch = deg_to_rad(LIFTOFF_PITCH_DEG)
 	_grace = CRASH_GRACE
 	global_position.y += 0.5
+	# Airborne now: the usual floor (can't-crash mode) applies from this
+	# moment, not a frame later.
+	safety.landing = false
+	safety.enforce()
 	Sfx.play("whoosh", 1.0)
 	takeoff_finished.emit()
 

@@ -8,12 +8,15 @@ extends Node3D
 ##            stick to take off again, or Y to get out
 ##   ON_FOOT  walking about (Walker + WalkCamera); the plane waits, parked.
 ##            Y near the plane gets back in.
+##   INDOORS  inside her house (walked in through the front door): the
+##            outdoor world is hidden and paused, the indoor camera and
+##            lighting are on; out through the door puts you on the doorstep
 ##   CHARACTER_CREATE  making your character (first start, before choosing
 ##            a plane); from the pause menu it opens over PAUSED instead
 ## The world is always live: on the title and plane-select screens the plane
 ## circles on autopilot behind the menus, so it's flying within seconds.
 
-enum State { TITLE, SELECT, FLYING, PAUSED, LANDED, CHARACTER_CREATE, ON_FOOT }
+enum State { TITLE, SELECT, FLYING, PAUSED, LANDED, CHARACTER_CREATE, ON_FOOT, INDOORS }
 
 ## Seconds without input before the stick hint appears.
 const IDLE_HINT_DELAY := 10.0
@@ -51,9 +54,25 @@ var _near_plane := false
 const DOOR_RADIUS := 9.0
 ## On foot further than this from the plane: a beacon shows where it is,
 ## and holding Y for PLANE_CALL_HOLD seconds brings it over (PlaneCall).
-const PLANE_FAR := 60.0
+const PLANE_FAR := 30.0
 const PLANE_CALL_HOLD := 1.0
 var plane_beacon: DeliveryBeacon
+## Her room's colour chooser (opened with Y at a PaintStation).
+var colour_menu: ColourMenu
+## Her house: the landmark outside, the inside (built once, the first time
+## you go in, by BuildingGenerator from resources/buildings/her_house.json),
+## the indoor camera and lighting.
+const HOUSE_DATA := "res://resources/buildings/her_house.json"
+const INDOOR_ENV := "res://resources/environment/indoor.tres"
+## The inside is built high above the map (nothing else is up there).
+const INTERIOR_HEIGHT := 2000.0
+var house: HerHouse
+var interior: Interior
+var indoor_camera: IndoorCamera
+var _outdoor_env: Environment
+var _doorway_busy := false
+## The game last stopped with her inside: start outside the front door.
+var _start_at_house := false
 var _call_hold := 0.0
 var _calling := false
 ## Tests hold Y without a controller.
@@ -102,9 +121,25 @@ func _ready() -> void:
 	map.add_child(plane_beacon)
 	plane_beacon.colour = Color("f2f7ff")
 	plane_beacon.hide()
+	indoor_camera = IndoorCamera.new()
+	indoor_camera.name = "IndoorCamera"
+	indoor_camera.target = walker
+	add_child(indoor_camera)
+	_start_at_house = SaveManager.house_inside
+	if _start_at_house:
+		SaveManager.set_house_inside(false)
+	for l in get_tree().get_nodes_in_group("landmarks"):
+		if l is HerHouse:
+			house = l
+			house.door_entered.connect(func(): if state == State.ON_FOOT: enter_house())
 	_door.body_entered.connect(func(b): if b == walker: _near_plane = true)
 	_door.body_exited.connect(func(b): if b == walker: _near_plane = false)
 	SaveManager.settings_changed.connect(func(): aircraft.crashes = SaveManager.crashes)
+	colour_menu = ColourMenu.new()
+	colour_menu.name = "ColourMenu"
+	hud.add_child(colour_menu)
+	colour_menu.chosen.connect(_on_colour_chosen)
+	colour_menu.cancelled.connect(func(): _hold_walker(false))
 	var fade_layer := CanvasLayer.new()
 	fade_layer.layer = 40
 	add_child(fade_layer)
@@ -156,7 +191,7 @@ func _ready() -> void:
 
 ## The player is in the game world (not in a menu).
 func _playing() -> bool:
-	return state == State.FLYING or state == State.LANDED or state == State.ON_FOOT
+	return state == State.FLYING or state == State.LANDED or state == State.ON_FOOT or state == State.INDOORS
 
 
 ## The player is in the plane (flying it or parked in it).
@@ -176,10 +211,13 @@ func _enter(new_state: State) -> void:
 	hud.visible = _playing() or state == State.PAUSED
 	var player_flying := _in_plane()
 	# On foot (also while paused from walking): the walker and its camera.
-	var on_foot := state == State.ON_FOOT or (state == State.PAUSED and _play_state == State.ON_FOOT)
+	var indoors := state == State.INDOORS or (state == State.PAUSED and _play_state == State.INDOORS)
+	var on_foot := indoors or state == State.ON_FOOT or (state == State.PAUSED and _play_state == State.ON_FOOT)
 	if walker.is_active() != on_foot:
 		walker.set_active(on_foot)
-	if on_foot:
+	if indoors:
+		indoor_camera.cam.make_current()
+	elif on_foot:
 		walk_camera.cam.make_current()
 	else:
 		chase_camera.cam.make_current()
@@ -215,10 +253,14 @@ func _process(delta: float) -> void:
 		hud.set_prompt("enter")
 	elif state == State.ON_FOOT and plane_far():
 		hud.set_prompt("call")
+	elif state == State.INDOORS and interior and not colour_menu.is_open() and not interior.interaction_at(walker).is_empty():
+		hud.set_prompt(interior.interaction_at(walker).kind)
 	elif _playing():
 		hud.set_prompt("")
 	_update_plane_call(delta)
 	# Fell out of the world somehow: back beside the plane.
+	if state == State.INDOORS and interior and walker.global_position.y < interior.global_position.y - 20.0:
+		walker.place(interior.entry_point(), interior.entry_yaw())
 	if state == State.ON_FOOT and walker.global_position.y < -30.0:
 		_place_walker()
 	_update_dragon_warning()
@@ -291,6 +333,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		aircraft.cycle_paint(-1)
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("interact") and open_colour_menu():
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("interact") and toggle_plane():
 		get_viewport().set_input_as_handled()
 		return
@@ -326,7 +371,11 @@ func _on_plane_confirmed(id: String) -> void:
 	SaveManager.set_selected_aircraft(id)
 	plane_select.hide()
 	# From the pause menu: back to whatever we were doing (maybe on foot).
+	var starting := state != State.PAUSED
 	_enter(_play_state if state == State.PAUSED else State.FLYING)
+	if starting and _start_at_house:
+		_start_at_house = false
+		start_outside_house()
 
 
 func _show_pause() -> void:
@@ -397,6 +446,102 @@ func toggle_plane() -> bool:
 		hud.show_foot_hints(false)
 		return true
 	return false
+
+
+## Walk in through the front door: a quick fade, the outdoor world hidden
+## and paused, and you're in the hall.
+func enter_house() -> void:
+	if _doorway_busy or house == null:
+		return
+	_doorway_busy = true
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)
+	await tw.finished
+	if interior == null:
+		interior = BuildingGenerator.build(BuildingGenerator.load_data(HOUSE_DATA))
+		add_child(interior)
+		interior.global_position = Vector3(house.global_position.x, INTERIOR_HEIGHT, house.global_position.z)
+		interior.exit_reached.connect(func(): if state == State.INDOORS: exit_house())
+		indoor_camera.interior = interior
+		interior.paint_her_walls(SaveManager.house_wall)
+		interior.colour_her_quilt(SaveManager.house_bed)
+	_set_outdoors(false)
+	SaveManager.set_house_inside(true)
+	walker.place(interior.entry_point(), interior.entry_yaw())
+	interior.arrive()
+	_enter(State.INDOORS)
+	indoor_camera.snap_to(interior.entry_yaw())
+	Sfx.play("pop", 1.0)
+	tw = create_tween()
+	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE * 0.7)
+	await tw.finished
+	_doorway_busy = false
+
+
+## The game stopped while she was inside: start on foot outside the front
+## door, the plane parked safely nearby.
+func start_outside_house() -> void:
+	if house == null:
+		return
+	var step := house.doorstep()
+	var spot := PlaneCall.find_spot(aircraft, step + (step - house.global_position).normalized() * 30.0)
+	if not spot.is_empty():
+		aircraft.park(spot.pos, spot.yaw)
+	_enter(State.LANDED)
+	_place_walker()
+	walker.place(Vector3(step.x, IslandShape.height(step.x, step.z) + 0.1, step.z), house.doorstep_yaw())
+	_enter(State.ON_FOOT)
+	walk_camera.snap_to(house.doorstep_yaw())
+
+
+## Out through the front door: back on the doorstep (nothing standing on
+## it), the world as you left it, the toys tidied away.
+func exit_house() -> void:
+	if _doorway_busy:
+		return
+	_doorway_busy = true
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)
+	await tw.finished
+	_set_outdoors(true)
+	SaveManager.set_house_inside(false)
+	interior.reset()
+	var step := house.doorstep()
+	# The plane parked on the doorstep? Move it to a safe spot nearby first.
+	if Vector2(aircraft.global_position.x - step.x, aircraft.global_position.z - step.z).length() < 16.0:
+		var spot := PlaneCall.find_spot(aircraft, step + (step - house.global_position).normalized() * 30.0)
+		if not spot.is_empty():
+			aircraft.park(spot.pos, spot.yaw)
+	walker.place(Vector3(step.x, IslandShape.height(step.x, step.z) + 0.1, step.z), house.doorstep_yaw())
+	_enter(State.ON_FOOT)
+	walk_camera.snap_to(house.doorstep_yaw())
+	Sfx.play("pop", 0.9)
+	tw = create_tween()
+	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE * 0.7)
+	await tw.finished
+	_doorway_busy = false
+
+
+## The outdoor world on (visible, running) or off (hidden and paused while
+## you're inside), with outdoor or indoor lighting.
+func _set_outdoors(on: bool) -> void:
+	map.visible = on
+	map.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+	aircraft.visible = on
+	aircraft.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+	var we := map.find_child("WorldEnvironment", true, false) as WorldEnvironment
+	if we == null:
+		for c in map.find_children("*", "WorldEnvironment", true, false):
+			we = c
+	if we:
+		if not on:
+			_outdoor_env = we.environment
+			we.environment = load(INDOOR_ENV)
+		elif _outdoor_env:
+			we.environment = _outdoor_env
+	if interior:
+		interior.visible = not on
+		interior.process_mode = Node.PROCESS_MODE_DISABLED if on else Node.PROCESS_MODE_INHERIT
 
 
 ## On foot, far from the plane?
@@ -570,3 +715,68 @@ func _on_all_stars() -> void:
 		burst.position = aircraft.global_position + Vector3(cos(a) * 12.0, 6.0 + (i % 2) * 6.0, sin(a) * 12.0)
 		add_child(burst)
 		await get_tree().create_timer(0.2, false).timeout
+
+
+## Indoors, Y does what's here: at a paint station or the open fridge it
+## opens the chooser; by a dining chair she sits down (and eats her meal if
+## there's one at her place). True if it did something.
+func open_colour_menu() -> bool:
+	if state != State.INDOORS or interior == null or colour_menu.is_open() or _doorway_busy:
+		return false
+	var here := interior.interaction_at(walker)
+	if here.is_empty():
+		return false
+	match str(here.kind):
+		"paint":
+			var st: PaintStation = here.target
+			var walls := st.kind == "walls"
+			colour_menu.preview = func(i: int):
+				if walls:
+					interior.paint_her_walls(i)
+				else:
+					interior.colour_her_quilt(i)
+			_hold_walker(true)
+			hud.set_prompt("")
+			colour_menu.open(st.kind, SaveManager.house_wall if walls else SaveManager.house_bed)
+		"food":
+			colour_menu.preview = func(_i: int): pass
+			_hold_walker(true)
+			hud.set_prompt("")
+			colour_menu.open("meal", 0)
+		"sit":
+			var table: SettableTable = here.target
+			var seat: int = here.seat
+			hud.set_prompt("")
+			walker.sit(table.seat_point(seat), table.seat_yaw(seat), table.stand_point(seat))
+			if interior.family:
+				interior.family.hold("seat%d" % seat, true)
+				walker.stood_up.connect(func(): interior.family.hold("seat%d" % seat, false), CONNECT_ONE_SHOT)
+			get_tree().create_timer(1.2, false).timeout.connect(func():
+				if walker.sitting:
+					table.eat_at(seat))
+	return true
+
+
+func _on_colour_chosen(i: int) -> void:
+	_hold_walker(false)
+	if colour_menu.kind == "meal":
+		walker.model.set_carrying(true, ColourMenu.MEALS[i])
+		var burst := PickupBurst.new(24, 7.0)
+		burst.position = walker.global_position + Vector3.UP * 3.0
+		add_child(burst)
+		return
+	var st := interior.station_near() if interior else null
+	if colour_menu.kind == "walls":
+		interior.paint_her_walls(i, true)
+	else:
+		interior.colour_her_quilt(i, true)
+	if st:
+		st.celebrate(i)
+
+
+## Keep her standing still (while a menu is open).
+func _hold_walker(on: bool) -> void:
+	walker.set_physics_process(not on)
+	if on:
+		walker.velocity = Vector3.ZERO
+		walker.model.animate(0.0, true, false, false)

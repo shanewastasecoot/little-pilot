@@ -114,6 +114,10 @@ func _place_landmarks() -> void:
 	volcano.position = Vector3(IslandShape.VOLCANO.x, crater_floor, IslandShape.VOLCANO.y)
 	add_child(volcano)
 	_add_landmark(CityDistrict.new(), IslandShape.CITY)
+	var her_house := HerHouse.new()
+	her_house.name = "HerHouse"
+	her_house.rotation.y = PI  # front door towards the runway (north); before it builds
+	_add_landmark(her_house, IslandShape.HOUSE)
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)
@@ -164,7 +168,7 @@ func _open_meadow(x: float, z: float) -> bool:
 		return false
 	if IslandShape.in_city_area(x, z, 40.0) or p.distance_to(IslandShape.FARM) < 200.0:
 		return false
-	if p.distance_to(IslandShape.HANGAR) < 90.0 or IslandShape.p_in_forest(x, z):
+	if p.distance_to(IslandShape.HANGAR) < 90.0 or IslandShape.p_in_forest(x, z) or IslandShape.in_house_yard(x, z, 20.0):
 		return false
 	return true
 

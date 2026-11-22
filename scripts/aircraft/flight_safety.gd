@@ -105,6 +105,10 @@ func enforce() -> void:
 		var ground := _ground_height_at(pos, 30.0)
 		if ground != -INF and pos.y < ground + stats.min_clearance:
 			pos.y = ground + stats.min_clearance
+		# Report where the plane really is now (after the floor), not where
+		# it was before this tick's move.
+		if ground != -INF:
+			clearance = pos.y - ground
 	# Hard ceiling.
 	pos.y = minf(pos.y, ceiling_height)
 	# Hard world edge.
