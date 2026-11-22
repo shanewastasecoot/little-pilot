@@ -23,6 +23,8 @@ var balls: Array = []
 var fridges: Array = []
 var pots: Array = []
 var tvs: Array[TVSet] = []
+var shopkeepers: Array[Shopkeeper] = []
+var post_office_things: Array[PostOfficeThings] = []
 ## The people living here (Family), if any.
 var family: Family
 var mermaid_toys: Array[Node3D] = []
@@ -94,6 +96,10 @@ func reset() -> void:
 		s.reset()
 	for tv in tvs:
 		tv.reset()
+	for k in shopkeepers:
+		k.reset()
+	for po in post_office_things:
+		po.reset()
 	# A meal still in your arms stays in the house.
 	var w := get_tree().get_first_node_in_group("player_focus") as Walker if is_inside_tree() else null
 	if w and w.model.carrying and w.model.carry_item.begins_with("Meal_"):

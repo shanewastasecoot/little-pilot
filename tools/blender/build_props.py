@@ -603,6 +603,15 @@ def plush_dolphin():
     return finish("Plush_Dolphin", parts, voxel=0.012, target_tris=900)
 
 
+def letter():
+    """A letter: a white envelope with a red stamp and the flap's V."""
+    parts = [box(Vector((0, 0, 0.02)), (0.32, 0.22, 0.02), "ffffff", None),
+             box(Vector((0.22, 0.12, 0.045)), (0.06, 0.05, 0.006), "e63946", None)]
+    for s in (1, -1):
+        parts.append(box(Vector((0.1 * s, 0.05, 0.043)), (0.17, 0.012, 0.004), "c9d3dd", None))
+    return finish("Letter", parts, voxel=0.006, target_tris=200)
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     print("PROPS")
@@ -610,7 +619,7 @@ def main():
                   hero_cape, hero_emblem, dino_hood, dino_tail, face_smile,
                   package, straw_hat, sun_hat, flat_cap, beanie, postie_cap, mail_bag, balloon,
                   chef_hat, ranger_hat, beret, heart_marker,
-                  meal_pizza, meal_chicken, meal_breakfast, teddy_bear, plush_bunny, plush_dolphin):
+                  meal_pizza, meal_chicken, meal_breakfast, teddy_bear, plush_bunny, plush_dolphin, letter):
         build()
     for o in bpy.context.scene.objects:
         o.select_set(True)

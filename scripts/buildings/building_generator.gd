@@ -83,6 +83,7 @@ static func _add_garden(interior: Interior, data: Dictionary) -> void:
 	garden.name = "Garden"
 	garden.footprint = footprint
 	garden.front_door = door
+	garden.fenced = data.get("backdrop", "garden") == "garden"
 	interior.add_child(garden)
 
 
@@ -340,6 +341,8 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			_furnish_living(interior, data, rect, base, node, rng)
 		"bedroom":
 			_furnish_bedroom(interior, data, room, rect, base, node, rng)
+		"post_office":
+			_furnish_post_office(interior, data, room, rect, base, node)
 
 
 ## Along the back (north) wall: the fridge, counters, the sink and the stove
@@ -847,3 +850,81 @@ static func _furnish_sophia(interior: Interior, data: Dictionary, rect: Rect2, b
 		toy.rotation.y = float(st[2])  # the props face +Z
 		node.add_child(toy)
 		interior.stuffies.append(toy)
+
+
+## The post office's sorting room: a long counter with the postie behind it,
+## a wall of pigeonholes full of letters, sacks of mail, and the walk-into
+## things (PostOfficeThings: the conveyor belt, the scales, the letters and
+## the post box). The hidden star is tucked behind the counter's end.
+static func _furnish_post_office(interior: Interior, data: Dictionary, room: Dictionary, rect: Rect2, base: float, node: Node3D) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var t: float = data.get("wall_thickness", 0.5)
+	var counter_z := rect.position.y + 5.2
+	var counter_w := rect.size.x * 0.5
+	var cx := rect.get_center().x + 1.5
+	# The counter: blue front, white top, an envelope on the front.
+	var counter := Node3D.new()
+	counter.name = "Counter"
+	node.add_child(counter)
+	for part in [[Vector3(counter_w, 2.6, 1.8), Vector3(cx, base + 1.3, counter_z), "2f6fdb"],
+			[Vector3(counter_w + 0.4, 0.3, 2.2), Vector3(cx, base + 2.75, counter_z), "ffffff"],
+			[Vector3(2.4, 1.6, 0.1), Vector3(cx, base + 1.4, counter_z + 0.95), "ffffff"]]:
+		BuildKit.add(counter, BuildKit.box(part[0]), part[2], part[1]).material_override = _mat(part[2])
+	BuildKit.add(counter, BuildKit.prism(Vector3(2.4, 0.8, 0.1)), "c9d3dd", Vector3(cx, base + 1.8, counter_z + 1.0), Vector3(0, 0, 180)).material_override = _mat("c9d3dd")
+	BuildKit.collider(counter, BuildKit.box_shape(Vector3(counter_w + 0.4, 3.0, 2.2)), Vector3(cx, base + 1.5, counter_z))
+	# Parcels waiting on the counter.
+	for k in 3:
+		var p := CharacterLook.prop("Package")
+		p.scale = Vector3.ONE * 1.4
+		p.position = Vector3(cx - counter_w * 0.35 + k * 1.6, base + 2.9, counter_z)
+		p.rotation.y = k * 0.7
+		counter.add_child(p)
+	# The pigeonholes on the back (north) wall behind the counter.
+	var holes := Node3D.new()
+	holes.name = "Pigeonholes"
+	node.add_child(holes)
+	var hw := counter_w
+	var hz := rect.position.y + t + 0.7
+	BuildKit.add(holes, BuildKit.box(Vector3(hw, 5.6, 1.2)), "b98a5e", Vector3(cx, base + 3.6, hz)).material_override = _mat("b98a5e")
+	var cols := 8
+	var rows := 4
+	var env_cols := ["ffffff", "ffe0ec", "dff4ff", "fff3c4"]
+	for c in cols:
+		for r in rows:
+			var px := cx - hw * 0.5 + (c + 0.5) * hw / cols
+			var py := base + 1.3 + r * 1.3 + 0.6
+			BuildKit.add(holes, BuildKit.box(Vector3(hw / cols - 0.25, 1.05, 0.3)), "6b4226", Vector3(px, py, hz + 0.5)).material_override = _mat("6b4226")
+			if (c * 7 + r * 3) % 4 != 0:
+				var col: String = env_cols[(c + r) % env_cols.size()]
+				BuildKit.add(holes, BuildKit.box(Vector3(hw / cols - 0.6, 0.6, 0.1)), col, Vector3(px, py - 0.1, hz + 0.7)).material_override = _mat(col)
+	BuildKit.collider(holes, BuildKit.box_shape(Vector3(hw, 5.6, 1.2)), Vector3(cx, base + 3.6, hz))
+	# Sacks of mail in the corner.
+	for k in 3:
+		var sack := BuildKit.add(node, BuildKit.sphere(1.3, 12), "d9c09a", Vector3(rect.end.x - t - 2.0 - k * 1.8, base + 1.0, rect.position.y + t + 2.2 + (k % 2) * 0.8))
+		sack.scale = Vector3(1.0, 1.2, 1.0)
+		sack.material_override = _mat("d9c09a")
+	# The postie behind the counter.
+	var keeper := Shopkeeper.new()
+	keeper.name = "Postie"
+	keeper.sticker = "post_office"
+	keeper.look = OutfitData.make("postie", "Rogue", {"r1c0": Color("2f6fdb"), "r0c5": Color("1b2440"), "r0c6": Color("1b2440"),
+		"r2c5": Color("1b2440"), "r1c7": Color("ffd23f")}, [["Postie_Cap", "head"], ["Mail_Bag", "chest"]], ["Rogue_Cape"])
+	keeper.head = ["Rogue", {"r0c1": Color("6b3e26")}]
+	keeper.position = Vector3(cx, base, counter_z - 2.4)
+	node.add_child(keeper)
+	interior.shopkeepers.append(keeper)
+	# The walk-into things.
+	var things := PostOfficeThings.new()
+	things.name = "Things"
+	things.rect = rect
+	things.furniture_scale = f
+	things.shopkeeper = keeper
+	things.position = Vector3(0, base, 0)
+	node.add_child(things)
+	interior.post_office_things.append(things)
+	# The hidden star: behind the counter, at its east end.
+	var star := HouseStar.new()
+	star.name = "HiddenStar"
+	star.position = Vector3(cx + counter_w * 0.5 + 1.8, base, rect.position.y + t + 2.6)
+	node.add_child(star)
+	interior.house_star = star

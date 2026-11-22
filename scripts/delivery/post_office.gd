@@ -7,8 +7,17 @@ extends Node3D
 ## front faces +Z before `rotation`.
 
 const SHOP_SCALE := 16.0
-## The pad, in front of the door (local).
-const PAD := Vector3(0, 0, 17.0)
+## The pad, in front of the shop to the left of the path (local): walking
+## straight in through the front door never picks up a parcel by accident.
+const PAD := Vector3(-8.0, 0, 17.0)
+## Walk into the front door to go in (main.gd's INDOORS); its inside is
+## built from this plan (one sorting room the size of the shop).
+signal door_entered
+const DATA := "res://resources/buildings/post_office.json"
+const DOOR := Vector3(0, 0, 8.4)
+## Where you stand when you come out: past the pad, so the camera behind
+## you isn't inside the shop.
+const DOORSTEP := Vector3(0, 0, 25.0)
 
 var _parcel: Node3D
 var _glow: MeshInstance3D
@@ -56,6 +65,42 @@ func _ready() -> void:
 	_glow.material_override = m
 	add_child(_glow)
 	set_available(true)
+	var door := Area3D.new()
+	door.name = "FrontDoor"
+	door.collision_layer = 0
+	door.collision_mask = GameSettings.LAYER_PLAYER
+	var dcs := CollisionShape3D.new()
+	var ds := SphereShape3D.new()
+	ds.radius = 3.4
+	dcs.shape = ds
+	dcs.position = DOOR + Vector3(0, 2.5, 0)
+	door.add_child(dcs)
+	add_child(door)
+	door.body_entered.connect(func(b): if b is Walker: door_entered.emit())
+
+
+## Its inside's floor plan (main.gd builds it the first time she goes in).
+func interior_data() -> String:
+	return DATA
+
+
+func building_id() -> String:
+	return String(name)
+
+
+## The front door in the world (on the ground).
+func door_point() -> Vector3:
+	return to_global(DOOR)
+
+
+func doorstep() -> Vector3:
+	return to_global(DOORSTEP)
+
+
+## Facing away from the door when you come out.
+func doorstep_yaw() -> float:
+	var out := global_transform.basis.z
+	return atan2(-out.x, -out.z)
 
 
 func body_rid() -> RID:

@@ -67,7 +67,12 @@ const INDOOR_ENV := "res://resources/environment/indoor.tres"
 ## The inside is built high above the map (nothing else is up there).
 const INTERIOR_HEIGHT := 2000.0
 var house: HerHouse
+## The inside you're in (or were last in), and every inside built so far
+## (by building id; built the first time you go in, kept after).
 var interior: Interior
+var interiors := {}
+## The building you went into (her house, a post office...).
+var building: Node3D
 var indoor_camera: IndoorCamera
 var _outdoor_env: Environment
 var _doorway_busy := false
@@ -169,6 +174,9 @@ func _ready() -> void:
 	delivery.name = "Delivery"
 	add_child(delivery)
 	delivery.setup(self, map)
+	# The post offices' front doors: walk in.
+	for po in delivery.post_offices:
+		po.door_entered.connect(func(): if state == State.ON_FOOT: enter_building(po))
 
 	character_screen = CharacterScreen.new()
 	add_child(character_screen)
@@ -448,25 +456,42 @@ func toggle_plane() -> bool:
 	return false
 
 
-## Walk in through the front door: a quick fade, the outdoor world hidden
-## and paused, and you're in the hall.
+## Walk in through her house's front door.
 func enter_house() -> void:
-	if _doorway_busy or house == null:
+	enter_building(house)
+
+
+## Walk in through a building's front door (her house, a post office): a
+## quick fade, the outdoor world hidden and paused, and you're inside. Each
+## inside is built the first time (BuildingGenerator, from the building's
+## plan), high above the building, and kept.
+func enter_building(b: Node3D) -> void:
+	if _doorway_busy or b == null:
 		return
 	_doorway_busy = true
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)
 	await tw.finished
+	building = b
+	var id: String = b.building_id()
+	interior = interiors.get(id)
 	if interior == null:
-		interior = BuildingGenerator.build(BuildingGenerator.load_data(HOUSE_DATA))
+		interior = BuildingGenerator.build(BuildingGenerator.load_data(b.interior_data()))
 		add_child(interior)
-		interior.global_position = Vector3(house.global_position.x, INTERIOR_HEIGHT, house.global_position.z)
+		interior.global_position = Vector3(b.global_position.x, INTERIOR_HEIGHT, b.global_position.z)
 		interior.exit_reached.connect(func(): if state == State.INDOORS: exit_house())
-		indoor_camera.interior = interior
-		interior.paint_her_walls(SaveManager.house_wall)
-		interior.colour_her_quilt(SaveManager.house_bed)
+		interiors[id] = interior
+		if b == house:
+			interior.paint_her_walls(SaveManager.house_wall)
+			interior.colour_her_quilt(SaveManager.house_bed)
+	for other: Interior in interiors.values():
+		if other != interior:
+			other.visible = false
+			other.process_mode = Node.PROCESS_MODE_DISABLED
+	indoor_camera.interior = interior
 	_set_outdoors(false)
-	SaveManager.set_house_inside(true)
+	if b == house:
+		SaveManager.set_house_inside(true)
 	walker.place(interior.entry_point(), interior.entry_yaw())
 	interior.arrive()
 	_enter(State.INDOORS)
@@ -494,32 +519,42 @@ func start_outside_house() -> void:
 	walk_camera.snap_to(house.doorstep_yaw())
 
 
-## Out through the front door: back on the doorstep (nothing standing on
-## it), the world as you left it, the toys tidied away.
+## Out through the front door: back on the building's doorstep (nothing
+## standing on it), the world as you left it, the things inside tidied away.
 func exit_house() -> void:
 	if _doorway_busy:
 		return
 	_doorway_busy = true
+	var b: Node3D = building if building else house
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)
 	await tw.finished
 	_set_outdoors(true)
 	SaveManager.set_house_inside(false)
 	interior.reset()
-	var step := house.doorstep()
+	var step: Vector3 = b.doorstep()
 	# The plane parked on the doorstep? Move it to a safe spot nearby first.
 	if Vector2(aircraft.global_position.x - step.x, aircraft.global_position.z - step.z).length() < 16.0:
-		var spot := PlaneCall.find_spot(aircraft, step + (step - house.global_position).normalized() * 30.0)
+		var spot := PlaneCall.find_spot(aircraft, step + (step - b.global_position).normalized() * 30.0)
 		if not spot.is_empty():
 			aircraft.park(spot.pos, spot.yaw)
-	walker.place(Vector3(step.x, IslandShape.height(step.x, step.z) + 0.1, step.z), house.doorstep_yaw())
+	walker.place(Vector3(step.x, _ground_at(step) + 0.1, step.z), b.doorstep_yaw())
 	_enter(State.ON_FOOT)
-	walk_camera.snap_to(house.doorstep_yaw())
+	walk_camera.snap_to(b.doorstep_yaw())
 	Sfx.play("pop", 0.9)
 	tw = create_tween()
 	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE * 0.7)
 	await tw.finished
 	_doorway_busy = false
+
+
+## The ground's height under `p` (the island shape, or whatever's below, for
+## doorsteps on other islands).
+func _ground_at(p: Vector3) -> float:
+	var q := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 40.0, p + Vector3.DOWN * 80.0, GameSettings.LAYER_WORLD)
+	q.exclude = [aircraft.get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return (hit.position as Vector3).y if not hit.is_empty() else IslandShape.height(p.x, p.z)
 
 
 ## The outdoor world on (visible, running) or off (hidden and paused while

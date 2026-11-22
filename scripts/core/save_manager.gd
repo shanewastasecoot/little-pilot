@@ -70,6 +70,8 @@ var house_inside: bool = false
 ## Dragon treasure she's taken from the lair (shown on her trophy shelf), and
 ## the playtime (s) when the next piece is back on the hoard.
 var treasures: int = 0
+## Stickers she's been given (one per kind of building, on her first visit).
+var stickers: Array[String] = []
 var treasure_ready_at: float = 0.0
 var invert_y: bool = false
 const LOOK_SENSITIVITY_MIN := 0.4
@@ -194,6 +196,12 @@ func _load_file() -> void:
 	var hi = cfg.get_value("house", "inside", false)
 	if hi is bool:
 		house_inside = hi
+	var st = cfg.get_value("stickers", "have", [])
+	if st is Array:
+		stickers.clear()
+		for x in st:
+			if x is String and not stickers.has(x):
+				stickers.append(x)
 	var tr = cfg.get_value("dragon", "treasures", 0)
 	if tr is int and tr >= 0 and tr < 1000:
 		treasures = tr
@@ -256,6 +264,7 @@ func save_now() -> void:
 	cfg.set_value("house", "wall", house_wall)
 	cfg.set_value("house", "bed", house_bed)
 	cfg.set_value("house", "inside", house_inside)
+	cfg.set_value("stickers", "have", stickers)
 	cfg.set_value("dragon", "treasures", treasures)
 	cfg.set_value("dragon", "treasure_ready_at", treasure_ready_at)
 	# Write to a temp file, then swap it in, so a crash mid-write
@@ -381,6 +390,15 @@ func set_delivery_arrow(on: bool) -> void:
 	request_save()
 
 
+## Give her sticker `id` (first time only). True if it's new.
+func add_sticker(id: String) -> bool:
+	if stickers.has(id):
+		return false
+	stickers.append(id)
+	request_save()
+	return true
+
+
 ## She took a piece of dragon treasure: one more on her shelf; the next is
 ## back on the hoard after `refill` seconds of play.
 func add_treasure(refill: float) -> void:
@@ -452,6 +470,7 @@ func _reset_to_defaults() -> void:
 	house_inside = false
 	treasures = 0
 	treasure_ready_at = 0.0
+	stickers = []
 	char_body = "M"
 	char_hair = 1
 	char_outfit = 1

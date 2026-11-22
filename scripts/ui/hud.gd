@@ -25,6 +25,7 @@ var _hints_tween: Tween
 
 
 func _ready() -> void:
+	add_to_group("hud")
 	layer = 5
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -272,6 +273,60 @@ func set_prompt(kind: String) -> void:
 
 func prompt_kind() -> String:
 	return _prompt_kind
+
+
+## A new sticker: it pops up big in the middle, wiggles, then shrinks away
+## into the top-left corner with a chime. No words: the picture is the sticker.
+func show_sticker(id: String) -> void:
+	var s := Sticker.new()
+	s.id = id
+	s.size = Vector2(220, 220)
+	s.pivot_offset = s.size * 0.5
+	var view := get_viewport().get_visible_rect().size
+	s.position = view * 0.5 - s.size * 0.5
+	s.scale = Vector2.ZERO
+	_root.add_child(s)
+	Sfx.play("fanfare")
+	var tw := s.create_tween()
+	tw.tween_property(s, "scale", Vector2.ONE * 1.15, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(s, "rotation", 0.12, 0.15)
+	tw.tween_property(s, "rotation", -0.12, 0.3)
+	tw.tween_property(s, "rotation", 0.0, 0.15)
+	tw.tween_interval(1.4)
+	tw.set_parallel(true)
+	tw.tween_property(s, "position", Vector2(30, 140), 0.6).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(s, "scale", Vector2.ONE * 0.3, 0.6)
+	tw.tween_property(s, "modulate:a", 0.0, 0.6).set_delay(0.3)
+	tw.set_parallel(false)
+	tw.tween_callback(func(): Sfx.play("chime", 1.5))
+	tw.tween_callback(s.queue_free)
+
+
+## A round sticker with a white edge and a picture for each kind of building.
+class Sticker extends Control:
+	var id := ""
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var r := minf(size.x, size.y) * 0.5
+		draw_circle(c + Vector2(4, 6), r, Color(0, 0, 0, 0.25))
+		draw_circle(c, r, Color.WHITE)
+		match id:
+			"post_office":
+				draw_circle(c, r * 0.88, Color("2f6fdb"))
+				var w := r * 1.0
+				var h := r * 0.68
+				var rect := Rect2(c - Vector2(w, h) * 0.5, Vector2(w, h))
+				draw_rect(rect, Color.WHITE)
+				draw_polyline(PackedVector2Array([rect.position, c + Vector2(0, h * 0.08), Vector2(rect.end.x, rect.position.y)]),
+						Color("c9d3dd"), r * 0.06, true)
+				draw_rect(Rect2(Vector2(rect.end.x - w * 0.24, rect.position.y + h * 0.1), Vector2(w * 0.16, h * 0.22)), Color("e63946"))
+			_:
+				draw_circle(c, r * 0.88, Color("ffd23f"))
+				draw_colored_polygon(UiIcon.star_points(c, r * 0.6, r * 0.26), Color.WHITE)
 
 
 ## Holding Y to call the plane: a ring fills round the Y button (0..1).

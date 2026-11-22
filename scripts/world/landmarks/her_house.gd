@@ -67,6 +67,14 @@ func react() -> void:
 	tw.tween_property(exterior, "position:y", 0.0, 0.5)
 
 
+func interior_data() -> String:
+	return DATA
+
+
+func building_id() -> String:
+	return "house"
+
+
 ## The front door in the house's own space (on the ground, at the wall).
 func door_local() -> Vector3:
 	return exterior.door_point
