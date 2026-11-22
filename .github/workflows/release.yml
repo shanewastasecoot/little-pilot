@@ -1,0 +1,96 @@
+# Builds the Linux release when a version tag (like v1.5.0) is pushed and
+# attaches a .tar.gz to the GitHub Release. See "How CI works" in README.md.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+permissions:
+  contents: write   # to create the release and upload the package
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out (no LFS yet)
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: List the LFS files (cache key)
+        run: git lfs ls-files -l | cut -d' ' -f1 | sort > .lfs-assets-id
+
+      - name: Restore the LFS cache
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}
+          restore-keys: lfs-
+
+      - name: Fetch and check out the LFS files
+        run: |
+          git lfs pull
+          git lfs checkout
+
+      - name: No LFS pointer files left
+        run: |
+          pointers=$(git lfs ls-files -n | while read -r f; do
+            if head -c 40 "$f" | grep -q "version https://git-lfs"; then echo "$f"; fi
+          done)
+          if [ -n "$pointers" ]; then
+            echo "These files are still LFS pointers:"; echo "$pointers"; exit 1
+          fi
+
+      - name: The tag matches the game's version
+        run: |
+          version=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} doesn't match config/version=\"${version}\" in project.godot"; exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+
+      - name: Install Godot ${{ env.GODOT_VERSION }} and its export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSfL -o godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip -d "$HOME/godot"
+          chmod +x "$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          echo "GODOT=$HOME/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+          curl -sSfL -o templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$dest"
+          unzip -q templates.tpz -d templates
+          mv templates/templates/* "$dest/"
+
+      - name: Export the Linux build
+        run: |
+          mkdir -p build
+          BUILD_DIR="$PWD/build" ./dev.sh export
+
+      - name: Package
+        run: |
+          name="LittlePilot-${VERSION}-linux-x86_64"
+          mkdir -p "$name"
+          cp build/LittlePilot.x86_64 "$name/"
+          chmod +x "$name/LittlePilot.x86_64"
+          cp CREDITS.md "$name/"
+          cp packaging/INSTALL.md "$name/"
+          (cd "$name" && sha256sum LittlePilot.x86_64 > LittlePilot.x86_64.sha256)
+          tar -czf "$name.tar.gz" "$name"
+          sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+          echo "PACKAGE=$name" >> "$GITHUB_ENV"
+
+      - name: Attach to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create the release if it doesn't exist yet, then upload (replacing
+          # any earlier upload of the same files).
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 \
+            || gh release create "${GITHUB_REF_NAME}" --title "Little Pilot v${VERSION}" --notes "Linux build for the Steam Deck. See INSTALL.md inside the package."
+          gh release upload "${GITHUB_REF_NAME}" "${PACKAGE}.tar.gz" "${PACKAGE}.tar.gz.sha256" --clobber
