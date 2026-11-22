@@ -254,7 +254,8 @@ func animate(speed: float, on_floor: bool, rising: bool, _sprinting: bool) -> vo
 		_anim.speed_scale = 1.0
 	elif speed > JOG_FROM:
 		play("Running_A")
-		_anim.speed_scale = clampf(speed / RUN_NATURAL, 0.7, 2.6)
+		# Up to the fastest run (Walker.SPRINT_SPEED) with the feet keeping up.
+		_anim.speed_scale = clampf(speed / RUN_NATURAL, 0.7, Walker.SPRINT_SPEED / RUN_NATURAL + 0.1)
 	else:
 		play("Walking_A")
 		_anim.speed_scale = clampf(speed / WALK_NATURAL, 0.5, 2.0)

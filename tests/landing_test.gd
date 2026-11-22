@@ -5,11 +5,16 @@ extends Node
 ##   brakes   holding slow stops in a shorter distance
 ##   again    after parking, a held stick doesn't restart it; letting go and
 ##            boosting does, and it lifts off by itself (off the runway)
-##   bumps    diving in, boosting in, steep ground, a rooftop and the sea are
+##   dives    diving or boosting down onto a meadow lands (flat landable
+##            ground is never a crash); level skimming never lands by itself
+##   bumps    steep ground, a rooftop and the sea are
 ##            still a crash, not a landing
 ##   islands  the plane can land, park and take off again on every island
 ##            and islet
 ##   jet      the lower, faster jet lands and takes off too
+##   child    like a 4-year-old: nose down, boost held all the way, never
+##            touching slow, onto the runway, a meadow and three islands, with
+##            crashes on and off: it always lands and parks, never crashes
 ##   gentle   crashes off: holding slow lets it land; otherwise it still
 ##            refuses to touch the ground
 ## Exit code 0 = pass, 1 = fail.
@@ -77,8 +82,10 @@ func _run() -> void:
 	print("  note: roll-out %.0f m coasting (slow let go at touchdown), %.0f m braking" % [roll_free, roll_brake])
 	_check("holding slow stops shorter", roll_brake < roll_free - 3.0 and roll_brake < 30.0)
 	# --- things that are still a bump ----------------------------------------
-	_check("diving in is a bump", await _bumps(Vector3(1200, 0, 40), Vector2(0, -1), 0.0, 40.0))
-	_check("boosting in is a bump", await _bumps(Vector3(1200, 0, 40), Vector2(0, -0.35), 1.0, 18.0))
+	# --- flat ground is never a crash ---------------------------------------------
+	_check("diving onto a meadow lands", await _lands(Vector3(1200, 0, 40), Vector2(0, -1), 0.0, 40.0))
+	_check("boosting onto a meadow lands", await _lands(Vector3(1200, 0, 40), Vector2(0, -0.35), 1.0, 18.0))
+	_check("level skimming over a meadow never lands by itself", await _skims(Vector3(1200, 0, 40)))
 	_check("steep mountainside is a bump", await _bumps(Vector3(195, 0, -780), Vector2(0, -0.3), -1.0, 14.0))
 	_check("a rooftop is a bump", await _bumps(Vector3(IslandShape.CITY.x - 80, 0, IslandShape.CITY.y - 160), Vector2(0, -0.3), -1.0, 14.0))
 	_check("the sea is a splash", await _bumps(Vector3(1500, 0, 2000), Vector2(0, -0.3), -1.0, 14.0))
@@ -130,15 +137,23 @@ func _run() -> void:
 	# --- can't-crash mode ------------------------------------------------------
 	SaveManager.set_crashes(false)
 	_crashes = 0
-	await _fly_at(Vector3(1200, 0, 40), 30.0, Vector2(0, -1), 0.0)
-	var min_clear := INF
-	for i in 360:
-		_plane.input.override_enabled = true
-		await get_tree().physics_frame
-		min_clear = minf(min_clear, _plane.global_position.y - _ground(_plane.global_position))
-	_check("crashes off: still won't touch the ground on its own", _plane.mode == Aircraft.Mode.FLYING and min_clear > _plane.stats.min_clearance - 0.6)
+	_check("crashes off: stick held down over a meadow lands", await _lands(Vector3(1200, 0, 40), Vector2(0, -1), 0.0, 30.0))
+	_check("crashes off: level skimming never lands by itself", await _skims(Vector3(1200, 0, 40)))
 	await _approach(site, -1.0, -1.0)
 	_check("crashes off: holding slow lets it land", _plane.mode == Aircraft.Mode.PARKED and _crashes == 0)
+	# --- child-style approaches (both modes) -----------------------------------------
+	var child_sites := [["runway", Vector2(-300, 0), -PI / 2.0], ["main island meadow", Vector2(1200, 40), 0.0],
+		["dino meadow (from the sea)", Vector2(2650, 2080), -3.0 * PI / 4.0], ["town island", Vector2(-3060, 580), 0.0], ["ice island", Vector2(620, -3280), 0.0]]
+	for crash_mode in [true, false]:
+		var bad: Array[String] = []
+		for s in child_sites:
+			if not await _child_lands(s[1], s[2], crash_mode):
+				bad.append(s[0])
+		_check("child-style approach (nose down, boost held, no slow) lands with crashes %s" % ("on" if crash_mode else "off"),
+				bad.is_empty())
+		if not bad.is_empty():
+			print("  didn't land: ", ", ".join(bad))
+	SaveManager.set_crashes(true)
 
 
 ## Fly a gentle approach to `site` (holding slow, nose down a little), then
@@ -159,6 +174,36 @@ func _approach(site: Vector2, roll_throttle: float, approach_throttle: float, ho
 	return touch.distance_to(_plane.global_position)
 
 
+## Come in like a 4-year-old towards `at` (x, z) heading `yaw`: from 90 m
+## short and 35 m up, nose down and boost held the whole time (through the
+## roll too), never slow. True if it touched down and parked with no crash.
+func _child_lands(at: Vector2, yaw: float, crash_mode: bool) -> bool:
+	SaveManager.set_crashes(crash_mode)
+	var start := _crashes
+	var touched := [false]
+	var on_touch := func(): touched[0] = true
+	_plane.touched_down.connect(on_touch)
+	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
+	var from := Vector3(at.x, 0.0, at.y) - fwd * 90.0
+	var gy := _ground(Vector3(at.x, 0.0, at.y))
+	_plane.speed = _plane.stats.cruise_speed * 1.3
+	_plane.teleport(Vector3(from.x, gy + 35.0, from.z), yaw)
+	_plane._grace = 0.0
+	await _frames(2)
+	_plane.input.override_stick = Vector2(0, -0.6)
+	_plane.input.override_throttle = 1.0
+	await _until(func(): return touched[0] or _crashes > start, 900)
+	await _until(func(): return _plane.mode == Aircraft.Mode.PARKED or _crashes > start, 1500)
+	var ok: bool = touched[0] and _crashes == start and _plane.mode == Aircraft.Mode.PARKED
+	_plane.touched_down.disconnect(on_touch)
+	_plane.input.override_stick = Vector2.ZERO
+	_plane.input.override_throttle = 0.0
+	if _crashes > start:
+		await _until(func(): return _plane.mode == Aircraft.Mode.PARKED, 600)
+	await _frames(20)
+	return ok
+
+
 ## Put the plane `height` m above the ground at `at` (x, z), heading north.
 func _fly_at(at: Vector3, height: float, stick: Vector2, throttle: float) -> void:
 	_plane.input.override_stick = stick
@@ -170,6 +215,38 @@ func _fly_at(at: Vector3, height: float, stick: Vector2, throttle: float) -> voi
 	await _frames(2)
 	_plane.input.override_stick = stick
 	_plane.input.override_throttle = throttle
+
+
+## Fly at the ground there with this input: true if it touches down and
+## parks with no crash.
+func _lands(at: Vector3, stick: Vector2, throttle: float, height: float) -> bool:
+	var start := _crashes
+	var touched := [false]
+	var on_touch := func(): touched[0] = true
+	_plane.touched_down.connect(on_touch)
+	await _fly_at(at + Vector3(0, 0, 40), height, stick, throttle)
+	await _until(func(): return _crashes > start or _plane.mode == Aircraft.Mode.PARKED, 1500)
+	_plane.touched_down.disconnect(on_touch)
+	var ok: bool = touched[0] and _crashes == start and _plane.mode == Aircraft.Mode.PARKED
+	_plane.input.override_stick = Vector2.ZERO
+	_plane.input.override_throttle = 0.0
+	if _crashes > start:
+		await _until(func(): return _plane.mode == Aircraft.Mode.PARKED, 600)
+	await _frames(10)
+	return ok
+
+
+## Fly level 6 m over the meadow with the stick let go: true if it's still
+## flying (no landing, no crash) after a few seconds.
+func _skims(at: Vector3) -> bool:
+	var start := _crashes
+	var touched := [false]
+	var on_touch := func(): touched[0] = true
+	_plane.touched_down.connect(on_touch)
+	await _fly_at(at + Vector3(0, 0, 60), 6.0, Vector2.ZERO, 0.0)
+	await _frames(150)
+	_plane.touched_down.disconnect(on_touch)
+	return not touched[0] and _crashes == start and _plane.mode == Aircraft.Mode.FLYING
 
 
 ## Fly at the ground there with this input: true if it ends in a crash.

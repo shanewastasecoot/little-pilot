@@ -36,7 +36,7 @@ const SWEEP_RADIUS := 4.0
 ## and, in can't-crash mode, the ground below stops being something to
 ## avoid, so the plane can touch down.
 var landing := false
-const LANDING_DIVE_DEG := 12.0
+const LANDING_DIVE_DEG := 24.0
 
 ## Steer clear of ground, water and buildings (the can't-crash mode). Off
 ## when crashes are allowed: only the world edge and ceiling still apply.
