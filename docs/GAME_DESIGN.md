@@ -339,6 +339,15 @@ Her own house south-west of the runway is the first building you can walk into.
 
 ---
 
+## 13b. Other Buildings (Phase 5)
+
+Any building with a front door, a doorstep and a floor plan can be walked into the same way as her house (`main.enter_building`): its inside is built the first time she goes in, high above the building, and kept; coming out puts her on its doorstep. Insides match their outsides in size.
+
+- **The post offices** (all three): one sorting room the size of the shop outside. The postie stands behind a blue counter with parcels waiting on it and a wall of pigeonholes full of coloured letters behind him; he turns and cheers when she comes up. On her very first visit to a post office he gives her the **post office sticker** (a white envelope on blue): it pops up big on the screen, wiggles and flies into the corner (saved, `[stickers] have`; one per kind of building). The fun things are all walk-into: parcels ride a conveyor belt along the wall; standing on the big scales swings the needle round with a ding; walking into the pile of letters takes one, and walking it to the red post box posts it (whoosh, sparkle, the postie cheers), as many as she likes. A hidden star is tucked behind the end of the counter. A letter in her arms stays inside when she goes out. Outside, the parcel pad sits to the left of the front path, so walking in never picks up a parcel by accident.
+- Coming next (one at a time, after she's tried the post office): houses in the city (from a table of front doors per building model) and a shop.
+
+---
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |

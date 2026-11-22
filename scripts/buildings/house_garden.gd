@@ -29,6 +29,9 @@ const FENCE_H := 3.2
 const GATE := 14.0
 
 var outdoor := false
+## A fenced yard with the backyard toys (her house); off: just open lawn,
+## trees and the sea (other buildings).
+var fenced := true
 ## Outdoors: the ground's height at a point on the plan (the yard itself is
 ## flat at 0; beyond it the island slopes). Indoors everything's flat.
 var ground_at: Callable = func(_x: float, _z: float) -> float: return 0.0
@@ -76,9 +79,10 @@ func _ready() -> void:
 		var z := front_door.y + 10.0 + k * 7.0
 		for side in [-1.0, 1.0]:
 			_ball(Vector3(front_door.x + side * 6.5, 0.6, z), 0.9, FLOWERS[(k + int(side > 0)) % FLOWERS.size()])
-	_build_fence(g)
-	_build_flower_beds()
-	_build_backyard(g)
+	if fenced:
+		_build_fence(g)
+		_build_flower_beds()
+		_build_backyard(g)
 	_build_trees(g, rng)
 	if not outdoor:
 		for k in 7:

@@ -1,0 +1,48 @@
+{
+	"name": "post_office",
+	"_comment": "A post office's inside: one sorting room the size of the shop outside (shop_small_a at scale 16: 26.2 x 15.5 m), the door in the middle of the front (+Z). Built by scripts/buildings/building_generator.gd (room type post_office).",
+	"storey_height": 11.0,
+	"wall_thickness": 0.5,
+	"door_width": 7.0,
+	"door_height": 8.5,
+	"furniture_scale": 2.27,
+	"seed": 3,
+	"backdrop": "plain",
+	"rooms": [
+		{
+			"id": "sorting",
+			"type": "post_office",
+			"floor": 0,
+			"rect": [
+				-13.1,
+				-7.75,
+				26.2,
+				15.5
+			],
+			"wall": "fff4dc",
+			"floor_colour": "c8a27a",
+			"doors": [
+				{
+					"side": "S",
+					"at": 0.5,
+					"exit": true
+				}
+			],
+			"windows": [
+				{
+					"side": "S",
+					"at": 0.17
+				},
+				{
+					"side": "S",
+					"at": 0.83
+				},
+				{
+					"side": "E",
+					"at": 0.6
+				}
+			]
+		}
+	],
+	"stairs": []
+}
