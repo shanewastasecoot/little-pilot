@@ -79,7 +79,7 @@ func _draw() -> void:
 			_poly(outer)
 			draw_colored_polygon(inner, Color(1, 1, 1, 0.45))
 		Icon.CRASH:
-			# A cartoon "bonk" burst with a little plane nosing into it.
+			# A "bonk" burst with a little plane nosing into it.
 			_poly(_burst(c + Vector2(0.14, -0.06) * s, s * 0.32, s * 0.17, 9))
 			_poly(PackedVector2Array([c + Vector2(-0.46, 0.34) * s, c + Vector2(-0.04, 0.06) * s, c + Vector2(0.0, 0.14) * s, c + Vector2(-0.4, 0.42) * s]))
 			_poly(PackedVector2Array([c + Vector2(-0.3, 0.14) * s, c + Vector2(-0.18, 0.24) * s, c + Vector2(-0.12, 0.42) * s, c + Vector2(-0.24, 0.32) * s]))
