@@ -13,7 +13,7 @@
 
 > **A relaxing 3D flying sandbox for young children.**
 
-Little Pilot is the feeling of flying a toy plane around a sunny island. The child is never wrong, never stuck and never punished. Each minute should hold small moments of delight: a sparkle, a chime, a lighthouse beam, a whoosh past a wind turbine.
+Little Pilot is the feeling of flying a real little plane around sunny islands. The child is never wrong, never stuck and never punished. Each minute should hold small moments of delight: a sparkle, a chime, a lighthouse beam, a whoosh past a wind turbine.
 
 ### Design Pillars
 
@@ -89,13 +89,13 @@ Both aircraft share the same controller code and differ only in a tuning resourc
 ### 3.1 Prop Plane — *the default*
 - **Medium speed, easy control.**
 - Wide, forgiving turns. Inputs are heavily smoothed so jerky stick movements still look graceful.
-- Bright primary colours with a spinning propeller and a friendly face (optional).
+- A realistic civilian biplane in bright, friendly paint: real proportions, panel lines, spinning propeller. No face on the plane.
 
 ### 3.2 Fighter Jet — *the exciting one*
 - **Faster, more responsive.**
 - Tighter turns and less smoothing. The world rushes past for a strong sense of speed.
 - Still has every safety system. Ground avoidance looks further ahead to cover the higher speed.
-- Toy-like, rounded, non-military look. Cartoon proportions and no weapons.
+- A realistic civilian trainer jet: real proportions and details, bright friendly paint, no weapons and no military markings.
 
 ### 3.3 Tuning Notes
 - Tune the feel with **the actual child**, not just the developer. Adults usually tune too fast and too sensitive.
@@ -253,7 +253,7 @@ UI rules: big targets, high contrast, icons before text, and every button press 
 | **Wind** | Gets louder with speed |
 | **Stars** | Chime with rising pitch |
 | **Landmarks** | One signature sound each |
-| **Honk** | Silly horn per aircraft |
+| **Honk** | A fun horn per aircraft |
 | **UI** | Soft clicks and pops |
 
 Audio uses three buses: **Master**, **Music** and **SFX**. A parent-only settings screen controls the volumes.
@@ -343,7 +343,7 @@ Her own house south-west of the runway is the first building you can walk into.
 
 | Idea | Description | Complexity |
 |---|---|---|
-| **Additional aircraft** | Helicopter (can hover), hot-air balloon (very slow), seaplane (lands on water), cartoon rocket | Low–Medium. Data-driven aircraft make this cheap, though a helicopter needs a new controller. |
+| **Additional aircraft** | Helicopter (can hover), hot-air balloon (very slow), seaplane (lands on water), a small rocket | Low–Medium. Data-driven aircraft make this cheap, though a helicopter needs a new controller. |
 | **Paint colours** | Choose the plane's colour from big swatches using the D-pad or a paint shop screen. A material colour swap. | Low |
 | **Weather** | Gentle rain, snow on the mountains, rainbows after rain, sunset or night with glowing stars. Keep it calm and never scary. Avoid thunder. | Medium |
 | **More maps** | Desert canyon, snowy village, city with parks, space level | High (mostly asset work) |
