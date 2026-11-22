@@ -26,17 +26,28 @@ func _ready() -> void:
 		_stands.append(stand)
 
 
-## Show `count` pieces of treasure on the stands (Phase 4).
+## Show `count` pieces of dragon treasure on the stands (a crown, a cup, a
+## gem, a pile of coins, a necklace: piece i is DragonTreasure.piece(i)).
 func show_trophies(count: int) -> void:
 	for i in _stands.size():
 		var stand := _stands[i]
 		var has := stand.get_node_or_null("Treasure")
 		if i < count and has == null:
-			var t := BuildKit.add(stand, BuildKit.sphere(0.8, 12), "ffd23f", Vector3(0, 1.1, 0))
+			var t := DragonTreasure.piece(i)
 			t.name = "Treasure"
-			t.material_override = BuildingGenerator._glow_mat(Color("ffd23f"))
+			t.position = Vector3(0, 0.3, 0)
+			t.scale = Vector3.ONE * 0.75
+			stand.add_child(t)
 		elif i >= count and has != null:
 			has.queue_free()
+
+
+func shown() -> int:
+	var n := 0
+	for s in _stands:
+		if s.get_node_or_null("Treasure"):
+			n += 1
+	return n
 
 
 func stand_count() -> int:

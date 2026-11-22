@@ -6,14 +6,15 @@ extends Node3D
 ## parks and the plaza they wander in, stand about (idle) and wander off.
 ## There are more of them as the city grows: each building adds a few.
 ##
-## Drawn with baked vertex animation (tools/bake_people.gd): one MultiMesh
+## Drawn with baked vertex animation (tools/bake_kaykit_people.gd): one MultiMesh
 ## per character, only people near the camera, so a few hundred walkers
 ## cost six draw calls. People never collide with anything (the plane flies
 ## over them). A child of CityDistrict, in city space.
 
 const PEOPLE_DIR := "res://assets/characters/people/"
-const CHARACTERS := ["worker", "suit", "hoodie", "beach", "woman_a", "woman_b"]
-const SCALE := 2.8               # storybook size: ~5 m tall
+## KayKit townspeople in her own character's style (tools/bake_kaykit_people.gd).
+const CHARACTERS := ["kk_baker", "kk_jogger", "kk_gardener", "kk_artist", "kk_grandad", "kk_lady"]
+const SCALE := 1.0               # baked at her size (~5 m tall)
 const PITCH := 80.0
 const LOOP := 33.75              # pavement path, from the block centre
 const EDGE := 32.0               # block edge (building fronts)

@@ -1,6 +1,6 @@
 shader_type spatial;
 // Townspeople crowd: plays baked walk/idle loops from a vertex animation
-// texture (tools/bake_people.gd), so every copy of a character is one
+// texture (tools/bake_kaykit_people.gd), so every copy of a character is one
 // MultiMesh draw. Per instance (INSTANCE_CUSTOM): r = time offset (s),
 // g = 1 when standing (idle loop), else walking.
 render_mode cull_back;

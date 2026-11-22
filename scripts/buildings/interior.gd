@@ -67,8 +67,11 @@ func entry_yaw() -> float:
 	return exits[0].yaw if not exits.is_empty() else 0.0
 
 
-## Coming in: the exits wait until you've stepped away from them.
+## Coming in: the exits wait until you've stepped away from them; the
+## trophy shelf shows the treasure she's brought home.
 func arrive() -> void:
+	if trophy_shelf:
+		trophy_shelf.show_trophies(SaveManager.treasures)
 	for e in exits:
 		e.trigger.monitoring = false
 	await get_tree().create_timer(0.6, false).timeout

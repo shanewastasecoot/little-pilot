@@ -15,6 +15,9 @@ const MOUTH_TOP := 0.78      # mouth height (radians of elevation)
 var _smoke: CPUParticles3D
 
 
+var treasure: DragonTreasure
+
+
 func _init() -> void:
 	landmark_name = "Dragon's Cave"
 	discovery_radius = 230.0
@@ -37,6 +40,11 @@ func build() -> void:
 	add_child(body)
 	_build_arch(body)
 	_build_hoard()
+	# A piece of treasure she can take (on foot), in front of the hoard.
+	treasure = DragonTreasure.new()
+	treasure.name = "Treasure"
+	treasure.position = nest() + Vector3(0, -2.0, 30.0)
+	add_child(treasure)
 	# Warm glow from the hoard (one light, short range).
 	var glow := OmniLight3D.new()
 	glow.light_color = Color("ffb347")

@@ -26,6 +26,12 @@ const CHECK_EVERY := 0.1
 const REFILL_DELAY := 2.0
 ## On foot this close, the beacon's column hides (just the parcel over them).
 const BEACON_NEAR := 35.0
+## Mermaid mail: fly within this far (flat) of her and this low over the sea
+## and the parcel drops (a missed pass just means going round again).
+const DROP_RADIUS := 40.0
+const DROP_HEIGHT := 70.0
+const DROP_TIME := 1.6
+var _dropping := false
 
 var job := ""
 var recipients := {}           # id -> Recipient
@@ -59,7 +65,7 @@ func setup(main: Node, world: Node3D) -> void:
 	for r in Recipients.all():
 		var who := Recipient.new(r)
 		world.add_child(who)
-		who.global_position = _ground3(r.spot)
+		who.global_position = Vector3(r.spot.x, 0.0, r.spot.y) if r.kind == "mermaid" else _ground3(r.spot)
 		recipients[r.id] = who
 	beacon = DeliveryBeacon.new()
 	beacon.name = "DeliveryBeacon"
@@ -116,9 +122,16 @@ func _process(delta: float) -> void:
 	if carrying():
 		beacon.near = walker.is_active() and _flat_dist(p, target().global_position) < BEACON_NEAR
 	_update_po_beacon(p, walker.is_active())
-	_show_on_plane(carrying() and not walker.is_active())
+	_show_on_plane(carrying() and not walker.is_active() and not _dropping)
 	if _dragon:
 		_dragon.parcel_truce = carrying() and SaveManager.dragon_level == 0
+	# Mermaid mail: a low pass over her drops the parcel.
+	if carrying() and target().is_mermaid() and not _dropping and not walker.is_active() \
+			and _main.state == _main.State.FLYING:
+		var plane: Node3D = _main.aircraft
+		if _flat_dist(plane.global_position, target().global_position) < DROP_RADIUS and plane.global_position.y < DROP_HEIGHT:
+			_air_drop()
+			return
 	if not walker.is_active() or _main.state != _main.State.ON_FOOT:
 		return
 	if not carrying():
@@ -126,7 +139,8 @@ func _process(delta: float) -> void:
 			if po.available and _flat_dist(walker.global_position, po.pickup_point()) < PICKUP_RADIUS:
 				_pick_up(po)
 				return
-	elif _flat_dist(walker.global_position, target().global_position) < GIVE_RADIUS and not target().is_celebrating():
+	elif not target().is_mermaid() and _flat_dist(walker.global_position, target().global_position) < GIVE_RADIUS \
+			and not target().is_celebrating():
 		_deliver()
 
 
@@ -183,7 +197,8 @@ func _deliver() -> void:
 	_last = id
 	job = ""
 	_main.walker.model.set_carrying(false)
-	who.receive()
+	if not (who.is_mermaid() and who.is_celebrating()):  # a mermaid's already leapt for it
+		who.receive()
 	beacon.hide()
 	_main.hud.show_delivery(null)
 	var first := SaveManager.add_delivery(id)
@@ -203,6 +218,48 @@ func _deliver() -> void:
 		if not carrying():
 			for po in post_offices:
 				po.set_available(true))
+
+
+## The parcel leaves the plane on a little parachute and floats down into
+## the mermaid's hands; she leaps up to catch it; then the usual cheer.
+func _air_drop() -> void:
+	_dropping = true
+	var who := target()
+	_show_on_plane(false)
+	var drop := Node3D.new()
+	drop.name = "AirDrop"
+	_main.add_child(drop)
+	drop.global_position = _main.aircraft.global_position - Vector3.UP * 2.0
+	var parcel := CharacterLook.prop("Package")
+	parcel.scale = Vector3.ONE * 2.2
+	drop.add_child(parcel)
+	# The parachute: a bright dome on four strings.
+	var chute := MeshInstance3D.new()
+	var dome := SphereMesh.new()
+	dome.radius = 3.2
+	dome.height = 3.2
+	dome.is_hemisphere = true
+	chute.mesh = dome
+	chute.position = Vector3(0, 5.5, 0)
+	chute.material_override = BuildKit.mat(who.data.colour.to_html(false))
+	drop.add_child(chute)
+	for k in 4:
+		var a := TAU * k / 4.0 + PI * 0.25
+		var top := Vector3(cos(a) * 2.8, 5.5, sin(a) * 2.8)
+		var line := BuildKit.add(drop, BuildKit.box(Vector3(0.08, top.length(), 0.08)), "ffffff", top * 0.5)
+		line.look_at_from_position(top * 0.5, Vector3.ZERO, Vector3.UP if absf(top.normalized().y) < 0.99 else Vector3.FORWARD)
+		line.rotate_object_local(Vector3.RIGHT, PI * 0.5)
+	Sfx.play("whoosh", 1.3)
+	var to := who.catch_point()
+	var tw := create_tween()
+	tw.tween_property(drop, "global_position", to, DROP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(drop, "rotation:y", TAU, DROP_TIME)
+	get_tree().create_timer(DROP_TIME - 0.5, false).timeout.connect(func(): who.receive())
+	tw.tween_callback(func():
+		drop.queue_free()
+		_dropping = false
+		if carrying() and target() == who:
+			_deliver())
 
 
 static func _flat_dist(a: Vector3, b: Vector3) -> float:
@@ -255,8 +312,9 @@ func _snap_to_ground() -> void:
 	var space: PhysicsDirectSpaceState3D = _main.get_world_3d().direct_space_state
 	var nodes: Array[Node3D] = []
 	nodes.append_array(post_offices)
-	for who in recipients.values():
-		nodes.append(who)
+	for who: Recipient in recipients.values():
+		if not who.is_mermaid():  # mermaids sit at sea level
+			nodes.append(who)
 	for n in nodes:
 		var p := n.global_position
 		var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, p.y + 60.0, p.z), Vector3(p.x, p.y - 60.0, p.z), GameSettings.LAYER_WORLD)
