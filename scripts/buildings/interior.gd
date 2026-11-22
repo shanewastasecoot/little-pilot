@@ -52,7 +52,7 @@ func add_exit(at: Vector3, spawn: Vector3, yaw: float) -> void:
 	area.collision_mask = GameSettings.LAYER_PLAYER
 	area.monitoring = false  # switched on a moment after you come in
 	var shape := SphereShape3D.new()
-	shape.radius = 2.6
+	shape.radius = float(data.get("exit_radius", 2.6)) if data else 2.6
 	var cs := CollisionShape3D.new()
 	cs.shape = shape
 	area.add_child(cs)

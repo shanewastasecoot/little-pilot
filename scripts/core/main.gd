@@ -97,6 +97,7 @@ var delivery: DeliveryManager
 
 
 func _ready() -> void:
+	add_to_group("game_main")
 	aircraft.set_stats(AircraftCatalog.get_stats(SaveManager.selected_aircraft))
 	aircraft.crashes = SaveManager.crashes
 	aircraft.park(map.runway_start(), map.spawn_heading())
@@ -461,6 +462,13 @@ func enter_house() -> void:
 	enter_building(house)
 
 
+## A building's front door was walked into (city houses call this; they
+## come and go as the city grows): in, if she's on foot.
+func door_walked_into(b: Node3D) -> void:
+	if state == State.ON_FOOT:
+		enter_building(b)
+
+
 ## Walk in through a building's front door (her house, a post office): a
 ## quick fade, the outdoor world hidden and paused, and you're inside. Each
 ## inside is built the first time (BuildingGenerator, from the building's
@@ -476,7 +484,8 @@ func enter_building(b: Node3D) -> void:
 	var id: String = b.building_id()
 	interior = interiors.get(id)
 	if interior == null:
-		interior = BuildingGenerator.build(BuildingGenerator.load_data(b.interior_data()))
+		var plan: Dictionary = b.interior_layout() if b.has_method("interior_layout") else BuildingGenerator.load_data(b.interior_data())
+		interior = BuildingGenerator.build(plan)
 		add_child(interior)
 		interior.global_position = Vector3(b.global_position.x, INTERIOR_HEIGHT, b.global_position.z)
 		interior.exit_reached.connect(func(): if state == State.INDOORS: exit_house())

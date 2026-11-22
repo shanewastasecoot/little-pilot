@@ -324,6 +324,15 @@ class Sticker extends Control:
 				draw_polyline(PackedVector2Array([rect.position, c + Vector2(0, h * 0.08), Vector2(rect.end.x, rect.position.y)]),
 						Color("c9d3dd"), r * 0.06, true)
 				draw_rect(Rect2(Vector2(rect.end.x - w * 0.24, rect.position.y + h * 0.1), Vector2(w * 0.16, h * 0.22)), Color("e63946"))
+			"city_house":
+				draw_circle(c, r * 0.88, Color("4cc06a"))
+				var hw := r * 0.9
+				var body := Rect2(c + Vector2(-hw * 0.5, -r * 0.05), Vector2(hw, r * 0.55))
+				draw_rect(body, Color("fff1d6"))
+				draw_colored_polygon(PackedVector2Array([body.position + Vector2(-r * 0.12, 0), c + Vector2(0, -r * 0.55),
+						Vector2(body.end.x + r * 0.12, body.position.y)]), Color("e63946"))
+				draw_rect(Rect2(c + Vector2(-r * 0.1, r * 0.2), Vector2(r * 0.2, r * 0.3)), Color("3a7bd5"))
+				draw_rect(Rect2(c + Vector2(r * 0.17, r * 0.05), Vector2(r * 0.17, r * 0.15)), Color("9fd8ff"))
 			_:
 				draw_circle(c, r * 0.88, Color("ffd23f"))
 				draw_colored_polygon(UiIcon.star_points(c, r * 0.6, r * 0.26), Color.WHITE)

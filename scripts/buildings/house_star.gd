@@ -7,6 +7,8 @@ extends Node3D
 signal found
 
 const REWARD := 3
+## How high it floats (small houses: lower, under the windows).
+var height := 2.5
 
 var _star: MeshInstance3D
 var _t := 0.0
@@ -22,7 +24,7 @@ func _ready() -> void:
 	m.emission = Color("ffb800")
 	m.emission_energy_multiplier = 0.8
 	_star.material_override = m
-	_star.position.y = 2.5
+	_star.position.y = height
 	add_child(_star)
 	var area := Area3D.new()
 	area.collision_layer = 0
@@ -31,7 +33,7 @@ func _ready() -> void:
 	var s := SphereShape3D.new()
 	s.radius = 2.2
 	cs.shape = s
-	cs.position.y = 2.0
+	cs.position.y = minf(2.0, height)
 	area.add_child(cs)
 	add_child(area)
 	area.body_entered.connect(func(b): if b is Walker: take())
@@ -67,4 +69,4 @@ func _process(delta: float) -> void:
 		return
 	_t += delta
 	_star.rotation.y = _t * 2.0
-	_star.position.y = 2.5 + sin(_t * 2.5) * 0.3
+	_star.position.y = height + sin(_t * 2.5) * 0.3

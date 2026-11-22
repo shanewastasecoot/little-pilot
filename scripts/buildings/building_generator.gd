@@ -208,8 +208,15 @@ static func _build_side(interior: Interior, data: Dictionary, room: Dictionary, 
 		var mat_pos := Vector3(c.x + inward.x * 3.0, base + 0.06, c.y + inward.y * 3.0)
 		var mat_size := Vector3(door_w - 1.0, 0.12, 4.0) if along_x else Vector3(4.0, 0.12, door_w - 1.0)
 		BuildKit.add(node, BuildKit.box(mat_size), "8b5a2b", mat_pos).material_override = _mat("8b5a2b")
-		interior.add_exit(Vector3(c.x + inward.x * 1.6, base + 2.0, c.y + inward.y * 1.6),
-				Vector3(c.x + inward.x * 9.0, base, c.y + inward.y * 9.0), atan2(-inward.x, -inward.y))
+		# Coming in you appear a few steps inside (no further than the
+		# middle of a small room, but clear of the exit's trigger).
+		var small := float(data.get("exit_radius", 2.6)) < 2.6
+		var into := clampf((rect.size.y if along_x else rect.size.x) * 0.5, 5.5, 9.0) if small else 9.0
+		# (Small houses: the trigger sits in the doorway itself, so you only
+		# go out by walking into it, not by crossing the room.)
+		var trig := -0.4 if small else 1.6
+		interior.add_exit(Vector3(c.x + inward.x * trig, base + 2.0, c.y + inward.y * trig),
+				Vector3(c.x + inward.x * into, base, c.y + inward.y * into), atan2(-inward.x, -inward.y))
 		pieces.append(daylight)
 	interior.walls.append({"room": room.id, "a": point.call(0.0), "b": point.call(length), "inward": inward,
 			"floor": int(room.get("floor", 0)), "pieces": pieces})
@@ -343,6 +350,8 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			_furnish_bedroom(interior, data, room, rect, base, node, rng)
 		"post_office":
 			_furnish_post_office(interior, data, room, rect, base, node)
+		"small_living", "small_kitchen", "small_bedroom":
+			SmallRoomFurnisher.new(interior, data, room, rect, base, node, rng).furnish()
 
 
 ## Along the back (north) wall: the fridge, counters, the sink and the stove
@@ -928,3 +937,28 @@ static func _furnish_post_office(interior: Interior, data: Dictionary, room: Dic
 	star.position = Vector3(cx + counter_w * 0.5 + 1.8, base, rect.position.y + t + 2.6)
 	node.add_child(star)
 	interior.house_star = star
+
+
+# --- Small rooms (the city's houses) --------------------------------------------------
+
+## The first wall of `prefer` with no door in it ("" if all have one).
+static func _plain_wall(room: Dictionary, prefer: Array) -> String:
+	for side: String in prefer:
+		var ok := true
+		for d: Dictionary in room.get("doors", []):
+			if str(d.side) == side:
+				ok = false
+		if ok:
+			return side
+	return ""
+
+
+## Put `item` (depth `depth` in furniture units) against wall `side` at
+## fraction `along` of it, facing into the room.
+static func _against_wall(node: Node3D, data: Dictionary, rect: Rect2, base: float, item: String, side: String, along: float,
+		depth: float, scale := 1.0, solid := true) -> Node3D:
+	match side:
+		"N": return _put(node, data, rect, base, item, along, _against(data, rect.size.y, depth * scale), 0.0, scale, solid)
+		"S": return _put(node, data, rect, base, item, along, 1.0 - _against(data, rect.size.y, depth * scale), 180.0, scale, solid)
+		"W": return _put(node, data, rect, base, item, _against(data, rect.size.x, depth * scale), along, 90.0, scale, solid)
+		_: return _put(node, data, rect, base, item, 1.0 - _against(data, rect.size.x, depth * scale), along, -90.0, scale, solid)

@@ -95,6 +95,8 @@ func finish(celebrate: bool) -> void:
 		return
 	done = true
 	set_progress(1.0)
+	if is_house():
+		_add_front_door()
 	if _site:
 		_site.queue_free()
 		_site = null
@@ -194,3 +196,60 @@ func _build_playground() -> void:
 	BuildKit.add(ring, BuildKit.cyl(0.3, 2.6, -1, 8), "9b5de5", Vector3(0, 2.2, 0))
 	_pieces = [sand, swings, slide, ring]
 	set_progress(0.0)
+
+
+# --- Going in (houses) ------------------------------------------------------------------
+
+## A finished house you can walk into (its model has a floor plan).
+func is_house() -> bool:
+	return event.get("kind", "") == "house" and CityHouseLayouts.has(str(event.model))
+
+
+func _add_front_door() -> void:
+	var door := Area3D.new()
+	door.name = "FrontDoor"
+	door.collision_layer = 0
+	door.collision_mask = GameSettings.LAYER_PLAYER
+	var cs := CollisionShape3D.new()
+	var s := SphereShape3D.new()
+	s.radius = 2.6
+	cs.shape = s
+	cs.position = door_local() + Vector3(0, 2.5, 1.2)
+	door.add_child(cs)
+	add_child(door)
+	door.body_entered.connect(func(b):
+		if b is Walker:
+			var game := get_tree().get_first_node_in_group("game_main")
+			if game:
+				game.door_walked_into(self))
+
+
+## The front door (local, on the ground at the front wall).
+func door_local() -> Vector3:
+	return CityHouseLayouts.door_local(str(event.model))
+
+
+func door_point() -> Vector3:
+	return to_global(door_local())
+
+
+## Where you stand coming out: out in front, so the camera behind you isn't
+## inside the house.
+func doorstep() -> Vector3:
+	return to_global(door_local() + Vector3(0, 0, 13.0))
+
+
+func doorstep_yaw() -> float:
+	var out := global_transform.basis.z
+	return atan2(-out.x, -out.z)
+
+
+func building_id() -> String:
+	var p: Vector3 = event.pos
+	return "city_house_%d_%d" % [roundi(p.x), roundi(p.z)]
+
+
+## Its floor plan (one per model; the furniture varies with where it stands).
+func interior_layout() -> Dictionary:
+	var p: Vector3 = event.pos
+	return CityHouseLayouts.layout(str(event.model), absi(roundi(p.x) * 73856093 ^ roundi(p.z) * 19349663) % 100000 + 1)
