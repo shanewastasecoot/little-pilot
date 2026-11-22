@@ -62,12 +62,22 @@ func _run() -> void:
 	_check("the postie is there (and gets no parcels)", _dm.recipients.has("postie")
 			and not Recipients.get_recipient("postie").deliverable)
 	var dry := true
+	var at_sea := 0
 	for r: RecipientData in Recipients.all():
+		if r.kind == "mermaid":
+			# Mermaids sit on their rock at sea level, out in the water.
+			var m: Recipient = _dm.recipients[r.id]
+			if absf(m.global_position.y) < 0.5 and IslandShape.height(m.global_position.x, m.global_position.z) < -5.0 and m.mermaid != null:
+				at_sea += 1
+			else:
+				print("    mermaid not at sea: %s at %s, ground %.1f" % [r.id, str(m.global_position.round()), _ground(m.global_position)])
+			continue
 		var g := _ground(Vector3(r.spot.x, 0, r.spot.y))
 		if g < Walker.SHORE_LEVEL + 0.5 or absf(_dm.recipients[r.id].global_position.y - g) > 1.0:
 			dry = false
 			print("    not on dry ground: ", r.id, " ground ", g)
 	_check("everyone stands on dry ground", dry)
+	_check("three mermaids sit on rocks out at sea", at_sea == 3)
 	_check("nothing showing before a pick-up", not _main.hud.delivery_showing() and not _dm.beacon.visible)
 	await _frames(10)
 	_check("a red beacon shows the nearest post office with a parcel waiting", _dm.po_beacon.visible
@@ -158,6 +168,8 @@ func _run() -> void:
 	# --- everyone can be reached --------------------------------------------------------
 	var unreached := []
 	for r: RecipientData in Recipients.deliverable():
+		if r.kind == "mermaid":
+			continue  # out at sea: mermaid mail is dropped from the plane (below)
 		var rec: Recipient = _dm.recipients[r.id]
 		var land := Vector3(r.land_at.x, 0, r.land_at.y)
 		await _get_out_near(land)
@@ -210,6 +222,30 @@ func _run() -> void:
 	SaveManager.dragon_level = 0
 	await _frames(10)
 	_check("and no truce without a parcel", not dragon.parcel_truce)
+	# --- mermaid mail ------------------------------------------------------------------------
+	_dm._start("mermaid_cove", true)
+	var mer: Recipient = _dm.target()
+	var stars0 := SaveManager.lifetime_stars
+	var mer_done := [false]
+	_dm.delivered.connect(func(id, _f): if id == "mermaid_cove": mer_done[0] = true, CONNECT_ONE_SHOT)
+	_plane.park(mer.global_position + Vector3(-300, 0, 0), 0.0)
+	_main._enter(_main.State.FLYING)
+	# A pass high over her: nothing drops.
+	for i in 40:
+		_plane.global_position = mer.global_position + Vector3(0, DeliveryManager.DROP_HEIGHT + 40.0, 0)
+		await get_tree().physics_frame
+	var high_kept: bool = _dm.carrying() and not mer_done[0]
+	# Low over her: the parcel parachutes down and she leaps to catch it.
+	var leapt := 0.0
+	for i in 200:
+		if i < 30:
+			_plane.global_position = mer.global_position + Vector3(-10, 30.0, 0)
+		await get_tree().physics_frame
+		leapt = maxf(leapt, mer.mermaid.position.y - Recipient.ROCK_TOP)
+	_check("mermaid mail: a high pass drops nothing; a low pass over her drops the parcel and she leaps up to catch it",
+			high_kept and mer_done[0] and not _dm.carrying() and leapt > 3.0
+			and SaveManager.lifetime_stars == stars0 + DeliveryManager.REWARD_STARS)
+	print("  note: high pass kept it %s, delivered %s, leapt %.1f m" % [high_kept, mer_done[0], leapt])
 	# --- arrow setting ---------------------------------------------------------------
 	SaveManager.set_delivery_arrow(false)
 	SaveManager.save_now()
