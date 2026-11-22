@@ -159,7 +159,7 @@ func _build_apron() -> void:
 	apron.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	for k in 8:
 		BuildKit.add(self, BuildKit.box(Vector3(0.8, 0.1, 3.0)), "ffd23f", Vector3(0, 0.36, LENGTH * 0.5 + 3.0 + k * 4.5))
-	# Planes parked on the apron (toy-sized so they read from the air).
+	# Planes parked on the apron (scaled down so they read from the air).
 	var biplane: Node3D = load("res://scenes/aircraft/models/prop_plane_model.tscn").instantiate()
 	biplane.scale = Vector3.ONE * 2.2
 	biplane.position = Vector3(-14, 1.9 * 2.2, LENGTH * 0.5 + 15)

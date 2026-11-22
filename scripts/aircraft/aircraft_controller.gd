@@ -535,7 +535,7 @@ func _water_y() -> float:
 	return Waves.height(p.x, p.z) + WATER_LEVEL * stats.model_scale
 
 
-## A cartoon tumble on the spot while the game fades back to the runway.
+## A tumble on the spot while the game fades back to the runway.
 func _crashed_step(delta: float) -> void:
 	speed = move_toward(speed, 0.0, 40.0 * delta)
 	visuals.rotation += _crash_spin * delta
