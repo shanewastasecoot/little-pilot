@@ -37,6 +37,7 @@ func is_mermaid() -> bool:
 
 
 func _ready() -> void:
+	WorldReaction.add(self, 30.0, ["cheer"], 2.5, cheer_back)
 	if is_mermaid():
 		_build_mermaid()
 		return
@@ -134,6 +135,19 @@ func receive() -> void:
 	_celebrating = 4.6
 	var t := get_tree().create_timer(1.0, false)
 	t.timeout.connect(func(): model.play("Cheer"))
+
+
+## She cheered at them (X on foot, WorldEvents): a happy cheer back (a
+## mermaid waves), unless they're already celebrating a parcel.
+func cheer_back(_kind: String, _where: Vector3) -> void:
+	if _celebrating > 0.0:
+		return
+	_celebrating = 2.2
+	if is_mermaid():
+		if mermaid.has_method("set_waving"):
+			mermaid.set_waving(true)
+	else:
+		model.play("Cheer")
 
 
 func is_celebrating() -> bool:

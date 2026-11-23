@@ -79,6 +79,10 @@ func build() -> void:
 	crowd.name = "Crowd"
 	crowd.city = self
 	add_child(crowd)
+	# Townspeople cheer and wave: at a honk or a low pass over them, and when
+	# she cheers at them on foot (WorldEvents).
+	WorldReaction.add(self, 700.0, ["honk", "low_pass", "cheer"], 0.5, func(kind: String, where: Vector3):
+		crowd.cheer_near(where, {"honk": 70.0, "low_pass": 60.0, "cheer": 28.0}[kind], 2.5))
 	growth = CityGrowth.new()
 	growth.name = "Growth"
 	growth.city = self

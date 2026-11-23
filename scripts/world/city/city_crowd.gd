@@ -58,6 +58,7 @@ func _ready() -> void:
 		mat.set_shader_parameter("vat", ImageTexture.create_from_image(img))
 		mat.set_shader_parameter("walk_frames", frames[0])
 		mat.set_shader_parameter("idle_frames", frames[1])
+		mat.set_shader_parameter("cheer_frames", frames[2] if frames.size() > 2 else 0)
 		mat.set_shader_parameter("bake_fps", mesh.get_meta("bake_fps"))
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -145,7 +146,7 @@ func _new_person() -> Dictionary:
 	var p := {"block": cell, "s": _rng.randf() * 8.0 * LOOP, "dir": 1.0 if _rng.randf() < 0.5 else -1.0,
 		"state": WALK, "timer": _rng.randf_range(4.0, 25.0), "type": _rng.randi() % CHARACTERS.size(),
 		"pos": Vector3.ZERO, "yaw": 0.0, "from": Vector3.ZERO, "to": Vector3.ZERO, "target_s": 0.0,
-		"t_off": _rng.randf() * 10.0, "size": 1.0, "goal": false}
+		"t_off": _rng.randf() * 10.0, "size": 1.0, "goal": false, "cheer": 0.0, "look": 0.0}
 	p.pos = _centre(cell) + _loop_point(p.s)
 	return p
 
@@ -202,15 +203,40 @@ func _write(t: int, i: int, p: Dictionary) -> void:
 	buf[k + 4] = b.x.y; buf[k + 5] = b.y.y; buf[k + 6] = b.z.y; buf[k + 7] = o.y
 	buf[k + 8] = b.x.z; buf[k + 9] = b.y.z; buf[k + 10] = b.z.z; buf[k + 11] = o.z
 	buf[k + 12] = p.t_off
-	buf[k + 13] = 1.0 if p.state == IDLE else 0.0
+	buf[k + 13] = 2.0 if p.cheer > 0.0 else (1.0 if p.state == IDLE else 0.0)
 	buf[k + 14] = 0.0
 	buf[k + 15] = 0.0
+
+
+## Everyone out and about within `radius` of `where` (world space) stops,
+## turns to face it and cheers (waves) for about `secs` seconds, a little
+## staggered. Returns how many. (She cheered at them; a honk; a low pass.)
+func cheer_near(where: Vector3, radius: float, secs := 2.5) -> int:
+	var at := to_local(where)
+	var r2 := radius * radius
+	var n := 0
+	for p in people:
+		if p.state == INSIDE or p.size < 0.5:
+			continue
+		var d: Vector3 = at - p.pos
+		d.y = 0.0
+		if d.length_squared() > r2:
+			continue
+		p.cheer = secs + _rng.randf_range(0.0, 0.8)
+		p.look = atan2(d.x, d.z)
+		n += 1
+	return n
 
 
 ## Move one person along and decide what they do next.
 func _step(p: Dictionary, delta: float) -> void:
 	var info: Dictionary = blocks.get(p.block, {})
 	if info.is_empty():
+		return
+	if p.cheer > 0.0:
+		# Cheering: stand still, turned towards her, then carry on.
+		p.cheer = maxf(p.cheer - delta, 0.0)
+		p.yaw = lerp_angle(p.yaw, p.look, minf(delta * 8.0, 1.0))
 		return
 	var c := _centre(p.block)
 	match p.state:

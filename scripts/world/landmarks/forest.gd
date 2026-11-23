@@ -21,6 +21,7 @@ func _init() -> void:
 	landmark_name = "Forest"
 	discovery_radius = 200.0
 	discovery_sound = "chirp"
+	WorldReaction.add(self, 420.0, ["honk", "low_pass"], 2.5, _birds_up)
 
 
 func build() -> void:
@@ -150,6 +151,16 @@ func _add_cone(st: SurfaceTool, y0: float, y1: float, r0: float, r1: float, col:
 		st.add_vertex(Vector3(0, y0, 0))
 		st.add_vertex(b0)
 		st.add_vertex(b1)
+
+
+## A honk or a low pass over the trees (WorldEvents): a flock of birds
+## flaps up out of the canopy below and flies off away from it.
+func _birds_up(_kind: String, where: Vector3) -> void:
+	var flock := BirdFlock.new()
+	flock.away_from = where
+	get_parent().add_child(flock)
+	var p := where + Vector3(randf_range(-12, 12), 0, randf_range(-12, 12))
+	flock.global_position = Vector3(p.x, IslandShape.height(p.x, p.z) + 14.0, p.z)
 
 
 func react() -> void:

@@ -17,6 +17,7 @@ func _init() -> void:
 
 func build() -> void:
 	var h := OuterIslands.ice_height
+	WorldReaction.add(self, 480.0, ["honk", "low_pass"], 5.0, _penguins_startled)
 	IslandDecor.scatter(self, "res://assets/environment/snow_pine.glb", 70, C, 60.0, 360.0, h, 3.6, 5.0, 8.0, 90.0, 5)
 	for k in 5:
 		var a := 2.2 + k * 0.45
@@ -39,6 +40,28 @@ func _process(delta: float) -> void:
 		_penguins[i].rotation.z = sin(_t * 5.0 + i) * 0.12  # waddle
 	for i in _bergs.size():
 		_bergs[i].position.y = -10.0 + sin(_t * 0.6 + i) * 0.8
+
+
+## A honk or a low pass over the ice (WorldEvents): the penguins hop and
+## slide off a little on their tummies, then waddle back.
+func _penguins_startled(_kind: String, where: Vector3) -> void:
+	var from := to_local(where)
+	for i in _penguins.size():
+		var p := _penguins[i]
+		if not p.has_meta("home"):
+			p.set_meta("home", p.position)
+		var home: Vector3 = p.get_meta("home")
+		var out := home - from
+		out.y = 0.0
+		out = out.normalized() * 6.0 if out.length() > 0.1 else Vector3(6, 0, 0)
+		var tw := p.create_tween()
+		tw.tween_property(p, "position:y", home.y + 2.5, 0.18).set_delay(i * 0.05)
+		tw.tween_property(p, "position:y", home.y, 0.18)
+		tw.tween_property(p, "rotation:x", -1.2, 0.15)
+		tw.tween_property(p, "position", home + out, 1.0).set_ease(Tween.EASE_OUT)
+		tw.tween_property(p, "rotation:x", 0.0, 0.3)
+		tw.tween_interval(2.0)
+		tw.tween_property(p, "position", home, 3.0)
 
 
 func react() -> void:

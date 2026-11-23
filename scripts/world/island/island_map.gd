@@ -123,6 +123,12 @@ func _place_landmarks() -> void:
 	hat_shop.name = "HatShop"
 	hat_shop.position = Vector3(IslandShape.HAT_SHOP.x, _ground(IslandShape.HAT_SHOP), IslandShape.HAT_SHOP.y)
 	add_child(hat_shop)
+	# Where honks echo (EchoZone): the mountains and Dragon Peak, the
+	# dragon's cave, the city.
+	add_child(EchoZone.make(GameSettings.BUS_HONK_ECHO, Vector3(75, 200, -880), Vector3(1550, 700, 760), 1))
+	add_child(EchoZone.make(GameSettings.BUS_HONK_ECHO, Vector3(IslandShape.DRAGON_PEAK.x, 150, IslandShape.DRAGON_PEAK.y), Vector3(360, 0, 0), 1))
+	add_child(EchoZone.make(GameSettings.BUS_HONK_CAVE, Vector3(IslandShape.LAIR.x, IslandShape.LAIR_FLOOR + 20.0, IslandShape.LAIR.y), Vector3(IslandShape.LAIR_RADIUS + 15.0, 0, 0), 3))
+	add_child(EchoZone.make(GameSettings.BUS_HONK_CITY, Vector3(IslandShape.CITY.x, 120, IslandShape.CITY.y), Vector3(960, 320, 960), 2))
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)

@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT, HAT }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT, HAT, VOLUME_CAP }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -93,6 +93,14 @@ func _draw() -> void:
 			_poly(PackedVector2Array([c + Vector2(-0.4, -0.13) * s, c + Vector2(-0.2, -0.13) * s, c + Vector2(0.05, -0.36) * s, c + Vector2(0.05, 0.36) * s, c + Vector2(-0.2, 0.13) * s, c + Vector2(-0.4, 0.13) * s]))
 			for k in 2:
 				draw_arc(c + Vector2(0.05, 0) * s, s * (0.18 + k * 0.15), -0.8, 0.8, 12, color, s * 0.06)
+		Icon.VOLUME_CAP:
+			# A speaker under a ceiling line: "never louder than this".
+			_poly(PackedVector2Array([c + Vector2(-0.4, -0.03) * s, c + Vector2(-0.2, -0.03) * s, c + Vector2(0.05, -0.24) * s, c + Vector2(0.05, 0.4) * s, c + Vector2(-0.2, 0.2) * s, c + Vector2(-0.4, 0.2) * s]))
+			draw_arc(c + Vector2(0.05, 0.08) * s, s * 0.2, -0.8, 0.8, 12, color, s * 0.06)
+			draw_line(c + Vector2(-0.46, -0.38) * s, c + Vector2(0.46, -0.38) * s, color, s * 0.08)
+			draw_line(c + Vector2(0.3, -0.36) * s, c + Vector2(0.3, -0.2) * s, color, s * 0.05)
+			draw_line(c + Vector2(0.24, -0.26) * s, c + Vector2(0.3, -0.2) * s, color, s * 0.05)
+			draw_line(c + Vector2(0.36, -0.26) * s, c + Vector2(0.3, -0.2) * s, color, s * 0.05)
 		Icon.CITY:
 			# A little skyline: three towers with windows on a ground line.
 			for t in [[-0.40, -0.12, 0.22], [-0.14, -0.42, 0.26], [0.16, -0.24, 0.24]]:

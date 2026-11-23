@@ -21,6 +21,7 @@ func _init() -> void:
 func build() -> void:
 	_hull = Node3D.new()
 	add_child(_hull)
+	WorldReaction.add(self, 220.0, ["honk"], 4.0, _toot_back).centre = _hull
 	# Model faces -Z, the same way as this node's direction of travel.
 	AssetLib.place(_hull, "res://assets/environment/sail_boat.glb", Vector3.ZERO, 22.0, 0.0)
 
@@ -31,6 +32,12 @@ func _process(delta: float) -> void:
 	position = loop_center + Vector3(cos(_angle), 0, sin(_angle)) * loop_radius
 	rotation.y = -_angle + PI  # face along the loop
 	Waves.ride(_hull, 16.0, 9.0, 0.0, delta)
+
+
+## A honk near the boat (WorldEvents): it toots back with a puff of steam.
+func _toot_back(_kind: String, _where: Vector3) -> void:
+	Sfx.play_at("toot", _hull.global_position, 1.0)
+	react()
 
 
 func react() -> void:
