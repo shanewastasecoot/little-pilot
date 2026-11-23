@@ -80,6 +80,17 @@ func _run() -> void:
 	SaveManager.save_now()
 	SaveManager.use_path(p)
 	_check("when the new save can't be swapped in, nothing is lost (the newest save loads)", SaveManager.lifetime_stars == 31)
+	# Deleting the save starts afresh (the backup is only for a broken save).
+	var q := DIR + "reset.cfg"
+	SaveManager.use_path(q)
+	SaveManager.lifetime_stars = 40
+	SaveManager.save_now()
+	SaveManager.lifetime_stars = 41
+	SaveManager.save_now()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(q))
+	SaveManager.use_path(q)
+	_check("deleting save.cfg starts afresh, even with a backup beside it", SaveManager.lifetime_stars == 0
+			and FileAccess.file_exists(q + ".bak"))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(p))
 	# --- The city stays the same city ---------------------------------------------------
 	p = DIR + "city.cfg"

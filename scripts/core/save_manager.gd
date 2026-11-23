@@ -177,10 +177,16 @@ func _new_seed() -> int:
 
 func _load_file() -> void:
 	_reset_to_defaults()
-	# The save, else the newer copy left beside it when a swap failed, else
-	# the last good save (.bak), else the defaults. Never an error for her.
+	# The save, else (if it's there but broken) the newer copy left beside it
+	# when a swap failed, else the last good save (.bak), else the defaults.
+	# Never an error for her.
 	var cfg := ConfigFile.new()
 	var found := false
+	# No save at all is a fresh start (deleting save.cfg resets the game): the
+	# copies are only for a save that's there but broken.
+	var there := FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path))
+	if not there:
+		return
 	for p in [path, path + ".tmp", path + ".bak"]:
 		if not FileAccess.file_exists(p):
 			continue
