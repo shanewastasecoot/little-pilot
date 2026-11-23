@@ -119,7 +119,7 @@ Taken from the input map in `project.godot` (and checked by `controller_test` on
 | **Y** | Get out when parked (pressed while still rolling: as soon as it stops) | Get back in beside the plane; hold Y to call the plane when it's far; indoors: use what's here (paint easel, quilt chest, fridge, sit at the table, hat mirror) |
 | **Right-stick click** | Change camera: close, far, cockpit (with instruments) | — |
 | **D-pad ◀ ▶** | Paint colour (each plane remembers its own) | — |
-| **LB / RB** | — | Change tab on the character screen |
+| **LB / RB** | Hold RB: sky-writing (smoke in the paint colour) | Change tab on the character screen; decals on plane select |
 | **Menu (≡)** | Pause menu | Pause menu |
 
 #### Control Design Rules
@@ -345,6 +345,11 @@ Any building with a front door, a doorstep and a floor plan can be walked into t
 
 - **The service loop** (`HangarService`, a child of the hangar): land, roll onto the big yellow pad in front of the hangar (a water drop and a fuel can painted inside the ring) and stop. The hangar's big sliding doors open (they're shut, and solid, the rest of the time), the marshaller in orange waves you in with his wands, the plane rolls inside (lights come on), gets a wash (jets of spray from both sides, bubbles everywhere, a sparkle), fills up with fuel (the gauge on the red pump fills, ding), turns round and rolls back out onto the pad facing the runway, parked and ready to go. No menus, nothing to get wrong, as often as she likes; Y can't get her out halfway through (she gets out once it's done). About 20 seconds.
 - **Liveries**: the main paint stays as it is (D-pad); each plane also has a **trim colour** (X on the plane-select screen: the same eight colours, never locked) and one **decal** in the trim colour (LB / RB): a cheat-line stripe (always), a chequered band round the tail (50 stars), a broad rescue band (100), registration-style letters "LP-STAR" on both sides (150), a gold star on the tail (220). Earned with lifetime stars, kept once earned. The plane-select screen shows them all as pictures (padlocks and the stars needed on the ones still to come). Decals sit on each aircraft's fuselage box (`AircraftStats.livery_body`), so a new model only needs its box. Saved in new keys (`[livery] trims`, `decals`) with the same safety as everything else.
+
+## 13e. Sky-writing (Phase 14, item 1)
+
+- Hold **RB** while flying and the plane leaves puffs of smoke in its paint colour behind its tail; they hang in the sky for about a minute, slowly spreading and fading, so she can draw loops and squiggles. **Why RB:** nothing uses LB or RB while flying (they only change tabs on the character screen and decals on the plane-select screen), so it can't clash with A (boost), B (honk), X (roll) or Y (get out), and holding a shoulder button is easy alongside the stick. Keyboard: X.
+- One MultiMesh for the whole sky (up to 1300 puffs, one draw call); their fading is updated four times a second. `SkyWriter`, `skywriting_test`.
 
 ## 14. Future Ideas
 

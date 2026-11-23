@@ -86,6 +86,7 @@ var _doorway_busy := false
 ## (forgotten if it takes off again or she pushes on).
 var exit_queued := false
 var ground_dust: GroundDust
+var sky_writer: SkyWriter
 ## The game last stopped with her inside: start outside the front door.
 var _start_at_house := false
 var _call_hold := 0.0
@@ -206,6 +207,11 @@ func _ready() -> void:
 	BenchToggles.apply(get_viewport(), (we[0] as WorldEnvironment).environment if not we.is_empty() else null)
 	# A local playtest diary, debug builds only, when asked (--record-playtest).
 	PlaytestRecorder.maybe_start(self)
+	# Sky-writing (Phase 14): hold RB while flying.
+	sky_writer = SkyWriter.new()
+	sky_writer.name = "SkyWriter"
+	sky_writer.aircraft = aircraft
+	add_child(sky_writer)
 	# Dust off the grass: the plane's take-off roll, her running.
 	ground_dust = GroundDust.new()
 	ground_dust.name = "GroundDust"
