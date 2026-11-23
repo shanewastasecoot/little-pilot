@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT, HAT }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -157,6 +157,14 @@ func _draw() -> void:
 				draw_line(c + Vector2(-0.5 + k * 0.06, -0.38) * s, c + Vector2(-0.5 + k * 0.06, -0.2) * s, color, s * 0.035, true)
 			draw_line(c + Vector2(0.44, -0.1) * s, c + Vector2(0.44, 0.38) * s, color, s * 0.07, true)
 			draw_circle(c + Vector2(0.44, -0.24) * s, s * 0.09, color)
+		Icon.HAT:
+			# A hat: a wide brim and a round crown with a band.
+			draw_set_transform(c + Vector2(0, 0.16 * s), 0.0, Vector2(1.0, 0.3))
+			draw_circle(Vector2.ZERO, s * 0.46, color)
+			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			draw_circle(c + Vector2(0, -0.06) * s, s * 0.24, color)
+			draw_rect(Rect2(c + Vector2(-0.24, -0.06) * s, Vector2(0.48, 0.2) * s), color)
+			draw_rect(Rect2(c + Vector2(-0.24, 0.0) * s, Vector2(0.48, 0.07) * s), Color(0, 0, 0, 0.35))
 		Icon.SIT:
 			# A chair seen from the side.
 			draw_line(c + Vector2(-0.22, -0.42) * s, c + Vector2(-0.22, 0.4) * s, color, s * 0.1, true)

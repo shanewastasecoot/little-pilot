@@ -43,6 +43,10 @@ const BLEND := 0.15
 var body := "M"
 var hair := 1
 var outfit := 1
+## A hat from the hat shop (Hats id) worn instead of the outfit's own
+## headgear; "" = the outfit's.
+var hat := ""
+var _cheer_left := 0.0
 var anim := ""
 ## Someone else's look (delivery recipients): used instead of the outfit and
 ## hair choices when set. head_override = [character, palette repaints].
@@ -72,12 +76,23 @@ func _ready() -> void:
 
 
 ## Show this hair (1..4) and outfit (1..5). Body is kept for old saves.
-func apply(new_body: String, new_hair: int, new_outfit: int) -> void:
+func apply(new_body: String, new_hair: int, new_outfit: int, new_hat: String = "") -> void:
 	body = new_body if new_body in ["M", "F"] else "M"
 	hair = clampi(new_hair, 1, HAIRS)
 	outfit = clampi(new_outfit, 1, OUTFITS)
+	hat = new_hat if Hats.has(new_hat) else ""
 	if is_inside_tree():
 		_build()
+
+
+## Put on hat `id` ("" = the outfit's own headgear), rebuilding only if
+## it changes (the hat shop's try-on).
+func set_hat(id: String) -> void:
+	var h := id if Hats.has(id) else ""
+	if h != hat:
+		hat = h
+		if is_inside_tree():
+			_build()
 
 
 ## The parts that are showing (for tests): their names.
@@ -191,7 +206,10 @@ static func atlas(who: String, repaint: Dictionary) -> Texture2D:
 
 
 func _attach_props(look: OutfitData) -> void:
-	for p in look.props + [["Face_Smile", "head"]]:
+	var props: Array = look.props
+	if hat != "" and look_override == null:
+		props = props.filter(func(q): return q[1] != "head") + [[Hats.prop_of(hat), "head"]]
+	for p in props + [["Face_Smile", "head"]]:
 		var prop := CharacterLook.prop(p[0])
 		if prop == null:
 			continue
@@ -257,7 +275,19 @@ func _add_parcel() -> void:
 
 
 ## Pick the animation for this movement. speed: ground speed (m/s).
+## Cheer for `secs` (a new hat): kept while standing still, over as soon
+## as she moves.
+func cheer(secs := 1.6) -> void:
+	_cheer_left = secs
+	play("Cheer")
+
+
 func animate(speed: float, on_floor: bool, rising: bool, _sprinting: bool) -> void:
+	if _cheer_left > 0.0:
+		_cheer_left -= get_physics_process_delta_time()
+		if on_floor and speed < 0.3:
+			return
+		_cheer_left = 0.0
 	if not on_floor:
 		if anim != "Jump_Start" and anim != "Jump_Idle":
 			play("Jump_Start" if rising else "Jump_Idle")

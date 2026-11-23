@@ -72,6 +72,12 @@ var house_inside: bool = false
 var treasures: int = 0
 ## Stickers she's been given (one per kind of building, on her first visit).
 var stickers: Array[String] = []
+## The hat shop: stars she's spent there (her purse is lifetime_stars minus
+## these), the hats she's bought (Hats ids) and the one she's wearing
+## ("" = her outfit's own headgear).
+var stars_spent: int = 0
+var hats_owned: Array[String] = []
+var hat: String = ""
 var treasure_ready_at: float = 0.0
 var invert_y: bool = false
 const LOOK_SENSITIVITY_MIN := 0.4
@@ -202,6 +208,17 @@ func _load_file() -> void:
 		for x in st:
 			if x is String and not stickers.has(x):
 				stickers.append(x)
+	var sp = cfg.get_value("shop", "stars_spent", 0)
+	if sp is int and sp >= 0:
+		stars_spent = mini(sp, lifetime_stars)
+	var ho = cfg.get_value("shop", "hats_owned", [])
+	if ho is Array:
+		for x in ho:
+			if x is String and Hats.has(x) and not hats_owned.has(x):
+				hats_owned.append(x)
+	var hat_on = cfg.get_value("shop", "hat", "")
+	if hat_on is String and hats_owned.has(hat_on):
+		hat = hat_on
 	var tr = cfg.get_value("dragon", "treasures", 0)
 	if tr is int and tr >= 0 and tr < 1000:
 		treasures = tr
@@ -265,6 +282,9 @@ func save_now() -> void:
 	cfg.set_value("house", "bed", house_bed)
 	cfg.set_value("house", "inside", house_inside)
 	cfg.set_value("stickers", "have", stickers)
+	cfg.set_value("shop", "stars_spent", stars_spent)
+	cfg.set_value("shop", "hats_owned", hats_owned)
+	cfg.set_value("shop", "hat", hat)
 	cfg.set_value("dragon", "treasures", treasures)
 	cfg.set_value("dragon", "treasure_ready_at", treasure_ready_at)
 	# Write to a temp file, then swap it in, so a crash mid-write
@@ -390,6 +410,35 @@ func set_delivery_arrow(on: bool) -> void:
 	request_save()
 
 
+## Stars she has to spend in the shop.
+func star_purse() -> int:
+	return maxi(lifetime_stars - stars_spent, 0)
+
+
+## Buy hat `id` (if she hasn't already and has the stars) and put it on.
+## True if it's bought (or already hers).
+func buy_hat(id: String) -> bool:
+	if not Hats.has(id):
+		return false
+	if not hats_owned.has(id):
+		if star_purse() < Hats.price(id):
+			return false
+		stars_spent += Hats.price(id)
+		hats_owned.append(id)
+	wear_hat(id)
+	return true
+
+
+## Wear hat `id` (one of hers; "" = the outfit's own).
+func wear_hat(id: String) -> void:
+	if id != "" and not hats_owned.has(id):
+		return
+	if id != hat:
+		hat = id
+		request_save()
+		settings_changed.emit()
+
+
 ## Give her sticker `id` (first time only). True if it's new.
 func add_sticker(id: String) -> bool:
 	if stickers.has(id):
@@ -471,6 +520,9 @@ func _reset_to_defaults() -> void:
 	treasures = 0
 	treasure_ready_at = 0.0
 	stickers = []
+	stars_spent = 0
+	hats_owned = []
+	hat = ""
 	char_body = "M"
 	char_hair = 1
 	char_outfit = 1

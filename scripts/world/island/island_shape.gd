@@ -54,6 +54,8 @@ const NORTH_ANGLE := -1.68      # direction of the headland (atan2 z, x)
 # inside (110 x 66 m), so the pad is the whole yard: HOUSE_YARD (world box,
 # matching HouseGarden's fence round the house turned to face north).
 const HOUSE := Vector2(-300, 300)
+## The hat shop (Phase 5): beside the airport post office (-330, -100).
+const HAT_SHOP := Vector2(-268, -100)
 const HOUSE_HEIGHT := 17.0
 const HOUSE_YARD_CENTRE := Vector2(-310, 321.5)
 const HOUSE_YARD_HALF := Vector2(92.0, 88.0)
