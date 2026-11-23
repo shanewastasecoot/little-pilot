@@ -74,7 +74,7 @@ The flight controller is **kinematic and arcade-style**, not a physics simulatio
 
 Both aircraft share the same controller code and differ only in a tuning resource (`resources/aircraft/*.tres`, `AircraftStats`). Adding a new aircraft is a data change, not a code change.
 
-| Stat | Prop Plane | Jet ("Fighter Jet" in the data, to be renamed "Trainer Jet") |
+| Stat | Prop Plane | Trainer Jet |
 |---|---|---|
 | Cruise speed | Medium | Faster |
 | Boost | Speeds up while held | Speeds up while held |
@@ -87,11 +87,17 @@ Both aircraft share the same controller code and differ only in a tuning resourc
 - **Medium speed, easy control.** Wide, forgiving turns; jerky stick movements still look graceful.
 - A biplane in bright paint (8 colours) with a spinning propeller and the pilot in the cockpit. No face on the plane. (Phase 9 replaces the current model with a more realistic civilian aircraft.)
 
-### 3.2 Jet — *the zippy one*
+### 3.2 Trainer Jet — *the zippy one*
 - **Faster, more responsive.** Tighter turns and less smoothing.
 - A civilian trainer jet: bright paint, no weapons and no military markings.
 
-### 3.3 Tuning Notes
+### 3.3 Real-aircraft touches (Phase 9)
+- **Navigation lights** on both: red on the left wingtip, green on the right, a white tail light, and a red beacon on top that flashes (glowing dots: almost free to draw).
+- **Wingtip vapour**: thin white streams off the wingtips in hard, fast turns (its own effect, separate from the rainbow boost trails).
+- **Cockpit view**: the camera button's third press (after close and far). The camera sits at the pilot's eyes (`AircraftStats.cockpit_eye`, or a `CockpitCameraMarker` in the model) and banks and rolls with the plane; the right stick still looks around. An instrument panel along the bottom: airspeed (km/h, green and yellow arcs), an artificial horizon (sky and ground tilt with the bank and slide with the pitch), an altimeter (two needles and the height) and a compass rose (N E S W). In the biplane you look out under the top wing past the struts and the propeller; in the jet over its nose.
+- Moving control surfaces, spinning and steering wheels, and retracting gear need models with those parts: the models' contract and the audit are in [`AIRCRAFT_MODELS.md`](AIRCRAFT_MODELS.md) (`./dev.sh audit-aircraft`). Both current models are one mesh each, so they get the lights, vapour and cockpit view but not moving parts; replacement models are waiting for the parent's choice.
+
+### 3.4 Tuning Notes
 - Tune the feel with **the actual child**, not just the developer. Adults usually tune too fast and too sensitive.
 
 ---
@@ -111,7 +117,7 @@ Taken from the input map in `project.godot` (and checked by `controller_test` on
 | **B** | Honk 🎺 (the world reacts) | Sprint |
 | **X** | Barrel roll | Cheer (people nearby cheer back) |
 | **Y** | Get out when parked (pressed while still rolling: as soon as it stops) | Get back in beside the plane; hold Y to call the plane when it's far; indoors: use what's here (paint easel, quilt chest, fridge, sit at the table, hat mirror) |
-| **Right-stick click** | Change camera | — |
+| **Right-stick click** | Change camera: close, far, cockpit (with instruments) | — |
 | **D-pad ◀ ▶** | Paint colour (each plane remembers its own) | — |
 | **LB / RB** | — | Change tab on the character screen |
 | **Menu (≡)** | Pause menu | Pause menu |
@@ -148,7 +154,7 @@ Taken from the input map in `project.godot` (and checked by `controller_test` on
 
 ## 5. Camera
 
-- **Chase camera** behind and slightly above the plane, smoothed; the field of view widens a little when boosting. Right-stick click cycles the presets. No sudden cuts, no shake.
+- **Chase camera** behind and slightly above the plane, smoothed; the field of view widens a little when boosting. Right-stick click cycles close, far and the **cockpit view** (at the pilot's eyes, with the instrument panel). No sudden cuts, no shake.
 - **Walk camera** behind her on foot (speed and up/down direction are parent settings).
 - **Indoor camera**: closer, looking down into the rooms dollhouse-style; walls between the camera and her fade away; upstairs hides while she's downstairs. At the hat shop's mirror it comes round in front of her, close up.
 

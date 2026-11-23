@@ -63,6 +63,8 @@ var plane_beacon: DeliveryBeacon
 var colour_menu: ColourMenu
 ## The hat shop's chooser (Y at its mirror).
 var hat_menu: HatMenu
+## The instrument panel in the cockpit view (Phase 9).
+var gauges: CockpitGauges
 ## Her house: the landmark outside, the inside (built once, the first time
 ## you go in, by BuildingGenerator from resources/buildings/her_house.json),
 ## the indoor camera and lighting.
@@ -154,6 +156,10 @@ func _ready() -> void:
 	hud.add_child(colour_menu)
 	colour_menu.chosen.connect(_on_colour_chosen)
 	colour_menu.cancelled.connect(func(): _hold_walker(false))
+	gauges = CockpitGauges.new()
+	gauges.name = "CockpitGauges"
+	hud.add_child(gauges)
+	hud.move_child(gauges, 0)  # under the HUD's own pictures
 	hat_menu = HatMenu.new()
 	hat_menu.name = "HatMenu"
 	hud.add_child(hat_menu)
@@ -307,6 +313,7 @@ func _process(delta: float) -> void:
 	elif _playing():
 		hud.set_prompt("")
 	_update_plane_call(delta)
+	_update_gauges()
 	# Fell out of the world somehow: back beside the plane.
 	if state == State.INDOORS and interior and walker.global_position.y < interior.global_position.y - 20.0:
 		walker.place(interior.entry_point(), interior.entry_yaw())
@@ -926,6 +933,22 @@ func _on_hat_chosen(id: String) -> void:
 		interior.hat_mirrors[0].celebrate()
 	if bought:
 		walker.model.cheer()
+
+
+## The cockpit view's instruments: shown only there, while in the plane.
+func _update_gauges() -> void:
+	var on := _in_plane() and chase_camera.in_cockpit() and not _respawning
+	gauges.visible = on
+	if not on:
+		return
+	var below := 0.0
+	var q := PhysicsRayQueryParameters3D.create(aircraft.global_position, aircraft.global_position + Vector3.DOWN * 2000.0, GameSettings.LAYER_WORLD)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty():
+		below = maxf((aircraft.global_position - (hit.position as Vector3)).y - aircraft.stats.ground_offset, 0.0)
+	gauges.max_speed = aircraft.stats.cruise_speed * aircraft.stats.boost_multiplier * 1.15
+	gauges.paint = Paint.color(SaveManager.get_paint(aircraft.stats.id, aircraft.stats.default_paint))
+	gauges.feed(aircraft.speed, maxf(aircraft.global_position.y, below), aircraft.heading, aircraft.pitch, aircraft.visuals.rotation.z)
 
 
 ## She cheers (X on foot or indoors), arms up; outside, the world hears it

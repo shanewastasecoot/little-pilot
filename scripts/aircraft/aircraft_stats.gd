@@ -60,5 +60,13 @@ extends Resource
 @export var camera_distance: float = 9.0
 @export var camera_height: float = 2.5
 @export var camera_fov: float = 70.0
+## The cockpit view (Phase 9): where the pilot's eyes are, in the model's
+## own space (front is -Z), and the view's field of view. Used when the
+## model has no CockpitCameraMarker (docs/AIRCRAFT_MODELS.md).
+@export var cockpit_eye: Vector3 = Vector3(0, 1.4, 0.4)
+@export var cockpit_fov: float = 78.0
+## Tilt the cockpit view down a little (degrees) so the nose shows above
+## the instrument panel.
+@export var cockpit_look_down_deg: float = 0.0
 ## Extra field of view at full boost (degrees).
 @export var boost_fov_bonus: float = 10.0
