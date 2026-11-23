@@ -2,8 +2,9 @@ class_name PlaneSelect
 extends CanvasLayer
 ## Choose a plane without reading: big spinning 3D models side by side.
 ## Left/right (stick, D-pad, arrows or tapping a plane) picks, up/down
-## changes the selected plane's paint, A/Play confirms, B goes back when
-## opened from the pause menu.
+## changes the selected plane's paint, X its trim colour, LB / RB its decal
+## (earned with stars: LiveryBar shows them), A/Play confirms, B goes back
+## when opened from the pause menu.
 
 signal confirmed(id: String)
 signal back_requested
@@ -20,6 +21,7 @@ const PAINT_REPEAT_MS := 250
 var _paint_held := false
 var _last_paint_ms := -1000
 var _confirm: BigButton
+var _bar: LiveryBar
 
 
 func _ready() -> void:
@@ -68,6 +70,12 @@ func _ready() -> void:
 		arrow.anchor_bottom = 0.42
 		arrow.position = Vector2(30 if side < 0 else -100, -55)
 		root.add_child(arrow)
+
+	_bar = LiveryBar.new()
+	_bar.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	_bar.offset_top = -170 - 110
+	_bar.offset_bottom = -175
+	root.add_child(_bar)
 
 	_confirm = BigButton.new()
 	_confirm.icon_type = UiIcon.Icon.PLAY
@@ -170,6 +178,26 @@ func _unhandled_input(event: InputEvent) -> void:
 		_apply_paint(selected)
 		Sfx.play("pop", 1.0 + posmod(idx, Paint.COLORS.size()) * 0.08)
 		_hop(selected)
+	elif event.is_action_pressed("trick"):
+		# X: the next trim colour.
+		var st := AircraftCatalog.get_stats(_ids[selected])
+		SaveManager.set_trim(st.id, SaveManager.get_trim(st.id) + 1)
+		_apply_paint(selected)
+		Sfx.play("pop", 1.2)
+		_hop(selected)
+	elif event.is_action_pressed("tab_next") or event.is_action_pressed("tab_prev"):
+		# LB / RB: the next decal she's earned (the locked ones are skipped).
+		var st := AircraftCatalog.get_stats(_ids[selected])
+		var dir := 1 if event.is_action_pressed("tab_next") else -1
+		var i := Livery.DECALS.find(SaveManager.get_decal(st.id))
+		for k in Livery.DECALS.size():
+			i = posmod(i + dir, Livery.DECALS.size())
+			if Livery.unlocked(Livery.DECALS[i]):
+				break
+		SaveManager.set_decal(st.id, Livery.DECALS[i])
+		_apply_paint(selected)
+		Sfx.play("ui_move", 1.0 + i * 0.1)
+		_hop(selected)
 	elif event.is_action_pressed("ui_accept"):
 		_confirm_selection()
 	elif event.is_action_pressed("ui_cancel") and allow_back:
@@ -193,6 +221,7 @@ func _select(i: int) -> void:
 		return
 	selected = i
 	Sfx.play("ui_move", 1.0 + i * 0.25)
+	_apply_paint(i)
 	_hop(i)
 
 
@@ -201,6 +230,9 @@ func _apply_paint(i: int) -> void:
 	var model := _pedestals[i].get_child(0) as AircraftVisuals
 	if model:
 		model.set_paint(Paint.color(SaveManager.get_paint(stats.id, stats.default_paint)))
+		model.show_livery(stats)
+	if i == selected and _bar:
+		_bar.show_for(SaveManager.get_decal(stats.id), Paint.color(SaveManager.get_trim(stats.id)))
 
 
 func _hop(i: int) -> void:

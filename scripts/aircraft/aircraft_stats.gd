@@ -67,6 +67,8 @@ extends Resource
 ## model has no CockpitCameraMarker (docs/AIRCRAFT_MODELS.md).
 @export var cockpit_eye: Vector3 = Vector3(0, 1.4, 0.4)
 @export var cockpit_fov: float = 78.0
+## The fuselage (model space, front -Z): where livery decals go (Phase 13).
+@export var livery_body: AABB = AABB(Vector3(-0.42, -0.4, -1.6), Vector3(0.84, 0.9, 3.9))
 ## Tilt the cockpit view down a little (degrees) so the nose shows above
 ## the instrument panel.
 @export var cockpit_look_down_deg: float = 0.0

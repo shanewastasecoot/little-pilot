@@ -136,6 +136,8 @@ const SENSOR_RADIUS := 1.6
 
 
 func _ready() -> void:
+	# A livery picked on the plane-select screen shows straight away.
+	SaveManager.settings_changed.connect(func(): if visuals and stats: visuals.show_livery(stats))
 	if stats == null:
 		stats = AircraftStats.new()
 	add_to_group("aircraft")
@@ -288,6 +290,8 @@ func _apply_stats(new_stats: AircraftStats) -> void:
 		model.name = "Model"
 		add_child(model)
 		visuals = model
+	if visuals:
+		visuals.show_livery(stats)
 	visuals.base_scale = stats.model_scale
 	# Bigger plane, bigger bumper (shapes are per instance so menus are unaffected).
 	var body := SphereShape3D.new()
@@ -329,6 +333,21 @@ func park(pos: Vector3, yaw: float) -> void:
 	_landing = false
 	_await_release = false
 	parked.emit(false)
+
+
+## Move the parked plane to `ground_pos` facing `yaw` and keep it parked
+## (taxiing under someone else's control: the hangar service). Smooth: no
+## physics reset, so it glides frame to frame.
+func taxi_to(ground_pos: Vector3, yaw: float) -> void:
+	_ground_y = ground_pos.y
+	speed = 0.0
+	velocity = Vector3.ZERO
+	mode = Mode.PARKED
+	_landing = false
+	global_position = ground_pos + Vector3.UP * stats.ground_offset
+	heading = yaw
+	pitch = 0.0
+	rotation = Vector3(0.0, heading, 0.0)
 
 
 ## True while on the ground (parked or rolling).

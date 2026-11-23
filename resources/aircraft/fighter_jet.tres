@@ -33,5 +33,6 @@ camera_distance = 14.5
 camera_height = 3.8
 cockpit_eye = Vector3(0, 1.2, 0.2)
 cockpit_look_down_deg = 15.0
+livery_body = AABB(-0.32, -0.5, -2, 0.64, 0.8, 4)
 camera_fov = 70.0
 boost_fov_bonus = 12.0

@@ -30,6 +30,10 @@ var city_time: float = 0.0
 var city_seed: int = 0
 ## Paint index per aircraft id.
 var paints: Dictionary = {}
+## Liveries (Phase 13): per plane, the trim colour (Paint index) and decal
+## (Livery.DECALS).
+var trims: Dictionary = {}
+var decals: Dictionary = {}
 # Parent settings (0..1 volumes)
 var music_volume: float = 0.7
 var sfx_volume: float = 1.0
@@ -295,6 +299,16 @@ func _load_file() -> void:
 		for x in ho:
 			if x is String and Hats.has(x) and not hats_owned.has(x):
 				hats_owned.append(x)
+	var tr_saved = cfg.get_value("livery", "trims", {})
+	if tr_saved is Dictionary:
+		for k in tr_saved:
+			if k is String and AircraftCatalog.has(k) and tr_saved[k] is int:
+				trims[k] = posmod(tr_saved[k], Paint.COLORS.size())
+	var dc_saved = cfg.get_value("livery", "decals", {})
+	if dc_saved is Dictionary:
+		for k in dc_saved:
+			if k is String and AircraftCatalog.has(k) and dc_saved[k] is String and dc_saved[k] in Livery.DECALS:
+				decals[k] = dc_saved[k]
 	var hat_on = cfg.get_value("shop", "hat", "")
 	if hat_on is String and hats_owned.has(hat_on):
 		hat = hat_on
@@ -363,6 +377,8 @@ func save_now() -> void:
 	cfg.set_value("house", "bed", house_bed)
 	cfg.set_value("house", "inside", house_inside)
 	cfg.set_value("stickers", "have", stickers)
+	cfg.set_value("livery", "trims", trims)
+	cfg.set_value("livery", "decals", decals)
 	cfg.set_value("shop", "stars_spent", stars_spent)
 	cfg.set_value("shop", "hats_owned", hats_owned)
 	cfg.set_value("shop", "hat", hat)
@@ -437,6 +453,30 @@ static func format_duration(seconds: float) -> String:
 
 func get_paint(id: String, fallback: int) -> int:
 	return paints.get(id, fallback)
+
+
+func get_trim(id: String) -> int:
+	return trims.get(id, 4)
+
+
+func set_trim(id: String, idx: int) -> void:
+	trims[id] = posmod(idx, Paint.COLORS.size())
+	settings_changed.emit()
+	request_save()
+
+
+func get_decal(id: String) -> String:
+	return decals.get(id, "none")
+
+
+## Wear decal `d` on plane `id` (only one she's earned). True if it's on.
+func set_decal(id: String, d: String) -> bool:
+	if not d in Livery.DECALS or not Livery.unlocked(d):
+		return false
+	decals[id] = d
+	settings_changed.emit()
+	request_save()
+	return true
 
 
 func set_paint(id: String, idx: int) -> void:
@@ -629,6 +669,8 @@ func _reset_to_defaults() -> void:
 	treasure_ready_at = 0.0
 	stickers = []
 	stars_spent = 0
+	trims = {}
+	decals = {}
 	hats_owned = []
 	hat = ""
 	char_body = "M"
