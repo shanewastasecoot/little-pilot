@@ -1,0 +1,36 @@
+[gd_resource type="Environment" format=3]
+
+[ext_resource type="Shader" path="res://shaders/sky.gdshader" id="1_ov61q"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_43shd"]
+shader = ExtResource("1_ov61q")
+shader_parameter/top_color = Color(0.18431373, 0.54901963, 0.9607843, 1)
+shader_parameter/horizon_color = Color(0.7490196, 0.9019608, 1, 1)
+shader_parameter/ground_horizon_color = Color(0.7490196, 0.9019608, 1, 1)
+shader_parameter/ground_bottom_color = Color(0.18431373, 0.49803922, 0.7529412, 1)
+shader_parameter/curve = 0.12
+shader_parameter/sun_size = null
+shader_parameter/sun_glow = null
+shader_parameter/sun_color = null
+shader_parameter/cloud_amount = null
+shader_parameter/cloud_color = null
+
+[sub_resource type="Sky" id="Sky_a5bjn"]
+sky_material = SubResource("ShaderMaterial_43shd")
+
+[resource]
+background_mode = 2
+sky = SubResource("Sky_a5bjn")
+ambient_light_source = 3
+ambient_light_energy = 0.55
+glow_enabled = true
+glow_intensity = 0.6
+glow_hdr_threshold = 1.1
+fog_enabled = true
+fog_light_color = Color(0.8117647, 0.91764706, 1, 1)
+fog_density = 0.00026
+fog_aerial_perspective = 0.45
+fog_sky_affect = 0.15
+adjustment_enabled = true
+adjustment_contrast = 1.08
+adjustment_saturation = 1.08

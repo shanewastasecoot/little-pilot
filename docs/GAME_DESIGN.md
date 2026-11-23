@@ -171,8 +171,11 @@ A world of islands about 9 km across (the boundary is 4.7 km from the middle), a
 
 ### 6.1 Visual Style
 - **Low-poly, saturated colours,** toon-shaded characters. Readable for kids and cheap to render.
-- Always sunny daytime. Soft shadows. Fog hides the far edge.
-- Clear silhouettes so each landmark can be recognised from far away.
+- Always sunny daytime. Soft shadows. Clear silhouettes so each landmark can be recognised from far away.
+- **The sky and air** (Phase 11): `resources/world_environment.tres` holds the sky, fog, glow and tonemap (open it in the editor to tune them live; `tools/make_environment.tscn` writes the starting values). The sky is `shaders/sky.gdshader`: a soft gradient in the old sky's colours, a sun disc with a warm glow, and faint wispy high cloud (drawn once, not every frame). The fog takes the sky's colour in the direction you look (aerial perspective), so far islands read as hazy and "over there" rather than vanishing.
+- **Style profiles** (`StyleProfiles`, applied by AssetLib as models load): each asset is STATIC_WORLD, FOLIAGE, GLASS, AIRCRAFT, ANIMATED_CHARACTER, EMISSIVE, WATER or UNTREATED, by file or folder. Only STATIC_WORLD (buildings, rocks, props: consistent roughness, low specular, colours inside a shared saturation and brightness range) and FOLIAGE (the same, plus wind) are changed; changed materials are cached so identical assets still share them and batch. Glass, water, characters, animals and aircraft are left exactly as they are (`style_test` proves it).
+- **Trees in the wind** (`shaders/foliage.gdshader`): a gentle sway, none at the foot, a little in the trunk, more in the leaves, each tree out of step with its neighbours, fading out with distance.
+- **Tonemap comparison**: with the F3 overlay showing, T flips Linear (the game's) and AgX, to compare. Never saved.
 
 ### 6.2 Performance Budget (Steam Deck)
 - **90 FPS everywhere at 1280×800** (the OLED Deck's refresh rate), with the Mobile renderer. A 30 FPS battery saver is a parent setting.
