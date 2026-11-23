@@ -10,6 +10,7 @@ extends CanvasLayer
 
 func _ready() -> void:
 	visible = OS.is_debug_build()
+	add_to_group("hide_in_photos")
 
 
 func _unhandled_input(event: InputEvent) -> void:

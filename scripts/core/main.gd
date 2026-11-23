@@ -90,6 +90,9 @@ var sky_writer: SkyWriter
 ## Today's summary for the parent (pause menu, Phase 14).
 var summary: SummaryScreen
 var today_tracker: TodayTracker
+## The sticker book and its pictures (Phase 14); LB takes a postcard.
+var spotter: Spotter
+var book: StickerBook
 ## The game last stopped with her inside: start outside the front door.
 var _start_at_house := false
 var _call_hold := 0.0
@@ -219,6 +222,16 @@ func _ready() -> void:
 	summary.name = "Summary"
 	add_child(summary)
 	pause_menu.today_requested.connect(func(): Sfx.play("ui_confirm"); summary.open())
+	spotter = Spotter.new()
+	spotter.name = "Spotter"
+	spotter.main = self
+	spotter.flash = _fade
+	add_child(spotter)
+	book = StickerBook.new()
+	book.name = "StickerBook"
+	book.spotter = spotter
+	add_child(book)
+	pause_menu.book_requested.connect(func(): book.open())
 	# Sky-writing (Phase 14): hold RB while flying.
 	sky_writer = SkyWriter.new()
 	sky_writer.name = "SkyWriter"
@@ -405,6 +418,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _in_plane() and event.is_action_pressed("paint_prev"):
 		aircraft.cycle_paint(-1)
+		get_viewport().set_input_as_handled()
+		return
+	# LB while playing: a postcard for the sticker book.
+	if event.is_action_pressed("tab_prev") and state in [State.FLYING, State.LANDED, State.ON_FOOT, State.INDOORS] \
+			and not colour_menu.is_open() and not hat_menu.is_open() and spotter.postcard():
 		get_viewport().set_input_as_handled()
 		return
 	# X on foot (or indoors): a big cheer; nearby people cheer back.

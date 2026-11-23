@@ -12,6 +12,15 @@ var _icon: UiIcon
 var _tween: Tween
 
 
+## Change the colour after it's built (redraws its styles).
+func set_color(c: Color) -> void:
+	base_color = c
+	if is_inside_tree():
+		add_theme_stylebox_override("normal", _style(base_color, Color(0, 0, 0, 0)))
+		add_theme_stylebox_override("hover", _style(base_color.lightened(0.1), Color(0, 0, 0, 0)))
+		add_theme_stylebox_override("pressed", _style(base_color.darkened(0.15), Color.WHITE))
+
+
 func _ready() -> void:
 	custom_minimum_size = button_size
 	pivot_offset = button_size * 0.5
