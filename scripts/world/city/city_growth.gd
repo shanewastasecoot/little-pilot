@@ -71,7 +71,7 @@ func rebuild() -> void:
 	_lot_cells.clear()
 	_active.clear()
 	_next = 0
-	plan = CityPlan.make(SaveManager.city_seed)
+	plan = SaveManager.city_plan()
 	city.reset_sites()
 	_crowd_dirty = true
 	advance(now(), false)
