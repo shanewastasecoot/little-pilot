@@ -24,13 +24,20 @@ func _ready() -> void:
 	plane.subdivide_depth = SUBDIV
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/ocean.gdshader")
+	if BenchToggles.value("refraction") == "off":
+		mat.shader = _without_refraction(mat.shader)
 	# Reading the screen puts the sea in the transparent pass; draw it first
 	# so spray, splashes and clouds always show on top of it.
 	mat.render_priority = -100
 	mat.set_shader_parameter("ripples", load(RIPPLES))
 	mat.set_shader_parameter("foam_tex", _foam_texture())
 	mat.set_shader_parameter("waves", Waves.shader_dirs())
-	mat.set_shader_parameter("fades", Waves.shader_fades())
+	var fades := Waves.shader_fades()
+	if BenchToggles.value("far-waves") == "simple":
+		# (Bench toggle) far waves fade out at half the distance.
+		for i in fades.size():
+			fades[i] *= 0.5
+	mat.set_shader_parameter("fades", fades)
 	mat.set_shader_parameter("half_size", SIZE * 0.5)
 	mat.set_shader_parameter("warp_linear", WARP_LINEAR)
 	_mat = mat
@@ -43,6 +50,18 @@ func _ready() -> void:
 	add_child(_mesh)
 	var body := BuildKit.collider(self, BuildKit.box_shape(Vector3(14000, 2, 14000)), Vector3(0, -1, 0))
 	body.add_to_group("water")
+
+
+## (Bench toggle) the ocean shader without its see-through refraction: no
+## screen read, so no screen copy for the sea. Made from the real shader's
+## code, so the two never drift apart.
+static func _without_refraction(src: Shader) -> Shader:
+	var code := src.code
+	code = code.replace("uniform sampler2D screen_tex : hint_screen_texture, filter_linear_mipmap;", "")
+	code = code.replace("vec3 below = textureLod(screen_tex, SCREEN_UV + wobble, 1.5).rgb;", "vec3 below = col;")
+	var sh := Shader.new()
+	sh.code = code
+	return sh
 
 
 func _process(delta: float) -> void:

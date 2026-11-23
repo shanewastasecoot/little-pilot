@@ -195,6 +195,11 @@ func _ready() -> void:
 	delivery.name = "Delivery"
 	add_child(delivery)
 	delivery.setup(self, map)
+	# Bench toggles (Phase 8): only when given on the command line.
+	var we := map.find_children("*", "WorldEnvironment", true, false)
+	BenchToggles.apply(get_viewport(), (we[0] as WorldEnvironment).environment if not we.is_empty() else null)
+	# A local playtest diary, debug builds only, when asked (--record-playtest).
+	PlaytestRecorder.maybe_start(self)
 	# Dust off the grass: the plane's take-off roll, her running.
 	ground_dust = GroundDust.new()
 	ground_dust.name = "GroundDust"
