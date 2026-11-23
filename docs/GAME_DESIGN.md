@@ -351,6 +351,10 @@ Any building with a front door, a doorstep and a floor plan can be walked into t
 - Hold **RB** while flying and the plane leaves puffs of smoke in its paint colour behind its tail; they hang in the sky for about a minute, slowly spreading and fading, so she can draw loops and squiggles. **Why RB:** nothing uses LB or RB while flying (they only change tabs on the character screen and decals on the plane-select screen), so it can't clash with A (boost), B (honk), X (roll) or Y (get out), and holding a shoulder button is easy alongside the stick. Keyboard: X.
 - One MultiMesh for the whole sky (up to 1300 puffs, one draw call); their fading is updated four times a second. `SkyWriter`, `skywriting_test`.
 
+## 13f. Today, for the parent (Phase 14, item 3)
+
+- A calendar button beside the gear in the pause menu opens **Today**: big pictures with numbers for the stars collected, parcels delivered, crashes and minutes played today, and a row of the islands (lit with a tick when she visited them today). From data the game already tracks: stars, deliveries and time where they're counted, crashes from WorldEvents, islands from a tracker that checks where she is every few seconds (`TodayTracker`). A new day starts afresh. New save keys only (`[today] date`, `counts`). `SummaryScreen`, `summary_test`.
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |

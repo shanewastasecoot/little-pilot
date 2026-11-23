@@ -80,6 +80,11 @@ var stickers: Array[String] = []
 ## these), the hats she's bought (Hats ids) and the one she's wearing
 ## ("" = her outfit's own headgear).
 var stars_spent: int = 0
+## Today, for the parent summary (Phase 14): the date it's for and the
+## counts ({stars, deliveries, crashes, seconds, islands}); a new day starts
+## afresh. New keys ([today]).
+var today_date := ""
+var _today := {}
 ## Save safety (Phase 10): the format version written now; the version of
 ## the file that was loaded (0 = none, defaults); the city plan version the
 ## saved city was made with (CityPlan.VERSION).
@@ -309,6 +314,11 @@ func _load_file() -> void:
 		for k in dc_saved:
 			if k is String and AircraftCatalog.has(k) and dc_saved[k] is String and dc_saved[k] in Livery.DECALS:
 				decals[k] = dc_saved[k]
+	var td = cfg.get_value("today", "date", "")
+	var tc = cfg.get_value("today", "counts", {})
+	if td is String and tc is Dictionary:
+		today_date = td
+		_today = tc
 	var hat_on = cfg.get_value("shop", "hat", "")
 	if hat_on is String and hats_owned.has(hat_on):
 		hat = hat_on
@@ -379,6 +389,8 @@ func save_now() -> void:
 	cfg.set_value("stickers", "have", stickers)
 	cfg.set_value("livery", "trims", trims)
 	cfg.set_value("livery", "decals", decals)
+	cfg.set_value("today", "date", today_date)
+	cfg.set_value("today", "counts", _today)
 	cfg.set_value("shop", "stars_spent", stars_spent)
 	cfg.set_value("shop", "hats_owned", hats_owned)
 	cfg.set_value("shop", "hat", hat)
@@ -417,6 +429,7 @@ func set_selected_aircraft(id: String) -> void:
 
 func add_lifetime_star() -> void:
 	lifetime_stars += 1
+	today_add("stars")
 	request_save()
 
 
@@ -427,6 +440,8 @@ func add_playtime(delta: float) -> void:
 		return
 	playtime += d
 	city_time += d
+	_roll_day()
+	_today["seconds"] = float(_today.get("seconds", 0.0)) + d
 	_unsaved_play += d
 	if _unsaved_play >= PLAYTIME_SAVE_EVERY:
 		_unsaved_play = 0.0
@@ -555,6 +570,37 @@ func set_delivery_arrow(on: bool) -> void:
 	request_save()
 
 
+## Today's counts (a new day starts afresh).
+func today() -> Dictionary:
+	_roll_day()
+	return _today
+
+
+func today_add(key: String, n: float = 1.0) -> void:
+	_roll_day()
+	_today[key] = float(_today.get(key, 0.0)) + n
+	request_save()
+
+
+## She's at island `id` (or "" at sea).
+func today_visit(id: String) -> void:
+	if id == "":
+		return
+	_roll_day()
+	var list: Array = _today.get("islands", [])
+	if not list.has(id):
+		list.append(id)
+		_today["islands"] = list
+		request_save()
+
+
+func _roll_day() -> void:
+	var d := Time.get_date_string_from_system()
+	if d != today_date:
+		today_date = d
+		_today = {"stars": 0.0, "deliveries": 0.0, "crashes": 0.0, "seconds": 0.0, "islands": []}
+
+
 ## Stars she has to spend in the shop.
 func star_purse() -> int:
 	return maxi(lifetime_stars - stars_spent, 0)
@@ -624,6 +670,7 @@ func set_delivery_job(id: String) -> void:
 ## A parcel reached `id`. Returns true the first time they get one.
 func add_delivery(id: String) -> bool:
 	deliveries += 1
+	today_add("deliveries")
 	delivery_job = ""
 	var first := not delivered_to.has(id)
 	if first:
@@ -669,6 +716,8 @@ func _reset_to_defaults() -> void:
 	treasure_ready_at = 0.0
 	stickers = []
 	stars_spent = 0
+	today_date = ""
+	_today = {}
 	trims = {}
 	decals = {}
 	hats_owned = []

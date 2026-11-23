@@ -10,6 +10,7 @@ signal change_plane_requested
 signal quit_requested
 signal settings_requested
 signal character_requested
+signal today_requested
 
 var _resume: BigButton
 
@@ -52,9 +53,19 @@ func _ready() -> void:
 	gear.position = Vector2(40, 40)  # top-left: clear of the star counter
 	gear.pressed.connect(func(): settings_requested.emit())
 	root.add_child(gear)
+	# Today's summary for the parent: a calendar beside the gear.
+	var today := BigButton.new()
+	today.icon_type = UiIcon.Icon.TODAY
+	today.base_color = Color("8a94a6")
+	today.button_size = Vector2(100, 100)
+	today.position = Vector2(160, 40)
+	today.pressed.connect(func(): today_requested.emit())
+	root.add_child(today)
+	gear.focus_neighbor_right = gear.get_path_to(today)
+	today.focus_neighbor_left = today.get_path_to(gear)
+	today.focus_neighbor_bottom = today.get_path_to(_resume)
 	_resume.focus_neighbor_top = _resume.get_path_to(gear)
 	gear.focus_neighbor_bottom = gear.get_path_to(_resume)
-	gear.focus_neighbor_right = gear.get_path_to(_resume)
 	visibility_changed.connect(_on_visibility_changed)
 
 

@@ -87,6 +87,9 @@ var _doorway_busy := false
 var exit_queued := false
 var ground_dust: GroundDust
 var sky_writer: SkyWriter
+## Today's summary for the parent (pause menu, Phase 14).
+var summary: SummaryScreen
+var today_tracker: TodayTracker
 ## The game last stopped with her inside: start outside the front door.
 var _start_at_house := false
 var _call_hold := 0.0
@@ -207,6 +210,15 @@ func _ready() -> void:
 	BenchToggles.apply(get_viewport(), (we[0] as WorldEnvironment).environment if not we.is_empty() else null)
 	# A local playtest diary, debug builds only, when asked (--record-playtest).
 	PlaytestRecorder.maybe_start(self)
+	# Today's diary and its page for the parent (Phase 14).
+	today_tracker = TodayTracker.new()
+	today_tracker.name = "TodayTracker"
+	today_tracker.main = self
+	add_child(today_tracker)
+	summary = SummaryScreen.new()
+	summary.name = "Summary"
+	add_child(summary)
+	pause_menu.today_requested.connect(func(): Sfx.play("ui_confirm"); summary.open())
 	# Sky-writing (Phase 14): hold RB while flying.
 	sky_writer = SkyWriter.new()
 	sky_writer.name = "SkyWriter"
