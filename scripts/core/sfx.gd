@@ -45,10 +45,39 @@ func _ready() -> void:
 	_streams.boom = _synth([[70.0, 0.0, 0.9], [48.0, 0.0, 0.9]], 0.6, 4.5, true, 0.5)
 	_streams.whistle = _synth([[900.0, 0.0, 0.8]], 0.18, 1.0, false, 2.2)
 	_streams.pop = _synth([[600.0, 0.0, 0.12]], 0.4, 25.0, false, 2.5)
+	# Each aircraft's own horn (AircraftStats.honk_sound).
+	_streams.honk_prop = _synth([[523.3, 0.0, 0.12], [659.3, 0.0, 0.12], [523.3, 0.17, 0.16], [659.3, 0.17, 0.16]], 0.38, 5.0, true)
+	_streams.honk_jet = _synth([[220.0, 0.0, 0.2], [277.2, 0.0, 0.2], [220.0, 0.26, 0.26], [277.2, 0.26, 0.26]], 0.42, 3.5, true)
 	# Dragon
 	_streams.roar = _roar()
 	_streams.fire = _noise_burst(1.7, 0.09, 0.12, 0.7, 2)
 	_streams.explode = _explosion()
+	_use_files()
+
+
+## Real recordings win (Phase 12): a sound file in assets/audio/ named like
+## the sound (honk.ogg, chime.wav...) replaces the one made in code, so every
+## Sfx.play() name keeps working and the made-in-code sound stays as the
+## fallback. Loops look in assets/audio/loops/ (see get_loop).
+const AUDIO_DIR := "res://assets/audio/"
+## (Tests) which sounds came from files.
+var from_files: Array[String] = []
+
+
+func _use_files() -> void:
+	for sound in _streams.keys():
+		var f := _file_for(AUDIO_DIR + String(sound))
+		if f:
+			_streams[sound] = f
+			from_files.append(String(sound))
+
+
+## A sound file at `base` + .ogg / .wav / .mp3, or null.
+static func _file_for(base: String) -> AudioStream:
+	for ext in [".ogg", ".wav", ".mp3"]:
+		if ResourceLoader.exists(base + ext):
+			return load(base + ext) as AudioStream
+	return null
 
 
 ## A big, growly dragon roar: a buzzy voice sliding down with vibrato over
@@ -139,16 +168,116 @@ func play(sound: String, pitch: float = 1.0, volume_db: float = 0.0, bus: String
 ## Built on demand and cached. All loops are 1-2 s long; tones use whole-
 ## number frequencies and noise is cross-faded at the loop point, so there
 ## is no click when they repeat.
-func get_loop(loop_name: String) -> AudioStreamWAV:
+func get_loop(loop_name: String) -> AudioStream:
 	var key := "loop_" + loop_name
 	if not _streams.has(key):
+		var file := _file_for(AUDIO_DIR + "loops/" + loop_name)
+		if file:
+			if file is AudioStreamOggVorbis:
+				(file as AudioStreamOggVorbis).loop = true
+			elif file is AudioStreamWAV:
+				(file as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
+			_streams[key] = file
+			from_files.append(key)
+			return file
 		match loop_name:
 			"prop_engine": _streams[key] = _prop_loop(44.0, 22.0, 0.35)
 			"prop_boost": _streams[key] = _prop_loop(66.0, 33.0, 0.6)
 			"jet_engine": _streams[key] = _jet_loop(0.18, 40.0, 0.06)
 			"jet_boost": _streams[key] = _jet_loop(0.035, 30.0, 0.0)
 			"wind": _streams[key] = _to_wav(_normalize(_seamless_noise(2 * RATE, 0.06, 7), 0.5), true)
+			"amb_birds": _streams[key] = _birds_loop()
+			"amb_city": _streams[key] = _murmur_loop()
+			"amb_waves": _streams[key] = _waves_loop()
+			"amb_rumble": _streams[key] = _to_wav(_normalize(_seamless_noise(4 * RATE, 0.012, 11), 0.7), true)
+			"amb_wind": _streams[key] = _gust_loop()
+			"amb_cave": _streams[key] = _cave_loop()
 	return _streams[key]
+
+
+## Birdsong: little chirps (quick rising and falling whistles) scattered over
+## a 6 s loop.
+func _birds_loop() -> AudioStreamWAV:
+	var count := 6 * RATE
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	for c in 16:
+		var start := rng.randi_range(0, count - RATE / 2)
+		var f0 := rng.randf_range(2200.0, 3600.0)
+		var notes := rng.randi_range(1, 3)
+		for n in notes:
+			var n_len := int(RATE * rng.randf_range(0.05, 0.11))
+			var s0 := start + n * int(RATE * 0.13)
+			var up := rng.randf() < 0.5
+			for i in n_len:
+				if s0 + i >= count:
+					break
+				var k := float(i) / n_len
+				var f := f0 * (1.0 + (k if up else 1.0 - k) * 0.35)
+				buf[s0 + i] += sin(TAU * f * float(i) / RATE) * sin(PI * k) * 0.5
+	return _to_wav(_normalize(buf, 0.5), true)
+
+
+## The city's murmur: soft, low noise rising and falling like voices and
+## traffic far off.
+func _murmur_loop() -> AudioStreamWAV:
+	var count := 4 * RATE
+	var noise := _seamless_noise(count, 0.05, 13)
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	for i in count:
+		var t := float(i) / count
+		buf[i] = noise[i] * (0.7 + 0.3 * sin(TAU * t * 2.0) * sin(TAU * t * 3.0))
+	return _to_wav(_normalize(buf, 0.6), true)
+
+
+## Waves on the shore: a wash of noise swelling in and drawing back.
+func _waves_loop() -> AudioStreamWAV:
+	var count := 6 * RATE
+	var noise := _seamless_noise(count, 0.25, 17)
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	for i in count:
+		var t := float(i) / count
+		var swell := pow(0.5 + 0.5 * sin(TAU * t * 2.0 - PI * 0.5), 2.0)
+		buf[i] = noise[i] * (0.15 + swell)
+	return _to_wav(_normalize(buf, 0.6), true)
+
+
+## Wind in the trees: airy noise with slow gusts.
+func _gust_loop() -> AudioStreamWAV:
+	var count := 6 * RATE
+	var noise := _seamless_noise(count, 0.1, 19)
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	for i in count:
+		var t := float(i) / count
+		buf[i] = noise[i] * (0.35 + 0.65 * pow(0.5 + 0.5 * sin(TAU * t + 1.0), 3.0))
+	return _to_wav(_normalize(buf, 0.55), true)
+
+
+## The dragon's cave: water dripping (bright plinks) and a slow, sleepy
+## snore (a low rumble breathing in and out) in an 8 s loop.
+func _cave_loop() -> AudioStreamWAV:
+	var count := 8 * RATE
+	var buf := PackedFloat32Array()
+	buf.resize(count)
+	var noise := _seamless_noise(count, 0.03, 23)
+	for i in count:
+		var t := float(i) / RATE
+		var breath := maxf(sin(TAU * t / 4.0), 0.0)
+		buf[i] = noise[i] * 3.0 * breath * breath + 0.15 * sin(TAU * 55.0 * t) * breath
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 29
+	for d in 7:
+		var s0 := rng.randi_range(0, count - RATE / 4)
+		var f := rng.randf_range(1200.0, 1900.0)
+		for i in RATE / 5:
+			var k := float(i) / (RATE / 5)
+			buf[s0 + i] += sin(TAU * f * (1.0 + k * 0.6) * float(i) / RATE) * exp(-k * 9.0) * 0.6
+	return _to_wav(_normalize(buf, 0.6), true)
 
 
 ## Piston engine: soft harmonic rumble at the firing rate, pulsed by the

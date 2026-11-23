@@ -6,6 +6,7 @@
 [resource]
 script = ExtResource("1_stats")
 id = "jet"
+honk_sound = "honk_jet"
 display_name = "Trainer Jet"
 model_scene = ExtResource("2_model")
 menu_color = Color(0.25, 0.55, 1, 1)

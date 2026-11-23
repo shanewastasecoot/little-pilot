@@ -57,7 +57,7 @@ The secondary audience is the parent or developer, who should find the project e
 - **The world reacts.** Honk or sweep low and the farm's sheep scatter, birds fly up from the forest, townspeople cheer, the boat toots, the whale spouts, penguins slide and dinosaurs call; honks echo in the mountains and boom in the dragon's cave.
 - **Deliveries.** A red beacon shows the nearest post office with a parcel waiting. Walk into the glowing parcel at a post office (airport, city or Town Island) and carry it to someone, on foot or by plane to another island (it rides on top of the plane): a picture of who it's for (and an arrow and a column of light) shows the way; walk up to them and they cheer, with confetti and reward stars. No timers and nothing to lose: the parcel stays with you in the plane, through crashes and restarts, and you can always ignore it and just explore.
 - **Landmark discovery.** Every landmark has its own sound and animation the first time you arrive.
-- **Gentle generated music**, engine and wind sounds, honk (B), and parent settings (music and sound volume, the loudest it ever gets, 30 FPS battery saver, city arrow, delivery arrow, crashes on/off, dragon on/off and difficulty, walking camera, restart the city, credits).
+- **Gentle generated music**, engine and wind sounds, each plane's own honk (B), quiet sounds of places (birds at the farm, the city, waves, wind in the forest, the volcano, a snoring dragon), and parent settings (music and sound volume, the loudest it ever gets, 30 FPS battery saver, city arrow, delivery arrow, crashes on/off, dragon on/off and difficulty, walking camera, restart the city, credits).
 - **Gamepad-first controls** designed for the Steam Deck (Xbox controllers work too).
 
 ## Technology Stack

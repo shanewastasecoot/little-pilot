@@ -229,10 +229,11 @@ UI rules: big targets, high contrast, icons before text, and every button press 
 | **Engine and wind** | Generated loops; pitch and volume follow speed and boost |
 | **Stars** | Chime with rising pitch |
 | **Landmarks** | One signature sound each |
-| **Honk** | A two-note horn per aircraft, echoing in the mountains, booming in the dragon's cave, ringing in the city |
+| **Honk** | Each aircraft its own horn (a bright "beep-beep" for the biplane, a deeper one for the jet), a touch higher or lower each time, echoing in the mountains, booming in the dragon's cave, ringing in the city |
+| **Places** | Quiet sounds heard only nearby (`AmbientZone`): birdsong at the farm, the city's murmur, wind in the forest, the volcano's rumble, drips and a sleepy snore in the dragon's cave, waves at three shores |
 | **UI** | Soft clicks and pops |
 
-All sound effects are synthesised at startup (`scripts/core/sfx.gd`). Buses: **Master** (with a hard limiter, a muffle for under the sea, and the parent's volume cap), **Music**, **SFX**, and the honk echo buses **HonkEcho**, **HonkCave** and **HonkCity** (into SFX).
+All sound effects are synthesised at startup (`scripts/core/sfx.gd`). A real recording replaces any of them by being dropped into `assets/audio/` with the same name (loops in `assets/audio/loops/`); the synthesised one stays as the fallback, and every `Sfx.play()` name keeps working (see `assets/audio/README.md` for the names and CC0 sources; Kenney's packs need a browser to download, so none are in yet). Buses: **Master** (with a hard limiter, a muffle for under the sea, and the parent's volume cap), **Music**, **SFX**, and the honk echo buses **HonkEcho**, **HonkCave** and **HonkCity** (into SFX).
 
 ---
 

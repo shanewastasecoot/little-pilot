@@ -19,6 +19,8 @@ extends Resource
 @export var ground_offset: float = 1.0
 ## Pitch of the honk sound (1.0 = normal).
 @export var honk_pitch: float = 1.0
+## This aircraft's own horn (an Sfx sound; Phase 12).
+@export var honk_sound: String = "honk"
 
 @export_group("Speed")
 ## Forward speed with no boost or slow input (m/s). The plane never stops.
