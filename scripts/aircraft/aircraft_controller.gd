@@ -125,6 +125,8 @@ var _water_exc := false
 var _climb_out := 0.0
 const CLIMB_OUT_TIME := 2.5
 const CLIMB_OUT_DEG := 8.0
+## Holding the stick this far towards climb when X is pressed: a loop.
+const LOOP_STICK := 0.5
 ## Seconds in the air since the last lift-off (large after a teleport).
 var _airborne := 99.0
 ## Parked after landing: wait for the stick and triggers to be let go
@@ -163,7 +165,7 @@ func _ready() -> void:
 	heading = rotation.y
 	visuals = $Model
 	input.honk_pressed.connect(_on_honk)
-	input.trick_pressed.connect(func(): visuals.barrel_roll())
+	input.trick_pressed.connect(trick)
 	_apply_stats(stats)
 	add_child(WaterSpray.new())
 	add_child(BlobShadow.new())
@@ -711,11 +713,30 @@ func lift_off() -> void:
 func _crash() -> void:
 	var into_water := global_position.y < _water_y() + 1.5
 	mode = Mode.CRASHED
+	visuals.cancel_tricks()
 	_crash_spin = Vector3(randf_range(-4, 4), randf_range(-6, 6), randf_range(6, 10) * (1.0 if randf() < 0.5 else -1.0))
 	velocity = Vector3.ZERO
 	boost_amount = 0.0
 	crashed.emit(global_position, into_water)
 	WorldEvents.send("crash", global_position, {"water": into_water})
+
+
+## X: a barrel roll, or (holding the stick to climb) a loop, if there's
+## room above for it. Both are visual only: flight is unchanged.
+func trick() -> void:
+	if mode == Mode.FLYING and input.raw_stick.y > LOOP_STICK and _room_for_loop() and visuals.loop():
+		return
+	visuals.barrel_roll()
+
+
+## Clear sky above for a loop (no cave roof, overhang or the sky's ceiling)?
+func _room_for_loop() -> bool:
+	var top := AircraftVisuals.LOOP_RADIUS * 2.0 + 6.0
+	if global_position.y + top > safety.ceiling_height:
+		return false
+	var q := PhysicsRayQueryParameters3D.create(global_position, global_position + Vector3.UP * top, GameSettings.LAYER_WORLD)
+	q.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
 ## Blown up (by the dragon): the plane vanishes in a fireball. main.gd
@@ -750,6 +771,8 @@ func _crashed_step(delta: float) -> void:
 ## Also puts the plane in normal flying mode.
 func teleport(pos: Vector3, yaw: float) -> void:
 	mode = Mode.FLYING
+	if visuals:
+		visuals.cancel_tricks()
 	_on_water = false
 	_climb_out = 0.0
 	_airborne = 99.0

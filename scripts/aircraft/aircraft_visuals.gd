@@ -12,6 +12,12 @@ extends Node3D
 
 ## Seconds for one barrel roll.
 const ROLL_TIME := 0.85
+## The loop (Phase 14): purely visual like the barrel roll. The plane's real
+## flight path, pitch limits and safety are unchanged; the model swings up
+## and over in a circle ABOVE the path (never below it), big enough that it
+## really travels backwards over the top, and lands back on the path.
+const LOOP_TIME := 2.6
+const LOOP_RADIUS := 9.0
 
 var _blur: MeshInstance3D
 var _blur_mat: StandardMaterial3D
@@ -19,6 +25,7 @@ var _bank: float = 0.0
 var _honk_tween: Tween
 var _roll: float = -1.0   # 0..1 while rolling, -1 when not
 var _roll_dir: float = 1.0
+var _loop: float = -1.0   # 0..1 while looping, -1 when not
 ## Size of the model in flight (AircraftStats.model_scale); honk hops around it.
 ## Nav lights and wingtip vapour (AircraftExtras).
 var extras: AircraftExtras
@@ -59,7 +66,7 @@ func update_visuals(turn: float, speed: float, stats: AircraftStats, delta: floa
 	if extras:
 		extras.update(turn, speed, stats.cruise_speed, delta)
 	for trail in boost_trails:
-		trail.strength = maxf(boost, 0.8 if _roll >= 0.0 else 0.0)  # trails corkscrew during rolls
+		trail.strength = maxf(boost, 0.8 if _roll >= 0.0 or _loop >= 0.0 else 0.0)  # trails corkscrew during rolls (and draw the loop)
 	var target := -turn * deg_to_rad(stats.max_bank_deg)
 	_bank = lerpf(_bank, target, 1.0 - exp(-stats.bank_response * delta))
 	var roll_angle := 0.0
@@ -77,6 +84,20 @@ func update_visuals(turn: float, speed: float, stats: AircraftStats, delta: floa
 		roll_angle = TAU * p * _roll_dir
 		# A small corkscrew so it looks like a real barrel roll.
 		offset = Vector3(-sin(p * TAU) * 1.2 * _roll_dir, (1.0 - cos(p * TAU)) * 0.6, 0)
+	var loop_angle := 0.0
+	if _loop >= 0.0:
+		var was := _loop
+		_loop += delta / LOOP_TIME
+		if was < 0.5 and _loop >= 0.5:
+			Sfx.play("whoosh", 1.3, -4.0)  # over the top
+		if _loop >= 1.0:
+			_loop = -1.0
+		else:
+			var a := TAU * smoothstep(0.0, 1.0, _loop)
+			loop_angle = a
+			offset += Vector3(0.0, LOOP_RADIUS * (1.0 - cos(a)), -LOOP_RADIUS * sin(a))
+			_bank = lerpf(_bank, 0.0, 1.0 - exp(-8.0 * delta))  # wings level through the loop
+	rotation.x = loop_angle
 	rotation.z = _bank + roll_angle
 	position = offset
 	if propeller:
@@ -106,6 +127,33 @@ func _update_blur(speed: float) -> void:
 		_blur.position = propeller.position
 		add_child(_blur)
 	_blur_mat.albedo_color = Color(1.0, 1.0, 1.0, smoothstep(12.0, 45.0, speed) * 0.14)
+
+
+## Start a loop (purely visual; see LOOP_TIME). False if busy with a trick.
+func loop() -> bool:
+	if _roll >= 0.0 or _loop >= 0.0:
+		return false
+	_loop = 0.0
+	Sfx.play("whoosh", 1.1)
+	return true
+
+
+func is_looping() -> bool:
+	return _loop >= 0.0
+
+
+## How far up the model is during a loop (the chase camera rises part way
+## with it, so the loop stays in the picture).
+func loop_lift() -> float:
+	return position.y if _loop >= 0.0 else 0.0
+
+
+## Stop any trick at once, back on the flight path (crash, respawn).
+func cancel_tricks() -> void:
+	_roll = -1.0
+	_loop = -1.0
+	position = Vector3.ZERO
+	rotation.x = 0.0
 
 
 ## Start a barrel roll (purely visual: the flight path is unchanged, so

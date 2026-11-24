@@ -54,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	if in_cockpit():
 		_place_cockpit()
 		return
-	global_position = target.global_position + Vector3.UP * stats.camera_height
+	global_position = target.global_position + Vector3.UP * (stats.camera_height + target.visuals.loop_lift() * 0.6)
 	rotation = Vector3(deg_to_rad(BASE_PITCH_DEG) + _pitch + _look.y, _yaw + _look.x, 0.0)
 
 	var zt := 1.0 - exp(-3.0 * delta)
