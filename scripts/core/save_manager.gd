@@ -85,6 +85,8 @@ var stars_spent: int = 0
 ## user://postcards/<n>.png).
 var book: Array[String] = []
 var postcards: Array[int] = []
+## Her sail boat (Phase 14): which dock it's moored at (Dock.SPOTS index).
+var boat_dock: int = 0
 ## Today, for the parent summary (Phase 14): the date it's for and the
 ## counts ({stars, deliveries, crashes, seconds, islands}); a new day starts
 ## afresh. New keys ([today]).
@@ -324,6 +326,7 @@ func _load_file() -> void:
 	if td is String and tc is Dictionary:
 		today_date = td
 		_today = tc
+	boat_dock = clampi(int(cfg.get_value("boat", "dock", 0)), 0, 99)
 	var bk = cfg.get_value("book", "seen", [])
 	if bk is Array:
 		for x in bk:
@@ -408,6 +411,7 @@ func save_now() -> void:
 	cfg.set_value("today", "counts", _today)
 	cfg.set_value("book", "seen", book)
 	cfg.set_value("book", "postcards", postcards)
+	cfg.set_value("boat", "dock", boat_dock)
 	cfg.set_value("shop", "stars_spent", stars_spent)
 	cfg.set_value("shop", "hats_owned", hats_owned)
 	cfg.set_value("shop", "hat", hat)
@@ -618,6 +622,11 @@ func _roll_day() -> void:
 		_today = {"stars": 0.0, "deliveries": 0.0, "crashes": 0.0, "seconds": 0.0, "islands": []}
 
 
+func set_boat_dock(i: int) -> void:
+	boat_dock = i
+	request_save()
+
+
 func book_has(id: String) -> bool:
 	return book.has(id)
 
@@ -762,6 +771,7 @@ func _reset_to_defaults() -> void:
 	stars_spent = 0
 	book = []
 	postcards = []
+	boat_dock = 0
 	today_date = ""
 	_today = {}
 	trims = {}

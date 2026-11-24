@@ -31,9 +31,9 @@ func _process(delta: float) -> void:
 	if _t < EVERY or main == null:
 		return
 	_t = 0.0
-	if not main.state in [main.State.FLYING, main.State.LANDED, main.State.ON_FOOT]:
+	if not main.state in [main.State.FLYING, main.State.LANDED, main.State.ON_FOOT, main.State.SAILING]:
 		return
-	var who: Node3D = main.walker if main.state == main.State.ON_FOOT else main.aircraft
+	var who: Node3D = main.walker if main.state == main.State.ON_FOOT else (main.boat if main.state == main.State.SAILING else main.aircraft)
 	SaveManager.today_visit(place_of(who.global_position))
 
 

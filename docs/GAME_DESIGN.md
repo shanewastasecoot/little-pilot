@@ -116,7 +116,7 @@ Taken from the input map in `project.godot` (and checked by `controller_test` on
 | **L2** | Slow down; low over flat ground, flare and land, then brake | — |
 | **B** | Honk 🎺 (the world reacts) | Sprint |
 | **X** | Barrel roll | Cheer (people nearby cheer back) |
-| **Y** | Get out when parked (pressed while still rolling: as soon as it stops) | Get back in beside the plane; hold Y to call the plane when it's far; indoors: use what's here (paint easel, quilt chest, fridge, sit at the table, hat mirror) |
+| **Y** | Get out when parked (pressed while still rolling: as soon as it stops) | Get back in beside the plane; hold Y to call the plane when it's far; at the end of a pier: sail (or call the boat); sailing: step off at a dock; indoors: use what's here (paint easel, quilt chest, fridge, sit at the table, hat mirror) |
 | **Right-stick click** | Change camera: close, far, cockpit (with instruments) | — |
 | **D-pad ◀ ▶** | Paint colour (each plane remembers its own) | — |
 | **LB / RB** | LB: take a postcard; hold RB: sky-writing (smoke in the paint colour) | Change tab on the character screen; decals on plane select |
@@ -370,6 +370,18 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - **The pirate captain** stands on the friendly pirate ship's deck (other islands, later). The pass can be a little higher and wider, because the ship nudges planes away from its masts.
 - "Low" means low *above them*, not above the sea, so the summit works. The beacon rides along with the boats.
 - `RecipientData.by_air` / `ride` / `drop_radius` / `drop_height`; the delivery bubble has new boat and mountain pictures. `parachute_test`.
+
+## 13i. Sailing and docks (Phase 14)
+
+- **Docks**: a wooden pier on every major island. Main (the beach past the farm: her boat's home), Palm, Volcano, Ice, Dino, Castle and Town. Each is a walkway from the beach out to deep water, a platform at the end, lanterns and a flag in the island's colour. Spots were chosen by scanning each coast for a gentle beach with deep water a short pier's length out, facing home where possible (`Dock.SPOTS`).
+- **Her sail boat** (the same CC0 sail boat as the one cruising off the south coast). Walk to the end of the pier and press **Y** to sail. She stands at the helm in her own clothes and hat.
+  - It always sails gently forward (like the plane flies). Stick up goes faster, back slows (and backs up a little), left/right steers, and RT is a gust of wind.
+  - The **honk** button toots the horn, which things nearby hear.
+  - It leans in the turns and leaves a white wake.
+  - It stops softly before shallow water and piers, so it never runs aground.
+- **Arriving**: near any dock, **Y** glides it into the berth and she steps off onto the pier. Where it's moored is saved (`[boat] dock`).
+- **Calling it**: if she flew to an island and her boat is moored somewhere else, **Y** at the end of that pier calls it, and it sails in tooting. So every dock always works.
+- `State.SAILING`, `SailBoat`, `SailCamera` (right stick looks around), `boat_test`.
 
 ## 14. Future Ideas
 
