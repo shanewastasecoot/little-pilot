@@ -5,6 +5,7 @@ extends RefCounted
 const PATHS := {
 	"prop": "res://resources/aircraft/prop_plane.tres",
 	"jet": "res://resources/aircraft/fighter_jet.tres",
+	"seaplane": "res://resources/aircraft/seaplane.tres",
 }
 const DEFAULT_ID := "prop"
 

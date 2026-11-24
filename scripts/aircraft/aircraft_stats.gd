@@ -17,6 +17,9 @@ extends Resource
 @export var model_scale: float = 1.0
 ## Height of the plane's centre above the ground when parked (wheels down).
 @export var ground_offset: float = 1.0
+## Floats (the seaplane, Phase 14): open water is somewhere to land, taxi,
+## park and take off, like a meadow.
+@export var floats: bool = false
 ## Pitch of the honk sound (1.0 = normal).
 @export var honk_pitch: float = 1.0
 ## This aircraft's own horn (an Sfx sound; Phase 12).

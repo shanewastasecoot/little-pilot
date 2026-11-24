@@ -33,7 +33,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if aircraft and aircraft.get("mode") == Aircraft.Mode.ROLLING and float(aircraft.get("speed")) > ROLL_SPEED:
 		var p := aircraft.global_position
-		if not IslandShape.on_runway(p.x, p.z) and p.y > 1.0:
+		if not IslandShape.on_runway(p.x, p.z) and p.y > 1.0 and not aircraft.on_water():
 			_roll_t -= delta
 			if _roll_t <= 0.0:
 				_roll_t = ROLL_EVERY

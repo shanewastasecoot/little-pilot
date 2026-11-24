@@ -561,7 +561,8 @@ func _service_busy() -> bool:
 
 
 func _can_exit_plane() -> bool:
-	return _in_plane() and aircraft.mode == Aircraft.Mode.PARKED and aircraft.ground_controls
+	# (Afloat on the sea, there's nowhere to stand: stay in.)
+	return _in_plane() and aircraft.mode == Aircraft.Mode.PARKED and aircraft.ground_controls and not aircraft.on_water()
 
 
 ## Y: get out of the parked plane, or back into it when beside it.
