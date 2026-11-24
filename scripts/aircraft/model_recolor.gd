@@ -16,6 +16,10 @@ extends Node
 ## it for pastel parts (e.g. Kenney's soft teal roofs).
 @export var min_saturation: float = 0.28
 @export var to_color: Color = Color("3f8cff")
+## Instead of swapping a hue range: recolour exactly the surfaces whose
+## material has one of these names (models with flat, named paint
+## materials, like the vinish.dev planes: "Paint_White", "Paint_Yellow").
+@export var materials: PackedStringArray = []
 
 const SHADER := """
 shader_type spatial;
@@ -82,6 +86,16 @@ func apply(color: Color) -> void:
 		for i in mi.mesh.get_surface_count():
 			var mat := mi.mesh.surface_get_material(i) as BaseMaterial3D
 			if mat == null:
+				continue
+			if not materials.is_empty():
+				if not materials.has(mat.resource_name):
+					continue
+				var nkey := "%d:named:%s" % [mat.get_instance_id(), to_color.to_html()]
+				if not _cache.has(nkey):
+					var painted := mat.duplicate() as BaseMaterial3D
+					painted.albedo_color = to_color
+					_cache[nkey] = painted
+				mi.set_surface_override_material(i, _cache[nkey])
 				continue
 			var key := "%d:%.3f:%s:%.2f" % [mat.get_instance_id(), from_hue, to_color.to_html(), min_saturation]
 			if not _cache.has(key):

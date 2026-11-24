@@ -3,8 +3,10 @@ extends Node3D
 ## Cosmetic-only motion for an aircraft model: banking, propeller and honk hop.
 ## Never affects flight.
 
-## Optional child spun according to speed.
+## Optional child spun according to speed (anywhere under the model).
 @export var propeller: Node3D
+## Radius of its spinning blur disc (model units).
+@export var prop_radius: float = 1.15
 ## Ribbons shown while boosting (usually one per wingtip).
 @export var boost_trails: Array[BoostTrail] = []
 ## Recolours the model's main colour for paint jobs (optional).
@@ -114,8 +116,8 @@ func _update_blur(speed: float) -> void:
 		_blur_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		_blur_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		var disc := CylinderMesh.new()
-		disc.top_radius = 1.15
-		disc.bottom_radius = 1.15
+		disc.top_radius = prop_radius
+		disc.bottom_radius = prop_radius
 		disc.height = 0.02
 		disc.radial_segments = 32
 		disc.rings = 1
@@ -124,7 +126,7 @@ func _update_blur(speed: float) -> void:
 		_blur.material_override = _blur_mat
 		_blur.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_blur.rotation_degrees.x = 90.0
-		_blur.position = propeller.position
+		_blur.position = to_local(propeller.global_position) if is_inside_tree() else propeller.position
 		add_child(_blur)
 	_blur_mat.albedo_color = Color(1.0, 1.0, 1.0, smoothstep(12.0, 45.0, speed) * 0.14)
 

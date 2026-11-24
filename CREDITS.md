@@ -22,7 +22,8 @@ Little Pilot code is © 2026 Shane Wastasecoot, released under the MIT License (
 
 | Asset | File(s) | Author | Licence | Source |
 |---|---|---|---|---|
-| Biplane ("Toy plane") | `assets/aircraft/toy_biplane.glb` | law | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [Sketchfab](https://sketchfab.com/3d-models/toy-plane-9b4e13700da14d31b9d923c499e18f64) |
+| Biplane | `assets/aircraft/vinish_biplane.glb` | vinish.dev | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [vinish.dev free 3D models](https://vinish.dev/free-3d-models/aircraft/) |
+| Light Plane | `assets/aircraft/vinish_light_plane.glb` | vinish.dev | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [vinish.dev free 3D models](https://vinish.dev/free-3d-models/aircraft/) |
 | Jet trainer ("Jet") | `assets/aircraft/jet_trainer.glb` | Poly by Google | [CC-BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [Poly Pizza](https://poly.pizza/m/3B3Pa6BHXn1) |
 | Pine tree | `assets/environment/pine.glb` | Quaternius | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Poly Pizza](https://poly.pizza/m/igSu0cPoBz) |
 | Round tree | `assets/environment/tree_round.glb` | Quaternius | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | [Poly Pizza](https://poly.pizza/m/9nvGuZlbpE) |

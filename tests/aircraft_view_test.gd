@@ -55,7 +55,7 @@ func _ready() -> void:
 	var hidden_outside := not g.visible
 	_check("the instruments show only in the cockpit view, reading speed, height and heading", shown_in_cockpit and hidden_outside and reads)
 	# --- Lights, vapour, for both aircraft ----------------------------------------------
-	for id in ["prop", "jet"]:
+	for id in AircraftCatalog.ids():  # (every plane in the hangar)
 		plane.set_stats(AircraftCatalog.get_stats(id))
 		await _frames(5)
 		var ex: AircraftExtras = plane.visuals.extras

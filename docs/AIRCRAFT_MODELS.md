@@ -25,41 +25,22 @@ turns the part about the right line. Control surfaces rest at 0°.
 
 ## Where the current models stand
 
-From `./dev.sh audit-aircraft`:
+| | Biplane | Light Plane (and Seaplane) | Trainer Jet |
+|---|---|---|---|
+| File | `vinish_biplane.glb` (vinish.dev, CC BY 4.0) | `vinish_light_plane.glb` (vinish.dev, CC BY 4.0) | `jet_trainer.glb` (Poly by Google, CC-BY 3.0) |
+| Triangles | about 12,800 | about 12,100 | about 5,200 |
+| Separate parts | propeller, ailerons, elevator, rudder, wheels | propeller, ailerons, elevator, rudder, gear, wheels | none |
+| Paint | material `Paint_Yellow` (wings, stripes) | material `Paint_White` (body) | hue swap |
+| Markers | Wingtip_L/R, CockpitCameraMarker, a `PilotSeat` (her) | Wingtip_L/R, CockpitCameraMarker | boost-trail markers, `cockpit_eye` |
 
-| | Prop Plane | Trainer Jet |
-|---|---|---|
-| Meshes | `Object_2` (208 tris), `Object_3` (51,221 tris, the whole aircraft), `Blades` (3,027, cut out at load) | `Jet` (928 tris), `Exhaust` (4,224, made in code) |
-| Total triangles | about 54,800 | about 5,200 |
-| Animations | none | none |
-| Separate parts | propeller (cut out in code) | none |
-| Wheels, control surfaces, gear, markers | no | no |
-
-- **Prop Plane** (`toy_biplane.glb`, CC-BY, by law): one mesh for the whole
-  aircraft; the propeller is cut out of it at load time (`prop_splitter.gd`). No separate
-  wheels, control surfaces or markers. It has: lights and vapour (placed from its boost-trail
-  markers), the cockpit view (`cockpit_eye`). It can't get moving surfaces or spinning
-  wheels without editing the model. The plan replaces it with a more realistic civilian
-  aircraft. Its 51,000-triangle body is the heaviest thing on screen for its size.
-- **Trainer Jet** (`jet_trainer.glb`, CC-BY, Poly by Google): one mesh, no interior. Same as
-  above: lights, vapour and the cockpit view (the eye just above the canopy, looking down
-  15° so the nose shows over the instruments); no moving surfaces or wheels.
-
-## Candidate replacements (for the parent to choose)
-
-Realistic civilian light aircraft or biplanes, CC0 or CC-BY, ideally with separate
-control surfaces and propeller:
-
-1. **Antonov An-2** low-poly (OpenGameArt, CC0): a big civilian utility biplane; control
-   surfaces and propeller already separate with their pivots set. Repainted in a civilian
-   scheme. <https://opengameart.org/content/an-2-airplane-lowpoly>
-2. **Low-poly biplane** (OpenGameArt, CC0, about 670 triangles): a simple classic biplane.
-   <https://opengameart.org/content/low-poly-biplane>
-3. **Low-poly biplane** by mujtaba-io (OpenGameArt, CC0, `.blend`).
-   <https://opengameart.org/node/168011>
-
-OpenGameArt refuses automated downloads, so these need fetching by hand (a browser) into
-a folder; then a Blender pass names the parts to this contract and exports `.glb`.
-Each needs a screenshot beside the jet and the buildings, at the same scale, before one
-is chosen. When a model is replaced its file loses the `toy_` name and
-`resources/credits.json` is updated.
+- The vinish.dev models face +Z with the origin on the ground and metres for units, so
+  each scene (`scenes/aircraft/models/`) turns its model round to face the game's -Z, scales
+  it to the game's size (about 10 m wingspan) and lifts it so the middle of the fuselage is
+  the model's origin. Their paint is flat, named materials, so `ModelRecolor.materials`
+  recolours exactly those surfaces (no hue matching needed).
+- The old biplane (`toy_biplane.glb`, 51,000 triangles in one mesh, the propeller cut out at
+  load) was replaced in fixes round 2 and removed.
+- **Trainer Jet** (`jet_trainer.glb`, CC-BY, Poly by Google): one mesh, no interior; vapour
+  and the cockpit view (the eye just above the canopy, looking down 15° so the nose shows
+  over the instruments); no moving surfaces or wheels. (vinish.dev's jet is a military
+  fighter, so it wasn't used.)
