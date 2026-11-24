@@ -59,19 +59,14 @@ func _ready() -> void:
 		plane.set_stats(AircraftCatalog.get_stats(id))
 		await _frames(5)
 		var ex: AircraftExtras = plane.visuals.extras
-		var dots: Array = ex.get_children().filter(func(n): return n is MeshInstance3D)
-		var colours: Array[Color] = []
-		for d in dots:
-			colours.append(((d as MeshInstance3D).material_override as StandardMaterial3D).albedo_color)
-		var lights_ok := dots.size() == 4 and colours.has(AircraftExtras.RED) and colours.has(AircraftExtras.GREEN) \
-				and colours.has(AircraftExtras.WHITE) and (dots[0] as Node3D).position.x < 0.0 and (dots[1] as Node3D).position.x > 0.0
-		var flashed := false
-		var dark := false
-		for i in 120:
-			await get_tree().process_frame
-			flashed = flashed or ex._beacon.visible
-			dark = dark or not ex._beacon.visible
-		_check("%s: red and green wingtip lights, a white tail light, a flashing beacon" % plane.stats.display_name, lights_ok and flashed and dark)
+		# (The user asked for the red/green light dots to go: they looked like
+		# stray circles on the model. None anywhere on the plane now.)
+		var dots := 0
+		for mi: MeshInstance3D in plane.visuals.find_children("*", "MeshInstance3D", true, false):
+			var m := mi.material_override as StandardMaterial3D
+			if mi.mesh is SphereMesh and m and m.emission_enabled and m.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED:
+				dots += 1
+		_check("%s: no glowing light dots on the model" % plane.stats.display_name, dots == 0)
 		plane.input.override_stick = Vector2.ZERO
 		plane.input.override_throttle = 0.0
 		await _frames(40)

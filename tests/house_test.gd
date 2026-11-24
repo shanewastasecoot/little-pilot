@@ -318,6 +318,16 @@ func _run() -> void:
 	_check("you can walk up the stairs", interior.storey_at(_w.global_position) == 1 and up_y > 10.0 and _on_floor())
 	_check("downstairs the upstairs is hidden; upstairs it shows and downstairs is hidden",
 			upstairs_hidden and _visible_floor(1) and not (interior.find_room("playroom").node as Node3D).visible)
+	# --- the attic ------------------------------------------------------------------------------
+	var attic_hidden := not _visible_floor(2)
+	await _go_to_room("attic")
+	var attic_y := _w.global_position.y - interior.global_position.y
+	var cosy := interior.find_child("Telescope", true, false) != null and interior.find_child("FairyLights", true, false) != null \
+			and interior.find_child("AtticToyBox", true, false) != null and interior.find_child("OldBoxes", true, false) != null
+	print("  note: attic at %.1f m up, storey %d, cosy %s" % [attic_y, interior.storey_at(_w.global_position), cosy])
+	_check("up the second stairs is her attic (reading nook, toy box, telescope, fairy lights); the floors below hide",
+			attic_hidden and interior.storey_at(_w.global_position) == 2 and attic_y > 21.0 and _on_floor() and _visible_floor(2)
+			and not (interior.find_room("landing").node as Node3D).visible and cosy)
 	# A bed: jump onto it and bounce.
 	var her: Dictionary = interior.her_room
 	await _go_to_room(her.id)

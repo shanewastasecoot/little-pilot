@@ -33,6 +33,8 @@ func _ready() -> void:
 	_storey = data.get("storey_height", 11.0)
 	var floors := {}
 	for room: Dictionary in data.rooms:
+		if room.get("attic", false):
+			continue  # (inside the roof: no walls of its own outside)
 		var f := int(room.get("floor", 0))
 		if not floors.has(f):
 			floors[f] = []
@@ -52,6 +54,13 @@ func _ready() -> void:
 	MeshMerge.merge_children(self)  # one draw per colour
 	for gi: GeometryInstance3D in find_children("*", "GeometryInstance3D", true, false):
 		gi.visibility_range_end = 0.0
+
+
+func _has_attic() -> bool:
+	for room: Dictionary in data.rooms:
+		if room.get("attic", false):
+			return true
+	return false
 
 
 func _mat(hex: String) -> StandardMaterial3D:
@@ -243,6 +252,22 @@ func _roof(r: Rect2, y: float, main: bool) -> void:
 	# Solid: a box over the lower part of the roof.
 	var cs := Vector3(r.size.x + SKIN * 2.0, rise * 0.6, r.size.y + SKIN * 2.0)
 	BuildKit.collider(self, BuildKit.box_shape(cs), Vector3(r.get_center().x, y + rise * 0.3, r.get_center().y))
+	if main and _has_attic():
+		# Round attic windows in the gable ends (the attic's up there).
+		for s in [-1.0, 1.0]:
+			var off: float = (length * 0.5 + 0.12) * s  # on the outside of the roof's end
+			var at := mi.position + (Vector3(off, -rise * 0.12, 0) if long_x else Vector3(0, -rise * 0.12, off))
+			for ring in [[2.6, TRIM, -0.08], [2.1, GLASS, 0.0]]:
+				var w := MeshInstance3D.new()
+				var c := CylinderMesh.new()
+				c.top_radius = ring[0]
+				c.bottom_radius = ring[0]
+				c.height = 0.3
+				w.mesh = c
+				w.material_override = _mat(ring[1])
+				w.position = at + (Vector3(ring[2] * s, 0, 0) if long_x else Vector3(0, 0, ring[2] * s))
+				w.rotation = Vector3(0, 0, PI * 0.5) if long_x else Vector3(PI * 0.5, 0, 0)
+				add_child(w)
 	if main:
 		# A chimney on the big roof.
 		var cx := r.position.x + r.size.x * 0.75
@@ -257,12 +282,16 @@ func _build_windows_and_door() -> void:
 	var ws := BuildingGenerator.WINDOW_SIZE
 	var floors := {}
 	for room: Dictionary in data.rooms:
+		if room.get("attic", false):
+			continue
 		var f := int(room.get("floor", 0))
 		if not floors.has(f):
 			floors[f] = []
 		var r: Array = room.rect
 		floors[f].append(Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3])))
 	for room: Dictionary in data.rooms:
+		if room.get("attic", false):
+			continue  # (its windows are the round ones in the gables)
 		var r: Array = room.rect
 		var rect := Rect2(float(r[0]), float(r[1]), float(r[2]), float(r[3]))
 		var f := int(room.get("floor", 0))

@@ -25,6 +25,8 @@ const SHALLOW := -1.5         # ground higher than this is too shallow
 const LOOK_AHEAD := 11.0
 const FAR := 6000.0           # the edge of the map
 const HELM := Vector3(0, 1.3, 2.5)
+## Half her width, for keeping clear of other boats.
+const BEAM := 5.0
 
 var speed := 0.0
 var yaw := 0.0
@@ -52,8 +54,8 @@ func _ready() -> void:
 	add_child(hull)
 	_tilt = Node3D.new()
 	hull.add_child(_tilt)
-	# Model faces -Z, the way it sails.
-	AssetLib.place(_tilt, "res://assets/environment/sail_boat.glb", Vector3.ZERO, 22.0, 0.0)
+	# The model's bow is +Z; turned round so it sails bow first along -Z.
+	AssetLib.place(_tilt, "res://assets/environment/sail_boat.glb", Vector3.ZERO, 22.0, 180.0)
 	_wake = CPUParticles3D.new()
 	_wake.amount = 40
 	_wake.lifetime = 2.6
@@ -113,7 +115,7 @@ func board() -> void:
 	_skipper = (load("res://scenes/characters/player_character.tscn") as PackedScene).instantiate() as CharacterModel
 	_tilt.add_child(_skipper)
 	_skipper.position = HELM
-	_skipper.rotation.y = PI
+	_skipper.rotation.y = 0.0  # faces -Z, the way the boat sails
 	_skipper.set_hat(SaveManager.hat)
 	dock = null
 	driving = true
@@ -192,6 +194,12 @@ func _physics_process(delta: float) -> void:
 			speed = move_toward(speed, 0.0, 30.0 * delta)
 		global_position += fwd * speed * delta
 		global_position.y = 0.0
+	if driving or (dock == null and not berthing):
+		# Another boat (or the whale) sailing into her: nudged aside, never
+		# overlapping.
+		var out := SeaTraffic.push_out(get_tree(), global_position, BEAM)
+		if out != global_position:
+			global_position = Vector3(out.x, 0.0, out.z)
 	elif not berthing:
 		speed = 0.0
 	_tilt.rotation.z = lerpf(_tilt.rotation.z, _steer * 0.16 * clampf(speed / FAST, 0.0, 1.0) if driving else 0.0, 1.0 - exp(-3.0 * delta))
@@ -205,4 +213,4 @@ func _blocked(p: Vector3) -> bool:
 	for d: Dock in docks:
 		if d.blocks(p):
 			return true
-	return false
+	return SeaTraffic.blocked(get_tree(), p, BEAM)  # the other boats, the whale, the mermaids' rocks

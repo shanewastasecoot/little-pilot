@@ -302,6 +302,12 @@ func set_stats(new_stats: AircraftStats) -> void:
 	_apply_stats(new_stats)
 	speed = stats.cruise_speed * speed_ratio
 	velocity = _forward() * speed
+	if _on_water and on_ground() and not stats.floats:
+		# Swapped out of the seaplane while afloat: a plane without floats
+		# can't sit on the sea, so it's lifted gently into the air instead.
+		speed = stats.cruise_speed
+		teleport(global_position + Vector3.UP * 25.0, heading)
+		return
 	if on_ground():
 		global_position.y += stats.ground_offset - old_offset
 		reset_physics_interpolation()
@@ -640,6 +646,11 @@ func _shore_ahead(dir: Vector3, dist: float) -> bool:
 	var p := global_position + dir * dist
 	if DeliveryManager.ground_at(p.x, p.z) > Waves.height(p.x, p.z) - 1.5:
 		return true  # the beach (shallows, then land)
+	if SeaTraffic.blocked(get_tree(), p, 6.0):
+		return true  # boats, the whale, the mermaids' rocks
+	for d in get_tree().get_nodes_in_group("docks"):
+		if d.blocks(p):
+			return true  # a pier
 	var q := PhysicsRayQueryParameters3D.create(global_position, global_position + dir * dist, GameSettings.LAYER_WORLD)
 	q.exclude = [get_rid()]
 	return not get_world_3d().direct_space_state.intersect_ray(q).is_empty()

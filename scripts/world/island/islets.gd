@@ -41,6 +41,23 @@ static func height(x: float, z: float, centre: Vector2, radius: float, peak: flo
 	return lerpf(-28.0, h, land)
 
 
+## The highest islet (or the lagoon atoll's ring) at (x, z); -INF out in
+## open sea. Lets boats (and anything asking DeliveryManager.ground_at) know
+## the small islands are there too.
+static func height_at(x: float, z: float) -> float:
+	var best := -INF
+	var p := Vector2(x, z)
+	for e: Array in LIST:
+		var c: Vector2 = e[0]
+		var r: float = e[1]
+		if e[3] == "lagoon":
+			if p.distance_to(c) < MermaidLagoon.RING_RADIUS + 140.0:
+				best = maxf(best, MermaidLagoon.height(x, z, c, (-c).angle()))
+		elif p.distance_to(c) < r * 1.2 + 60.0:
+			best = maxf(best, height(x, z, c, r, e[2]))
+	return best
+
+
 static func color(_x: float, _z: float, h: float, slope: float, kind: String) -> Color:
 	if kind == "rocky" and (h > 6.0 or slope > 0.4):
 		return Color("8d8a96")

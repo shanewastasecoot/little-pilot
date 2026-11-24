@@ -128,7 +128,7 @@ func _grab() -> Image:
 		await get_tree().process_frame  # (nothing is drawn: no "drawn" signal)
 	else:
 		await RenderingServer.frame_post_draw
-	var img := get_viewport().get_texture().get_image()
+	var img: Image = null if DisplayServer.get_name() == "headless" else get_viewport().get_texture().get_image()
 	for i in hidden.size():
 		hidden[i].visible = was[i]
 	_busy = false

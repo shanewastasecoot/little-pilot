@@ -163,6 +163,8 @@ func _batch_add(e: Dictionary) -> void:
 		var mesh: Mesh = data[0]
 		if e.tint != null:
 			mesh = _tinted(mesh, e.tint, e.tint_hue)
+		if is_walk_in(str(e.model)):
+			mesh = double_sided(mesh)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.mesh = mesh
@@ -176,14 +178,174 @@ func _batch_add(e: Dictionary) -> void:
 		* Transform3D(Basis().scaled(Vector3.ONE * e.scale), e.offset)
 	batch.xforms.append(at * batch.xf)
 	_dirty[key] = true
+	if CityHouseLayouts.has(str(e.model)):
+		_glass_core(e)
 
 
+## Some house models are completely hollow, with window holes on every side
+## lined up front to back: even drawn double-sided you'd see right through
+## them to the street. Each walk-in house also gets a box just inside its
+## walls, drawn INSIDE FACES ONLY: from outside its near sides are never
+## drawn, so it can't show through or poke out; through a window you see the
+## inside of its far side, like the back wall of a room. It's sized from the
+## model (a slice through the ground floor, where there's only walls) and is
+## as tall as the lowest the roof's edge gets all round, so its far sides
+## stay hidden behind the house. Purely visual (the real insides are built up
+## above); all of them are one MultiMesh: one draw.
+const INSIDE_INSET := 0.5     # m in from the outer walls
+const INSIDE_COLOUR := Color("55617a")  # like a dim room seen through a window
+## model|scale -> [[centre, size] for each floor's box (house-local)]
+static var _walls_of := {}
+
+
+func _glass_core(e: Dictionary) -> void:
+	if not _batches.has("|inside"):
+		var cube := BoxMesh.new()
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = INSIDE_COLOUR
+		mat.roughness = 0.3
+		cube.material = mat
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = cube
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "HouseInsides"
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+		_batch_root.add_child(mmi)
+		_batches["|inside"] = {"mmi": mmi, "xforms": [] as Array[Transform3D], "xf": Transform3D()}
+	var house := Transform3D(Basis(Vector3.UP, deg_to_rad(e.yaw)), e.pos)
+	var ins: Dictionary = _batches["|inside"]
+	for b: Array in walls_of(str(e.model), float(e.scale), e.offset):
+		ins.xforms.append(house * Transform3D(Basis().scaled(b[1]), b[0]))
+	_dirty["|inside"] = true
+
+
+## The boxes inside a house model (house-local, metres), one per floor:
+## where the walls are from a slice through the floor (2 m tall, ignoring
+## the outermost 5% each way: porch posts, steps), less INSIDE_INSET; as tall
+## as the lowest the roof's edge gets just inside those walls, less half a
+## metre. Then the same again just above, for upper floors that are set back
+## (up to three). [[centre, size], ...]. Worked out once per model.
+static func walls_of(model: String, scale: float, offset: Vector3) -> Array:
+	var key := "%s|%.3f" % [model, scale]
+	if _walls_of.has(key):
+		return _walls_of[key]
+	var data: Array = AssetLib.mesh_of(CityDistrict.ENV + model + ".glb")
+	var mesh: Mesh = data[0]
+	var place := Transform3D(Basis().scaled(Vector3.ONE * scale), offset) * (data[1] as Transform3D)
+	var xs: Array[float] = []
+	var zs: Array[float] = []
+	var all: Array[Vector3] = []
+	var top := 0.0
+	for si in mesh.get_surface_count():
+		for v: Vector3 in mesh.surface_get_arrays(si)[Mesh.ARRAY_VERTEX]:
+			var p := place * v
+			all.append(p)
+			top = maxf(top, p.y)
+			if p.y > 1.0 and p.y < 3.0:
+				xs.append(p.x)
+				zs.append(p.z)
+	var out := []
+	if xs.size() > 8:
+		xs.sort()
+		zs.sort()
+		var x0 := xs[int(xs.size() * 0.05)] + INSIDE_INSET
+		var x1 := xs[int(xs.size() * 0.95)] - INSIDE_INSET
+		var z0 := zs[int(zs.size() * 0.05)] + INSIDE_INSET
+		var z1 := zs[int(zs.size() * 0.95)] - INSIDE_INSET
+		# As tall as it can be with the house still over every point round
+		# its top edge (the highest bit of the model within 2 m of each).
+		var h := top * 0.8
+		for k in 12:
+			var t := float(k % 4) / 4.0
+			var q: Vector2
+			match k / 4:
+				0: q = Vector2(lerpf(x0, x1, t + 0.125), z0)
+				1: q = Vector2(lerpf(x0, x1, t + 0.125), z1)
+				_: q = Vector2(x0 if k % 2 == 0 else x1, lerpf(z0, z1, (k - 8) / 3.0))
+			var above := 0.0
+			for p in all:
+				if Vector2(p.x - q.x, p.z - q.y).length() < 2.0:
+					above = maxf(above, p.y)
+			h = minf(h, above - 0.5)
+		if h > 2.0 and x1 - x0 > 1.0 and z1 - z0 > 1.0:
+			out.append([Vector3((x0 + x1) * 0.5, h * 0.5 + 0.05, (z0 + z1) * 0.5), Vector3(x1 - x0, h, z1 - z0)])
+	_walls_of[key] = out
+	return out
+
+
+## The lowest the model's top gets along a line just inside a wall (along x
+## at z = `at`, or along z at x = `at`, from `a` to `b`), less half a metre:
+## near a wall that's where the roof's edge (the eaves) is.
+static func _roof_clear(pts: Array[Vector3], along_x: bool, at: float, a: float, b: float, top: float) -> float:
+	var n := maxi(int(b - a), 1)
+	var bins: Array[float] = []
+	bins.resize(n)
+	bins.fill(-INF)
+	for p in pts:
+		var along := p.x if along_x else p.z
+		var across := p.z if along_x else p.x
+		if absf(across - at) < 1.0 and along >= a and along <= b:
+			var k := clampi(int((along - a) / (b - a) * n), 0, n - 1)
+			bins[k] = maxf(bins[k], p.y)
+	var low := INF
+	for h in bins:
+		if h > -INF:
+			low = minf(low, h)
+	if low == INF:
+		return 0.0
+	return clampf(low - 0.5, 0.0, top * 0.8)
 func _batch_flush(key: String) -> void:
 	var batch: Dictionary = _batches[key]
 	var mm: MultiMesh = batch.mmi.multimesh
 	mm.instance_count = batch.xforms.size()
 	for i in batch.xforms.size():
 		mm.set_instance_transform(i, batch.xforms[i])
+
+
+## The houses and shops you can walk into are models whose walls are drawn
+## from the outside only, with open window holes: looking in through a
+## window you'd see straight through the house to the street behind (the
+## far walls' backs aren't drawn). Drawing both sides of their walls fills
+## the windows with the house's own inside walls, so they look solid.
+static func is_walk_in(model: String) -> bool:
+	return CityHouseLayouts.has(model) or HatShopLayout.MODELS.has(model)
+
+
+## A copy of `mesh` whose materials draw both sides of every face (plain
+## materials, and the roof-recolour shader materials of tinted houses).
+static func double_sided(mesh: Mesh) -> Mesh:
+	var copy: Mesh = mesh.duplicate()
+	var done := {}
+	for i in copy.get_surface_count():
+		var m := copy.surface_get_material(i)
+		if m == null:
+			continue
+		if not done.has(m):
+			if m is BaseMaterial3D:
+				var d := m.duplicate() as BaseMaterial3D
+				d.cull_mode = BaseMaterial3D.CULL_DISABLED
+				done[m] = d
+			elif m is ShaderMaterial and (m as ShaderMaterial).shader:
+				var sd := m.duplicate() as ShaderMaterial
+				sd.shader = _two_sided_shader((m as ShaderMaterial).shader)
+				done[m] = sd
+			else:
+				done[m] = m
+		copy.surface_set_material(i, done[m])
+	return copy
+
+
+## The same shader, drawing both sides of every face (one copy per shader).
+static var _two_sided := {}
+static func _two_sided_shader(sh: Shader) -> Shader:
+	if not _two_sided.has(sh):
+		var copy := Shader.new()
+		copy.code = sh.code.replace("shader_type spatial;", "shader_type spatial;\nrender_mode cull_disabled;")
+		_two_sided[sh] = copy
+	return _two_sided[sh]
 
 
 ## A copy of `mesh` with ModelRecolor's roof colour baked into its materials.

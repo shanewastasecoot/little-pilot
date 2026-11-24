@@ -53,7 +53,7 @@ func _plans() -> void:
 		it.global_position = Vector3(5000 + x, 3000, 5000)
 		x += 200.0
 		await _frames(2)
-		var fp := CityHouseLayouts.footprint(model)
+		var fp := CityHouseLayouts.inside_size(model)  # (the inside is bigger than the outside: INSIDE_SCALE)
 		var lo := Vector2(INF, INF)
 		var hi := -lo
 		for r: Dictionary in plan.rooms:
@@ -62,10 +62,10 @@ func _plans() -> void:
 			hi = hi.max(Vector2(float(a[0]) + float(a[2]), float(a[1]) + float(a[3])))
 		if not (hi - lo).is_equal_approx(fp):
 			problems.append("%s plan %s, model %s" % [model, str(hi - lo), str(fp)])
-		var door := CityHouseLayouts.door_local(model)
+		var door_x := CityHouseLayouts.inside_door_x(model)
 		var exit_at: Vector3 = it.to_local(it.entry_point())
-		if absf(exit_at.x - door.x) > 0.6:
-			problems.append("%s front door at x %.1f, model's at %.1f" % [model, exit_at.x, door.x])
+		if absf(exit_at.x - door_x) > 0.6:
+			problems.append("%s front door at x %.1f, model's at %.1f" % [model, exit_at.x, door_x])
 		for b in InteriorChecks.blocked_doorways(it) + InteriorChecks.covered_windows(it):
 			problems.append("%s %s" % [model, b])
 		for r in it.rooms:
@@ -76,7 +76,7 @@ func _plans() -> void:
 		it.queue_free()
 	for p in problems:
 		print("    ", p)
-	_check("every house model has a plan its own size, its door where the model's is, clear doorways and windows, every room reachable, an owner and a star",
+	_check("every house model has a plan 1.6x its own size, its door where the model's is (scaled), clear doorways and windows, every room reachable, an owner and a star",
 			problems.is_empty())
 
 
