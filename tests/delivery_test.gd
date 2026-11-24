@@ -168,8 +168,8 @@ func _run() -> void:
 	# --- everyone can be reached --------------------------------------------------------
 	var unreached := []
 	for r: RecipientData in Recipients.deliverable():
-		if r.kind == "mermaid":
-			continue  # out at sea: mermaid mail is dropped from the plane (below)
+		if r.kind == "mermaid" or r.by_air:
+			continue  # out at sea / on boats / mountain tops: parachute mail (below; parachute_test)
 		var rec: Recipient = _dm.recipients[r.id]
 		var land := Vector3(r.land_at.x, 0, r.land_at.y)
 		await _get_out_near(land)

@@ -362,6 +362,15 @@ Any building with a front door, a doorstep and a floor plan can be walked into t
 - **Postcards**: **LB** while playing (flying, on foot or indoors) takes a photo, with a click and a white flash; the newest 48 are kept. Why LB: it's free everywhere in play (RB is sky-writing).
 - Saved as small pictures in `user://book/` and `user://postcards/`; which ones exist in new save keys (`[book] seen`, `postcards`). Nothing leaves the computer. `StickerBook`, `sticker_book_test`.
 
+## 13h. Parachute drops (Phase 14, item 4)
+
+Mermaid mail grew into **parachute mail** for friends where the plane can't land. Fly low over them with their parcel and it floats down on a parachute into their arms. It follows them while it falls, so a moving boat still catches it.
+- **The sailor** rides the little sail boat off the south coast (main island, so early on).
+- **The hiker** stands on the tallest mountain's snowy summit.
+- **The pirate captain** stands on the friendly pirate ship's deck (other islands, later). The pass can be a little higher and wider, because the ship nudges planes away from its masts.
+- "Low" means low *above them*, not above the sea, so the summit works. The beacon rides along with the boats.
+- `RecipientData.by_air` / `ride` / `drop_radius` / `drop_height`; the delivery bubble has new boat and mountain pictures. `parachute_test`.
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |

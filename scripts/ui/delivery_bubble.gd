@@ -169,6 +169,21 @@ func _draw_place(b: Vector2, r: float) -> void:
 				for i in 9:
 					pts.append(b + Vector2(-16 + i * 4, 8 + row * 6 + (2.0 if i % 2 else -2.0)) * k)
 				draw_polyline(pts, Color("3a8fd9"), 3.0 * k, true)
+		"boat":
+			# A sail boat on the waves.
+			draw_colored_polygon(PackedVector2Array([b + Vector2(-14, 4) * k, b + Vector2(14, 4) * k, b + Vector2(9, 11) * k, b + Vector2(-9, 11) * k]), Color("8b5a2b"))
+			draw_colored_polygon(PackedVector2Array([b + Vector2(1, -16) * k, b + Vector2(12, 1) * k, b + Vector2(1, 1) * k]), Color("f4f4f4"))
+			draw_colored_polygon(PackedVector2Array([b + Vector2(-1, -11) * k, b + Vector2(-1, 1) * k, b + Vector2(-9, 1) * k]), Color("e63946"))
+			draw_line(b + Vector2(0, -17) * k, b + Vector2(0, 4) * k, Color("5a3a22"), 2.0 * k)
+			var wv := PackedVector2Array()
+			for i in 9:
+				wv.append(b + Vector2(-16 + i * 4, 15 + (2.0 if i % 2 else -2.0)) * k)
+			draw_polyline(wv, Color("3a8fd9"), 3.0 * k, true)
+		"mountain":
+			# Two peaks with snowy tops.
+			draw_colored_polygon(PackedVector2Array([b + Vector2(-17, 12) * k, b + Vector2(-5, -12) * k, b + Vector2(7, 12) * k]), Color("7a8a99"))
+			draw_colored_polygon(PackedVector2Array([b + Vector2(-3, 12) * k, b + Vector2(7, -5) * k, b + Vector2(17, 12) * k]), Color("5f6f80"))
+			draw_colored_polygon(PackedVector2Array([b + Vector2(-9, -4) * k, b + Vector2(-5, -12) * k, b + Vector2(-1, -4) * k]), Color.WHITE)
 		"airport":
 			# A little plane seen from above.
 			draw_rect(Rect2(b + Vector2(-3, -15) * k, Vector2(6, 30) * k), Color("e63946"))

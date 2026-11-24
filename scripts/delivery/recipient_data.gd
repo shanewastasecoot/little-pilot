@@ -28,6 +28,17 @@ extends Resource
 @export var kind := "person"
 ## A mermaid's tail colour.
 @export var tail_colour := Color("ff7eb9")
+## Parachute mail (Phase 14): somewhere the plane can't land (a moving boat,
+## a mountain top), so their parcel comes down on a parachute when you fly
+## low over them, like mermaid mail.
+@export var by_air := false
+## Riding a moving landmark (its class name, e.g. "Boat"): they stand at
+## `ride_at` (in its hull's space) and go wherever it goes.
+@export var ride := ""
+@export var ride_at := Vector3.ZERO
+## How near (flat metres) and how low (metres above them) the pass must be.
+@export var drop_radius := 40.0
+@export var drop_height := 70.0
 
 
 static func make(p_id: String, p_look: OutfitData, p_head: Array, p_spot: Vector2, p_face: float,
@@ -57,4 +68,15 @@ static func mermaid(p_id: String, p_spot: Vector2, p_face: float, p_colour: Colo
 	r.tail_colour = p_tail
 	r.place = "sea"
 	r.tier = p_tier
+	r.by_air = true
+	return r
+
+
+## Make `r` a parachute-mail friend (riding `p_ride` at `p_at`, if given).
+static func air(r: RecipientData, p_radius := 40.0, p_height := 70.0, p_ride := "", p_at := Vector3.ZERO) -> RecipientData:
+	r.by_air = true
+	r.drop_radius = p_radius
+	r.drop_height = p_height
+	r.ride = p_ride
+	r.ride_at = p_at
 	return r

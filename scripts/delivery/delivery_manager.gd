@@ -67,6 +67,7 @@ func setup(main: Node, world: Node3D) -> void:
 		world.add_child(who)
 		who.global_position = Vector3(r.spot.x, 0.0, r.spot.y) if r.kind == "mermaid" else _ground3(r.spot)
 		recipients[r.id] = who
+	_board_riders()
 	beacon = DeliveryBeacon.new()
 	beacon.name = "DeliveryBeacon"
 	world.add_child(beacon)
@@ -121,15 +122,20 @@ func _process(delta: float) -> void:
 			who.notice(p if walker.is_active() else Vector3(1e9, 0, 0))
 	if carrying():
 		beacon.near = walker.is_active() and _flat_dist(p, target().global_position) < BEACON_NEAR
+		if target().data.ride != "":
+			beacon.global_position = target().global_position  # riding a boat: the beacon goes too
 	_update_po_beacon(p, walker.is_active())
 	_show_on_plane(carrying() and not walker.is_active() and not _dropping)
 	if _dragon:
 		_dragon.parcel_truce = carrying() and SaveManager.dragon_level == 0
-	# Mermaid mail: a low pass over her drops the parcel.
-	if carrying() and target().is_mermaid() and not _dropping and not walker.is_active() \
+	# Parachute mail (mermaids, boats, mountain tops): a low pass over them
+	# drops the parcel.
+	if carrying() and target().by_air() and not _dropping and not walker.is_active() \
 			and _main.state == _main.State.FLYING:
 		var plane: Node3D = _main.aircraft
-		if _flat_dist(plane.global_position, target().global_position) < DROP_RADIUS and plane.global_position.y < DROP_HEIGHT:
+		var who := target()
+		if _flat_dist(plane.global_position, who.global_position) < who.data.drop_radius \
+				and plane.global_position.y - who.global_position.y < who.data.drop_height:
 			_air_drop()
 			return
 	if not walker.is_active() or _main.state != _main.State.ON_FOOT:
@@ -197,7 +203,7 @@ func _deliver() -> void:
 	_last = id
 	job = ""
 	_main.walker.model.set_carrying(false)
-	if not (who.is_mermaid() and who.is_celebrating()):  # a mermaid's already leapt for it
+	if not (who.by_air() and who.is_celebrating()):  # they've already caught it
 		who.receive()
 	beacon.hide()
 	_main.hud.show_delivery(null)
@@ -221,7 +227,8 @@ func _deliver() -> void:
 
 
 ## The parcel leaves the plane on a little parachute and floats down into
-## the mermaid's hands; she leaps up to catch it; then the usual cheer.
+## their hands (following them if they're on a moving boat); a mermaid leaps
+## up to catch it; then the usual cheer.
 func _air_drop() -> void:
 	_dropping = true
 	var who := target()
@@ -250,9 +257,11 @@ func _air_drop() -> void:
 		line.look_at_from_position(top * 0.5, Vector3.ZERO, Vector3.UP if absf(top.normalized().y) < 0.99 else Vector3.FORWARD)
 		line.rotate_object_local(Vector3.RIGHT, PI * 0.5)
 	Sfx.play("whoosh", 1.3)
-	var to := who.catch_point()
+	var from := drop.global_position
 	var tw := create_tween()
-	tw.tween_property(drop, "global_position", to, DROP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_method(func(t: float):
+		if is_instance_valid(who):
+			drop.global_position = from.lerp(who.catch_point(), t), 0.0, 1.0, DROP_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tw.parallel().tween_property(drop, "rotation:y", TAU, DROP_TIME)
 	get_tree().create_timer(DROP_TIME - 0.5, false).timeout.connect(func(): who.receive())
 	tw.tween_callback(func():
@@ -313,7 +322,7 @@ func _snap_to_ground() -> void:
 	var nodes: Array[Node3D] = []
 	nodes.append_array(post_offices)
 	for who: Recipient in recipients.values():
-		if not who.is_mermaid():  # mermaids sit at sea level
+		if not who.is_mermaid() and who.data.ride == "":  # mermaids sit at sea level; riders stand on decks
 			nodes.append(who)
 	for n in nodes:
 		var p := n.global_position
@@ -324,6 +333,24 @@ func _snap_to_ground() -> void:
 		if not hit.is_empty():
 			n.global_position.y = (hit.position as Vector3).y
 	if carrying():
+		beacon.global_position = target().global_position
+
+
+## Parachute friends on boats: once the landmarks are built, step aboard
+## (onto the hull, so they bob with the waves too).
+func _board_riders() -> void:
+	await get_tree().process_frame
+	for who: Recipient in recipients.values():
+		if who.data.ride == "":
+			continue
+		for l in get_tree().get_nodes_in_group("landmarks"):
+			if l.get_script() and (l.get_script() as Script).get_global_name() == who.data.ride:
+				var deck: Node3D = l.get("_hull") if l.get("_hull") else l
+				who.reparent(deck, false)
+				who.position = who.data.ride_at
+				who.rotation = Vector3.ZERO
+				break
+	if carrying() and target().data.ride != "":
 		beacon.global_position = target().global_position
 
 

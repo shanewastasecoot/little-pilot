@@ -104,6 +104,23 @@ static func _build() -> Array[RecipientData]:
 	list.append(RecipientData.make("knight",
 			OutfitData.make("knight", "Knight", {"r1c0": Color("9b5de5")}, [], [], [], ["Knight_Helmet", "Knight_Cape"]),
 			["Knight", {}], Vector2(-480, 3500), 60.0, Color("9b5de5"), "castle", 2, Vector2(-440, 3520)))
+	# --- Parachute mail: somewhere the plane can't land; fly low over them -------------------
+	list.append(RecipientData.air(RecipientData.make("sailor",
+			OutfitData.make("sailor", "Rogue", {"r1c0": Color("f4f4f4"), "r0c5": Color("1d3f8a"), "r0c6": Color("1d3f8a"),
+				"r2c5": Color("1d3f8a"), "r1c7": Color("e63946")}, [["Beanie", "head"]], ["Rogue_Cape"]),
+			["Rogue", {"r0c1": Color("d9a066")}], Vector2(300, 1860), 0.0, Color("1d6fdb"), "boat", 1),
+			50.0, 70.0, "Boat", Vector3(0, 1.3, -3.5)))
+	list.append(RecipientData.air(RecipientData.make("hiker",
+			OutfitData.make("hiker", "Rogue", {"r1c0": Color("ff5a5f"), "r0c5": Color("4a5a3a"), "r0c6": Color("6b4226"),
+				"r2c5": Color("6b4226")}, [["Sun_Hat", "head"]], ["Rogue_Cape"]),
+			["Barbarian", {"r0c1": Color("8b5a2b")}], Vector2(195, -897), 180.0, Color("ff8c42"), "mountain", 1),
+			45.0, 70.0))
+	list.append(RecipientData.air(RecipientData.make("captain",
+			OutfitData.make("captain", "Knight", {"r0c3": Color("e63946"), "r0c7": Color("1b1b24"), "r0c6": Color("1b1b24"),
+				"r0c4": Color("ffd23f"), "r1c0": Color("e63946"), "r1c2": Color("ffd23f"), "r1c7": Color("1b1b24")},
+				[["Ranger_Hat", "head"]]),
+			["Barbarian", {"r0c1": Color("2a1d14")}], Vector2(2550, 0), 0.0, Color("e63946"), "boat", 2),
+			75.0, 120.0, "PirateShip", Vector3(4.0, 6.7, -3.0)))
 	# --- Mermaid mail: on rocks at sea; fly low over them to drop the parcel -----------------
 	list.append(RecipientData.mermaid("mermaid_beach", Vector2(1400, 160), 90.0, Color("ff7eb9"), Color("ff7eb9"), 1))
 	list.append(RecipientData.mermaid("mermaid_cove", Vector2(-620, 2220), 270.0, Color("7b6cff"), Color("7b6cff")))
