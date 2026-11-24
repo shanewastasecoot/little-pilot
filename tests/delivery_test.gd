@@ -72,6 +72,8 @@ func _run() -> void:
 			else:
 				print("    mermaid not at sea: %s at %s, ground %.1f" % [r.id, str(m.global_position.round()), _ground(m.global_position)])
 			continue
+		if r.ride != "":
+			continue  # riding a boat: stands on its deck (parachute_test checks that)
 		var g := _ground(Vector3(r.spot.x, 0, r.spot.y))
 		if g < Walker.SHORE_LEVEL + 0.5 or absf(_dm.recipients[r.id].global_position.y - g) > 1.0:
 			dry = false
