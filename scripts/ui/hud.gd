@@ -267,7 +267,7 @@ func set_prompt(kind: String) -> void:
 	_prompt_kind = kind
 	if kind != "":
 		_prompt_icon.icon = {"exit": UiIcon.Icon.PERSON, "paint": UiIcon.Icon.PAINT, "food": UiIcon.Icon.FOOD,
-				"sit": UiIcon.Icon.SIT, "hat": UiIcon.Icon.HAT}.get(kind, UiIcon.Icon.PLANE)
+				"sit": UiIcon.Icon.SIT, "hat": UiIcon.Icon.HAT, "boat": UiIcon.Icon.BOAT}.get(kind, UiIcon.Icon.PLANE)
 	create_tween().tween_property(_prompt, "modulate:a", 1.0 if kind != "" else 0.0, 0.2)
 
 

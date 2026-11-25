@@ -16,7 +16,7 @@ extends Node3D
 ## The world is always live: on the title and plane-select screens the plane
 ## circles on autopilot behind the menus, so it's flying within seconds.
 
-enum State { TITLE, SELECT, FLYING, PAUSED, LANDED, CHARACTER_CREATE, ON_FOOT, INDOORS }
+enum State { TITLE, SELECT, FLYING, PAUSED, LANDED, CHARACTER_CREATE, ON_FOOT, INDOORS, SAILING }
 
 ## Seconds without input before the stick hint appears.
 const IDLE_HINT_DELAY := 10.0
@@ -92,6 +92,10 @@ var summary: SummaryScreen
 var today_tracker: TodayTracker
 ## The sticker book and its pictures (Phase 14); LB takes a postcard.
 var spotter: Spotter
+## Sailing (Phase 14): a dock on every major island and her own sail boat.
+var docks: Array[Dock] = []
+var boat: SailBoat
+var sail_camera: SailCamera
 var book: StickerBook
 ## The game last stopped with her inside: start outside the front door.
 var _start_at_house := false
@@ -232,6 +236,19 @@ func _ready() -> void:
 	book.spotter = spotter
 	add_child(book)
 	pause_menu.book_requested.connect(func(): book.open())
+	for i in Dock.SPOTS.size():
+		var d := Dock.make(i)
+		map.add_child(d)
+		docks.append(d)
+	boat = SailBoat.new()
+	map.add_child(boat)
+	boat.docks = docks
+	boat.moor(docks[clampi(SaveManager.boat_dock, 0, docks.size() - 1)])
+	boat.berthed.connect(_on_boat_berthed)
+	sail_camera = SailCamera.new()
+	sail_camera.name = "SailCamera"
+	sail_camera.target = boat
+	add_child(sail_camera)
 	# Sky-writing (Phase 14): hold RB while flying.
 	sky_writer = SkyWriter.new()
 	sky_writer.name = "SkyWriter"
@@ -271,7 +288,8 @@ func _ready() -> void:
 
 ## The player is in the game world (not in a menu).
 func _playing() -> bool:
-	return state == State.FLYING or state == State.LANDED or state == State.ON_FOOT or state == State.INDOORS
+	return state == State.FLYING or state == State.LANDED or state == State.ON_FOOT or state == State.INDOORS \
+			or state == State.SAILING
 
 
 ## The player is in the plane (flying it or parked in it).
@@ -295,10 +313,14 @@ func _enter(new_state: State) -> void:
 	var on_foot := indoors or state == State.ON_FOOT or (state == State.PAUSED and _play_state == State.ON_FOOT)
 	if walker.is_active() != on_foot:
 		walker.set_active(on_foot)
+	var sailing := state == State.SAILING or (state == State.PAUSED and _play_state == State.SAILING)
 	if indoors:
 		indoor_camera.cam.make_current()
 	elif on_foot:
 		walk_camera.cam.make_current()
+	elif sailing:
+		sail_camera.cam.make_current()
+		_near_plane = false
 	else:
 		chase_camera.cam.make_current()
 		_near_plane = false
@@ -337,6 +359,10 @@ func _process(delta: float) -> void:
 		hud.set_prompt("exit")
 	elif state == State.ON_FOOT and _near_plane:
 		hud.set_prompt("enter")
+	elif state == State.SAILING:
+		hud.set_prompt("exit" if boat.driving and boat.dock_near() != null else "")
+	elif dock_here() != null and not boat.berthing:
+		hud.set_prompt("boat")
 	elif state == State.ON_FOOT and plane_far():
 		hud.set_prompt("call")
 	elif state == State.INDOORS and interior and not colour_menu.is_open() and not hat_menu.is_open() and not interior.interaction_at(walker).is_empty():
@@ -421,7 +447,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	# LB while playing: a postcard for the sticker book.
-	if event.is_action_pressed("tab_prev") and state in [State.FLYING, State.LANDED, State.ON_FOOT, State.INDOORS] \
+	if event.is_action_pressed("tab_prev") and state in [State.FLYING, State.LANDED, State.ON_FOOT, State.INDOORS, State.SAILING] \
 			and not colour_menu.is_open() and not hat_menu.is_open() and spotter.postcard():
 		get_viewport().set_input_as_handled()
 		return
@@ -430,6 +456,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and open_colour_menu():
+		get_viewport().set_input_as_handled()
+		return
+	if state == State.SAILING and event.is_action_pressed("honk"):
+		boat.toot()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("interact") and toggle_boat():
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and toggle_plane():
@@ -558,6 +591,57 @@ func toggle_plane() -> bool:
 		hud.show_foot_hints(false)
 		return true
 	return false
+
+
+## Y at the end of a pier: sail away (or, if her boat's moored at another
+## island, call it: it sails in, tooting). Y while sailing near a dock: glide
+## into the berth and step off onto the pier. True if it did something.
+func toggle_boat() -> bool:
+	if boat == null:
+		return false
+	if boat.berthing:
+		return state == State.SAILING or dock_here() != null
+	if state == State.SAILING:
+		var near := boat.dock_near()
+		if near == null:
+			return false
+		boat.berth(near)
+		return true
+	var d := dock_here()
+	if d == null:
+		return false
+	if boat.dock != d:
+		boat.come_to(d)
+		SaveManager.set_boat_dock(d.index)
+		return true
+	Sfx.play("pop", 0.9)
+	boat.board()
+	sail_camera.snap()
+	_enter(State.SAILING)
+	hud.show_foot_hints(false)
+	return true
+
+
+## The dock whose pier end she's standing at (on foot), or null.
+func dock_here() -> Dock:
+	if state != State.ON_FOOT:
+		return null
+	for d: Dock in docks:
+		if Dock.flat_dist(walker.global_position, d.board_point()) < Dock.BOARD_REACH \
+				and absf(walker.global_position.y - d.global_position.y) < 2.0:
+			return d
+	return null
+
+
+## Tied up at a dock: she steps off onto the pier (if she was sailing).
+func _on_boat_berthed(d: Dock) -> void:
+	SaveManager.set_boat_dock(d.index)
+	if state != State.SAILING:
+		return
+	walker.place(d.step_off(), d.step_off_yaw())
+	walk_camera.snap_to(d.step_off_yaw())
+	_enter(State.ON_FOOT)
+	hud.show_foot_hints(true)
 
 
 ## Walk in through her house's front door.
@@ -704,7 +788,7 @@ func _update_plane_call(delta: float) -> void:
 	plane_beacon.visible = far
 	if far:
 		plane_beacon.global_position = aircraft.global_position - Vector3.UP * aircraft.stats.ground_offset
-	var holding := far and not _calling and (override_call_hold or Input.is_action_pressed("interact"))
+	var holding := far and not _calling and dock_here() == null and (override_call_hold or Input.is_action_pressed("interact"))
 	_call_hold = _call_hold + delta if holding else 0.0
 	hud.set_prompt_hold(_call_hold / PLANE_CALL_HOLD)
 	if _call_hold >= PLANE_CALL_HOLD:

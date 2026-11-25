@@ -57,7 +57,7 @@ func _process(delta: float) -> void:
 	if _t < EVERY or _busy or main == null:
 		return
 	_t = 0.0
-	if not main.state in [main.State.FLYING, main.State.LANDED, main.State.ON_FOOT]:
+	if not main.state in [main.State.FLYING, main.State.LANDED, main.State.ON_FOOT, main.State.SAILING]:
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:

@@ -4,7 +4,7 @@ extends Control
 ## Simple vector icons drawn in code, so menus need no text or image assets.
 ## Scales to the control's size.
 
-enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT, HAT, VOLUME_CAP, CREDITS, TODAY, BOOK }
+enum Icon { STAR, PLAY, PLANE, QUIT, ARROW_LEFT, ARROW_RIGHT, GEAR, MUSIC, SPEAKER, BATTERY, POINTER, CRASH, DRAGON, FLAME, CITY, BUTTON_Y, PERSON, BUTTON_A, BUTTON_B, BUTTON_LB, BUTTON_RB, CHECK, CAMERA, INVERT_Y, JUMP, RUN, PARCEL, PAINT, FOOD, SIT, HAT, VOLUME_CAP, CREDITS, TODAY, BOOK, BOAT }
 
 @export var icon: Icon = Icon.STAR:
 	set(v):
@@ -93,6 +93,12 @@ func _draw() -> void:
 			_poly(PackedVector2Array([c + Vector2(-0.4, -0.13) * s, c + Vector2(-0.2, -0.13) * s, c + Vector2(0.05, -0.36) * s, c + Vector2(0.05, 0.36) * s, c + Vector2(-0.2, 0.13) * s, c + Vector2(-0.4, 0.13) * s]))
 			for k in 2:
 				draw_arc(c + Vector2(0.05, 0) * s, s * (0.18 + k * 0.15), -0.8, 0.8, 12, color, s * 0.06)
+		Icon.BOAT:
+			# A sail boat: hull, mast, sail.
+			_poly(PackedVector2Array([c + Vector2(-0.46, 0.14) * s, c + Vector2(0.46, 0.14) * s, c + Vector2(0.3, 0.38) * s, c + Vector2(-0.3, 0.38) * s]))
+			draw_line(c + Vector2(0.0, -0.46) * s, c + Vector2(0.0, 0.14) * s, color, s * 0.06)
+			_poly(PackedVector2Array([c + Vector2(0.06, -0.42) * s, c + Vector2(0.4, 0.06) * s, c + Vector2(0.06, 0.06) * s]))
+			_poly(PackedVector2Array([c + Vector2(-0.06, -0.3) * s, c + Vector2(-0.06, 0.06) * s, c + Vector2(-0.32, 0.06) * s]))
 		Icon.BOOK:
 			# An open book with a star on the right page.
 			_poly(PackedVector2Array([c + Vector2(0, -0.28) * s, c + Vector2(-0.46, -0.36) * s, c + Vector2(-0.46, 0.32) * s, c + Vector2(0, 0.4) * s]))
