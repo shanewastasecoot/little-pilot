@@ -89,6 +89,8 @@ var ground_dust: GroundDust
 var sky_writer: SkyWriter
 ## Follow-the-leader (Phase 14): a friendly plane invites her to follow it.
 var leader: FollowLeader
+## Gentle weather (Phase 14): a rain cloud that washes the paint off, then a rainbow.
+var weather: Weather
 ## Today's summary for the parent (pause menu, Phase 14).
 var summary: SummaryScreen
 var today_tracker: TodayTracker
@@ -255,6 +257,10 @@ func _ready() -> void:
 	leader = FollowLeader.new()
 	leader.main = self
 	add_child(leader)
+	weather = Weather.new()
+	weather.name = "Weather"
+	weather.main = self
+	add_child(weather)
 	# Sky-writing (Phase 14): hold RB while flying.
 	sky_writer = SkyWriter.new()
 	sky_writer.name = "SkyWriter"
