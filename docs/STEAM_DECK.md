@@ -62,8 +62,12 @@ It renders images from the game into `~/LittlePilot-builds/steam-art/`. Then, in
 Pause (☰ / Start), then the grey **gear** in the top-left corner:
 
 - **Music** and **Sounds**: five bars each, left/right to change, zero bars mutes.
+- **The loudest it ever gets** (a speaker under a ceiling line): a cap on all sound, 1 to 5 bars (never all the way off). Separate from the limiter, which only stops clipping.
 - **Battery saver** (battery icon, green = on): caps the game at 30 FPS for longer play on battery.
 - **City arrow** (arrow icon, green = on): every 30 stars the city puts on a fireworks show after a 30-second countdown; this shows an arrow pointing the way. Turn it off to keep just the countdown.
+- **Crashes** (on by default): off is the uncrashable mode, where the plane steers itself away from the ground, the sea and buildings.
+- **Dragon** (on by default) and its difficulty (one press steps 1, 2, 3 flames).
+- Second row: how long she's played; **restart the city** (press once, it turns orange; press again within a few seconds); the walking camera's speed (1-3 dots) and up/down direction; the **delivery arrow**; and the **credits** (a heart).
 
 Settings save automatically.
 
@@ -81,7 +85,7 @@ Pressing the power button to sleep mid-flight is safe. When the Deck wakes up th
 ## Checking performance
 
 - Press **`...`** (Quick Access), go to **Performance**, and set the **Overlay Level** to 2+ to see FPS.
-- Target: **60 FPS** at 1280×800.
+- Target: **90 FPS** everywhere at 1280×800 (the OLED Deck's refresh rate). The busiest place is a fully grown city street.
 
 ## Troubleshooting
 

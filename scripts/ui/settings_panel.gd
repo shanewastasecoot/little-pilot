@@ -7,7 +7,8 @@ extends CanvasLayer
 ## dragon lives on the island and how tough it is (1-3 flames).
 ## Bottom row: how long they've played, "Restart the city" (press once and
 ## it turns orange; press again within a few seconds to really do it), the
-## walking camera's speed (1-3 dots) and up/down direction (invert).
+## walking camera's speed (1-3 dots) and up/down direction (invert), and
+## the credits (a heart: CreditsScreen, everyone whose work is in the game).
 ## B / Esc or the back arrow closes it. Changes save automatically.
 
 signal closed
@@ -28,6 +29,8 @@ var _dragon: BigButton
 var _level: BigButton
 var _city: BigButton
 var _played: Label
+var _credits_btn: BigButton
+var credits: CreditsScreen
 var _city_armed := 0.0
 var _cam_speed: BigButton
 var _invert: BigButton
@@ -154,9 +157,25 @@ func _ready() -> void:
 	_parcel_arrow.toggle_mode = true
 	_parcel_arrow.toggled.connect(func(on): SaveManager.set_delivery_arrow(on); _tint_battery())
 	row2.add_child(_parcel_arrow)
+	# The credits: everyone whose work is in the game.
+	_credits_btn = BigButton.new()
+	_credits_btn.icon_type = UiIcon.Icon.CREDITS
+	_credits_btn.base_color = Color("ff7aa8")
+	_credits_btn.button_size = Vector2(130, 130)
+	_credits_btn.pressed.connect(open_credits)
+	row2.add_child(_credits_btn)
+	credits = CreditsScreen.new()
+	credits.name = "Credits"
+	add_child(credits)
+	credits.closed.connect(func(): _credits_btn.grab_focus.call_deferred())
 
 	visibility_changed.connect(_on_visibility_changed)
 	hide()
+
+
+func open_credits() -> void:
+	Sfx.play("ui_confirm")
+	credits.open()
 
 
 func _process(delta: float) -> void:

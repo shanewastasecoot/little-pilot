@@ -2,7 +2,7 @@
 
 This file tracks every asset the game needs, from placeholder to final.
 
-> **Current status (v1.1):** the game now uses free low-poly models for the planes, trees, animals, buildings, sea life and props, and generated code for terrain, water, sky, music and sound. **`CREDITS.md` is the authoritative list** of every third-party asset in the game, with its author, licence and source. The per-item tables below are the original v1.0 plan and are kept for reference.
+> **Current status (after 1.6):** the game uses free low-poly models (CC0 and CC-BY) for the aircraft, trees, animals, buildings, sea life, furniture and characters (KayKit), props built by the project's own Blender script, and generated code for terrain, water, sky, effects, music and sound. **`resources/credits.json` is the authoritative list** of every third-party asset, with its author, licence and source; `CREDITS.md` and the in-game credits screen are made from it, and `credits_test` checks every CC-BY entry is complete and every model under `assets/` is listed. The per-item tables below are the original v1.0 plan and are kept for reference.
 
 ## How to Use This List
 

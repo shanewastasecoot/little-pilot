@@ -7,6 +7,7 @@
 #   test     run all headless tests (exit code 0 = all pass)
 #   check    import, load every script/scene, boot headless; fail on errors
 #   export   build ../LittlePilot-builds/LittlePilot.x86_64 (release)
+#   credits  write CREDITS.md from resources/credits.json
 set -euo pipefail
 cd "$(dirname "$0")"
 GODOT="${GODOT:-flatpak run org.godotengine.Godot}"
@@ -16,7 +17,7 @@ case "${1:-}" in
   editor) $GODOT --path . --editor ;;
   run)    if [[ "${2:-}" == full ]]; then $GODOT --path . --fullscreen; else $GODOT --path .; fi ;;
   test)   fail=0
-          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test treasure_test post_office_test city_house_test hat_shop_test reactions_test stress_test; do
+          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test treasure_test post_office_test city_house_test hat_shop_test reactions_test credits_test stress_test; do
             echo "=== $t"
             # Capture the exit code directly (a pipe would lose it).
             out=$($GODOT --headless --path . --fixed-fps 60 "res://tests/$t.tscn" 2>&1) && status=0 || status=$?
@@ -55,5 +56,8 @@ case "${1:-}" in
   export) mkdir -p "$BUILD_DIR"
           $GODOT --headless --path . --export-release Linux "$BUILD_DIR/LittlePilot.x86_64" >/dev/null
           echo "Built $(realpath "$BUILD_DIR/LittlePilot.x86_64")" ;;
-  *)      sed -n '2,10p' "$0"; exit 1 ;;
+  credits) # (Import first, so a new script class is known; then write the file.)
+          $GODOT --headless --path . --import >/dev/null 2>&1 || true
+          $GODOT --headless --path . res://tools/make_credits.tscn 2>&1 | grep -E "Wrote|ERROR" ;;
+  *)      sed -n '2,11p' "$0"; exit 1 ;;
 esac
