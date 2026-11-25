@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="AircraftStats" format=3]
+
+[ext_resource type="Script" path="res://scripts/aircraft/aircraft_stats.gd" id="1_stats"]
+[ext_resource type="PackedScene" path="res://scenes/aircraft/models/seaplane_model.tscn" id="2_model"]
+
+[resource]
+script = ExtResource("1_stats")
+id = "seaplane"
+honk_sound = "honk_prop"
+display_name = "Seaplane"
+model_scene = ExtResource("2_model")
+menu_color = Color(0.18, 0.77, 0.71, 1)
+model_scale = 2.0
+default_paint = 4
+ground_offset = 3.5
+floats = true
+honk_pitch = 0.9
+cruise_speed = 20.0
+boost_multiplier = 1.5
+slow_multiplier = 0.65
+speed_response = 1.5
+turn_rate_deg = 52.0
+max_pitch_deg = 28.0
+pitch_rate_deg = 40.0
+input_smoothing = 3.0
+auto_level_strength = 1.2
+max_bank_deg = 38.0
+bank_response = 3.0
+lookahead_time = 1.8
+safe_clearance = 14.0
+min_clearance = 4.0
+max_rescue_pitch_deg = 35.0
+camera_distance = 12.5
+camera_height = 3.4
+cockpit_eye = Vector3(0, 0.75, 0.45)
+livery_body = AABB(-0.36, -0.92, -0.6, 0.72, 0.92, 2.5)
+camera_fov = 70.0
+boost_fov_bonus = 10.0

@@ -383,6 +383,17 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - **Calling it**: if she flew to an island and her boat is moored somewhere else, **Y** at the end of that pier calls it, and it sails in tooting. So every dock always works.
 - `State.SAILING`, `SailBoat`, `SailCamera` (right stick looks around), `boat_test`.
 
+## 13j. Seaplane (Phase 14, item 5)
+
+- A third plane in the hangar: the **Seaplane**, the prop plane on two white floats (like a real amphibious floatplane, the wheels stay, so it still uses the runway). Slightly gentler and slower than the prop plane.
+- It reuses the flight controller and the waves: for a plane with floats (`AircraftStats.floats`), open sea counts as a landable surface.
+  - Coming down onto the sea is a splashy **landing**, never a crash (both modes, like flat ground).
+  - It slows on the water and parks, **bobbing on the waves**.
+  - Boost and it speeds across the water in spray and lifts off, then climbs gently clear of the waves by itself for a moment so it doesn't skim straight back down.
+  - On the water it turns more readily, and noses round before beaches, piers and boats (never runs aground).
+- Afloat at sea there's nowhere to stand, so she stays in (no Y to get out). Other planes still splash into the sea as before.
+- `SeaplaneFloats`, `seaplane.tres`, `seaplane_test`.
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |

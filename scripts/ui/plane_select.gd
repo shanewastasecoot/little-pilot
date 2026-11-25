@@ -110,7 +110,7 @@ func _build_stage(vp: SubViewport) -> void:
 	sun.rotation_degrees = Vector3(-45, -30, 0)
 	vp.add_child(sun)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 3.2, 11)
+	cam.position = Vector3(0, 3.2, 11.0 + maxf(_ids.size() - 2, 0) * 7.0)  # step back to fit them all
 	cam.rotation_degrees = Vector3(-12, 0, 0)
 	cam.fov = 50
 	vp.add_child(cam)

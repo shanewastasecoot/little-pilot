@@ -86,6 +86,12 @@ enum Ahead { CLEAR, EDGE, WALL }
 const CRASH_GRACE := 1.5
 ## Crashes below this height count as landing in the sea.
 const WATER_LEVEL := 0.6
+## Seaplane on the water: how fast it turns while taxiing, how deep the
+## floats sit (fraction of ground_offset above the waves), and how far it
+## keeps from beaches and anything solid.
+const WATER_TURN_DEG := 32.0
+const FLOAT_RIDE := 0.97
+const SHORE_MARGIN := 10.0
 
 ## Can the plane crash? Off = always steered clear (the original mode).
 var crashes := true:
@@ -109,6 +115,16 @@ var _landing := false
 ## pressing it again takes off), so holding boost all the way down still
 ## ends in a landing.
 var _roll_await_release := false
+## On the water (a seaplane that landed on the sea): taxiing or bobbing.
+var _on_water := false
+var _spray_t := 0.0
+## Floats ignore the sea's flat collision surface (they ride the real waves).
+var _water_exc := false
+## Just lifted off the water: climb gently clear of the waves by itself for
+## this long (so it doesn't skim straight back down onto them).
+var _climb_out := 0.0
+const CLIMB_OUT_TIME := 2.5
+const CLIMB_OUT_DEG := 8.0
 ## Seconds in the air since the last lift-off (large after a teleport).
 var _airborne := 99.0
 ## Parked after landing: wait for the stick and triggers to be let go
@@ -157,10 +173,14 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if stats.floats != _water_exc:
+		_update_water_exception()
 	if mode == Mode.PARKED:
 		speed = 0.0
 		boost_amount = 0.0
 		visuals.update_visuals(0.0, 6.0, stats, delta)  # propeller idles
+		if _on_water:
+			_ride_waves(global_position, delta)
 		var pushing := input.throttle > 0.2 or absf(input.stick.y) > 0.35
 		if _await_release:
 			# Raw input: the smoothed stick starts near zero after a state
@@ -174,7 +194,10 @@ func _physics_process(delta: float) -> void:
 			Sfx.play("whoosh", 0.7)
 		return
 	if mode == Mode.ROLLING:
-		_roll_step(delta)
+		if _on_water:
+			_water_step(delta)
+		else:
+			_roll_step(delta)
 		return
 	if mode == Mode.CRASHED:
 		_crashed_step(delta)
@@ -183,7 +206,7 @@ func _physics_process(delta: float) -> void:
 	# Coming in to land (low over landable ground, and heading down without
 	# pulling up, or holding slow): the safety system flares the descent
 	# and, in can't-crash mode, lets us down.
-	var below := _ground_ray(global_position)
+	var below := _surface_ray(global_position)
 	_airborne += delta
 	var height := global_position.y - (below.position as Vector3).y if not below.is_empty() else INF
 	# Sweeping low and fast over the ground: the world notices (sheep
@@ -227,6 +250,10 @@ func _physics_process(delta: float) -> void:
 	var rate := stats.pitch_rate_deg
 	if not input.has_stick_input:
 		rate *= stats.auto_level_strength
+	if _climb_out > 0.0:
+		_climb_out -= delta
+		if input.stick.y > -0.3:
+			target_deg = maxf(target_deg, CLIMB_OUT_DEG)
 	target_deg = clampf(target_deg, safety.pitch_floor_deg, safety.pitch_ceiling_deg)
 	if target_deg < flare_pitch:
 		target_deg = flare_pitch
@@ -248,7 +275,7 @@ func _physics_process(delta: float) -> void:
 	boost_amount = clampf((speed - stats.cruise_speed) / (stats.cruise_speed * (stats.boost_multiplier - 1.0)), 0.0, 1.0)
 
 	velocity = _forward() * speed
-	if _grace <= 0.0 and velocity.y <= 0.5 and _try_touch_down(delta):
+	if _grace <= 0.0 and _climb_out <= 0.0 and velocity.y <= 0.5 and _try_touch_down(delta):
 		return
 	move_and_slide()
 	if crashes and _grace <= 0.0 and (get_slide_collision_count() > 0 or global_position.y < _water_y()):
@@ -256,7 +283,7 @@ func _physics_process(delta: float) -> void:
 		return
 	# Coming in to land but now over ground you can't land on (a slope, the
 	# water's edge, a roof): the usual floor applies again straight away.
-	if safety.landing and not can_land_on(_ground_ray(global_position)):
+	if safety.landing and not can_land_on(_surface_ray(global_position)):
 		safety.landing = false
 	safety.enforce()
 
@@ -326,6 +353,7 @@ func _on_honk() -> void:
 ## Sit on the ground (runway) at `pos`, facing `yaw`, engine idling. The
 ## player takes off from here (see _roll_step).
 func park(pos: Vector3, yaw: float) -> void:
+	_on_water = false
 	_ground_y = pos.y
 	speed = 0.0
 	teleport(pos + Vector3.UP * stats.ground_offset, yaw)
@@ -339,6 +367,7 @@ func park(pos: Vector3, yaw: float) -> void:
 ## (taxiing under someone else's control: the hangar service). Smooth: no
 ## physics reset, so it glides frame to frame.
 func taxi_to(ground_pos: Vector3, yaw: float) -> void:
+	_on_water = false
 	_ground_y = ground_pos.y
 	speed = 0.0
 	velocity = Vector3.ZERO
@@ -358,6 +387,8 @@ func on_ground() -> bool:
 ## Is this ground (a _ground_ray hit) somewhere the plane can land? Island
 ## terrain only (not roofs), flat enough, and clear of the sea.
 func can_land_on(hit: Dictionary) -> bool:
+	if hit.get("water", false):
+		return true  # (only a seaplane is offered the water: _surface_ray)
 	if hit.is_empty() or not (hit.collider as Node).is_in_group("terrain"):
 		return false
 	var n: Vector3 = hit.normal
@@ -386,6 +417,38 @@ func _ground_ray(pos: Vector3) -> Dictionary:
 	return get_world_3d().direct_space_state.intersect_ray(q)
 
 
+## What's below `pos` to land on: the ground, or for a seaplane the sea
+## when it's open water there ({position, normal, water: true}).
+func _surface_ray(pos: Vector3) -> Dictionary:
+	var hit := _ground_ray(pos)
+	if not stats.floats:
+		return hit
+	var wy := Waves.height(pos.x, pos.z)
+	if hit.is_empty() or (hit.collider as Node).is_in_group("water") or (hit.position as Vector3).y < wy - 1.5:
+		return {"position": Vector3(pos.x, wy, pos.z), "normal": Vector3.UP, "water": true}
+	return hit
+
+
+## A seaplane doesn't bump into the sea's flat collision surface (it lands on
+## the waves instead); other planes do (and splash).
+func _update_water_exception() -> void:
+	var found := false
+	for w in get_tree().get_nodes_in_group("water"):
+		if w is PhysicsBody3D:
+			found = true
+			if stats.floats:
+				add_collision_exception_with(w)
+			else:
+				remove_collision_exception_with(w)
+	if found or not stats.floats:
+		_water_exc = stats.floats
+
+
+## A seaplane landed on the water (taxiing or parked).
+func on_water() -> bool:
+	return _on_water and on_ground()
+
+
 ## Height of the plane's origin above the ground at which the wheels (or
 ## the belly, for low planes) touch.
 func _touch_height() -> float:
@@ -397,7 +460,7 @@ func _touch_height() -> float:
 ## Anything else is left to the normal collision (bump) or safety system.
 func _try_touch_down(delta: float) -> bool:
 	var next := global_position + velocity * delta
-	var hit := _ground_ray(next)
+	var hit := _surface_ray(next)
 	if hit.is_empty() or next.y - hit.position.y > _touch_height() or not can_land_on(hit):
 		return false
 	# Flat, landable ground is always a landing, never a crash (however
@@ -412,9 +475,14 @@ func _try_touch_down(delta: float) -> bool:
 	mode = Mode.ROLLING
 	_landing = true
 	boost_amount = 0.0
-	Sfx.play("pop", 0.55)
+	_on_water = hit.get("water", false)
+	if _on_water:
+		Sfx.play("splash", 0.9)
+		_spray(26, 9.0)
+	else:
+		Sfx.play("pop", 0.55)
 	touched_down.emit()
-	WorldEvents.send("landing", global_position)
+	WorldEvents.send("landing", global_position, {"water": _on_water})
 	return true
 
 
@@ -508,6 +576,82 @@ func _roll_step(delta: float) -> void:
 		lift_off()
 
 
+## A seaplane on the water: like the ground roll (boost to go, slow brakes,
+## it slows by itself after landing and parks bobbing on the waves), but it
+## follows the waves, turns more readily, throws up spray, and noses round
+## before beaches, piers and boats instead of running onto them. Fast
+## enough (and pulling up, or not landing): lift off.
+func _water_step(delta: float) -> void:
+	var lift_speed := stats.cruise_speed * LIFTOFF_FRACTION
+	if _roll_await_release and input.raw_throttle < 0.2:
+		_roll_await_release = false
+	var boosting := input.throttle > 0.2 and not _roll_await_release
+	var braking := input.throttle < -0.2
+	if _landing and boosting:
+		_landing = false
+		Sfx.play("whoosh", 0.7)
+	if braking:
+		speed = maxf(speed - ROLL_BRAKE * delta, 0.0)
+	elif _landing:
+		speed = maxf(speed - ROLL_FRICTION * 1.4 * delta, 0.0)  # water slows it quicker
+	else:
+		speed = minf(speed + (ROLL_BOOST_ACCEL if boosting else ROLL_ACCEL) * delta, stats.cruise_speed * (stats.boost_multiplier if boosting else 1.0))
+	var steer := input.stick.x * deg_to_rad(WATER_TURN_DEG) * clampf(speed / 8.0, 0.35, 1.0)
+	var flat := Vector3(-sin(heading), 0.0, -cos(heading))
+	if _shore_ahead(flat, speed * speed / (2.0 * ROLL_STOP_BRAKE) + SHORE_MARGIN):
+		speed = maxf(speed - ROLL_STOP_BRAKE * delta, 0.0)
+		if not _landing and not braking:
+			steer = deg_to_rad(ROLL_PIVOT_DEG) * (signf(input.stick.x) if absf(input.stick.x) > 0.2 else 1.0)
+			speed = minf(speed, 2.0)
+	heading = wrapf(heading - steer * delta, -PI, PI)
+	flat = Vector3(-sin(heading), 0.0, -cos(heading))
+	_ride_waves(global_position + flat * speed * delta, delta)
+	velocity = flat * speed
+	boost_amount = 0.0
+	visuals.update_visuals(input.stick.x * 0.3, speed + 6.0, stats, delta)
+	_spray_t -= delta
+	if speed > 5.0 and _spray_t <= 0.0:
+		_spray_t = 0.18
+		_spray(6, 3.0 + speed * 0.15)
+	if speed <= 0.01 and (_landing or braking):
+		_park_here()
+		return
+	if speed >= lift_speed and (input.stick.y > 0.2 or not _landing):
+		lift_off()
+
+
+## Floats on the waves at `pos`: the right height, nose following the swell.
+func _ride_waves(pos: Vector3, delta: float) -> void:
+	var flat := Vector3(-sin(heading), 0.0, -cos(heading))
+	pos.y = Waves.height(pos.x, pos.z) + stats.ground_offset * FLOAT_RIDE
+	global_position = pos
+	_ground_y = pos.y - stats.ground_offset
+	var fore := Waves.height(pos.x + flat.x * 4.0, pos.z + flat.z * 4.0)
+	var aft := Waves.height(pos.x - flat.x * 4.0, pos.z - flat.z * 4.0)
+	pitch = move_toward(pitch, atan2(fore - aft, 8.0), deg_to_rad(30.0) * delta)
+	rotation = Vector3(pitch, heading, 0.0)
+
+
+## A beach (shallow water or land), a pier, a boat or anything solid within
+## `dist` m ahead on the water?
+func _shore_ahead(dir: Vector3, dist: float) -> bool:
+	var p := global_position + dir * dist
+	if DeliveryManager.ground_at(p.x, p.z) > Waves.height(p.x, p.z) - 1.5:
+		return true  # the beach (shallows, then land)
+	var q := PhysicsRayQueryParameters3D.create(global_position, global_position + dir * dist, GameSettings.LAYER_WORLD)
+	q.exclude = [get_rid()]
+	return not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
+## White spray round the floats.
+func _spray(count: int, strength: float) -> void:
+	var s := PickupBurst.new(count, strength, [Color.WHITE, Color("dff4ff")])
+	s.gravity = Vector3(0, -14, 0)
+	s.lifetime = 0.9
+	s.position = global_position - Vector3.UP * stats.ground_offset * 0.8  # set before adding
+	get_parent().add_child(s)
+
+
 ## Stay parked until the stick and triggers have been let go once (used
 ## when the player climbs back in: the stick was pushed to walk here).
 func hold_until_release() -> void:
@@ -555,7 +699,13 @@ func lift_off() -> void:
 	Sfx.play("whoosh", 1.0)
 	takeoff_finished.emit()
 	var on_tarmac := IslandShape.on_runway(global_position.x, global_position.z)
-	WorldEvents.send("takeoff", global_position - Vector3.UP * stats.ground_offset, {"surface": "runway" if on_tarmac else "grass"})
+	var surface := "water" if _on_water else ("runway" if on_tarmac else "grass")
+	if _on_water:
+		_spray(30, 8.0)
+		Sfx.play("splash", 1.2, -4.0)
+		_climb_out = CLIMB_OUT_TIME
+	_on_water = false
+	WorldEvents.send("takeoff", global_position - Vector3.UP * stats.ground_offset, {"surface": surface})
 
 
 func _crash() -> void:
@@ -600,6 +750,8 @@ func _crashed_step(delta: float) -> void:
 ## Also puts the plane in normal flying mode.
 func teleport(pos: Vector3, yaw: float) -> void:
 	mode = Mode.FLYING
+	_on_water = false
+	_climb_out = 0.0
 	_airborne = 99.0
 	_grace = CRASH_GRACE
 	exploded = false
