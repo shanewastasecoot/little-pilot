@@ -8,6 +8,7 @@ extends Node
 ##   afloat    out at sea there's nowhere to stand: she stays in
 ##   takeoff   boost: it speeds across the water and lifts off ("water")
 ##   shore     taxiing at a beach it stops in the water, never runs aground
+##   swap      swapping to a plane without floats while afloat lifts it up
 ##   others    the prop plane still splashes into the sea (crash), as before
 ## Exit code 0 = pass, 1 = fail.
 
@@ -85,6 +86,13 @@ func _ready() -> void:
 	SaveManager.crashes = false
 	var gentle := await _come_down()
 	_check("in can't-crash mode, slowing down low over the sea lands on it too", gentle and _plane.on_water())
+	# Swapping to a plane without floats while afloat: it's lifted into the air.
+	_plane.set_stats(AircraftCatalog.get_stats("prop"))
+	await _frames(3)
+	var lifted := _plane.mode == Aircraft.Mode.FLYING and not _plane.on_water() \
+			and _plane.global_position.y - Waves.height(_plane.global_position.x, _plane.global_position.z) > 15.0
+	_plane.set_stats(sea_stats)
+	_check("swapping to a plane without floats while afloat lifts it into the air", lifted)
 	# --- shore ---------------------------------------------------------------------------
 	# Skimming in at speed (just landed) towards Palm Island's beach.
 	var dock: Dock = _main.docks[1]

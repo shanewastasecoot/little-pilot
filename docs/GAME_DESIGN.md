@@ -322,7 +322,7 @@ Her own house south-west of the runway is the first building you can walk into.
 
 ## 13b. Other Buildings (Phase 5)
 
-Any building with a front door, a doorstep and a floor plan can be walked into the same way as her house (`main.enter_building`): its inside is built the first time she goes in, high above the building, and kept; coming out puts her on its doorstep. Insides match their outsides in size.
+Any building with a front door, a doorstep and a floor plan can be walked into the same way as her house (`main.enter_building`): its inside is built the first time she goes in, high above the building, and kept; coming out puts her on its doorstep. A building's inside is usually its outside's size; the city's houses are 1.6 times bigger inside each way (`CityHouseLayouts.INSIDE_SCALE`), so their rooms feel like a home rather than a little shack (with an armchair, a cabinet and a plant in the living room, chairs at the kitchen table and a bedside cabinet in the bedroom).
 
 - **The post offices** (all three): one sorting room the size of the shop outside. The postie stands behind a blue counter with parcels waiting on it and a wall of pigeonholes full of coloured letters behind him; he turns and cheers when she comes up. On her very first visit to a post office he gives her the **post office sticker** (a white envelope on blue): it pops up big on the screen, wiggles and flies into the corner (saved, `[stickers] have`; one per kind of building). The fun things are all walk-into: parcels ride a conveyor belt along the wall; standing on the big scales swings the needle round with a ding; walking into the pile of letters takes one, and walking it to the red post box posts it (whoosh, sparkle, the postie cheers), as many as she likes. A hidden star is tucked behind the end of the counter. A letter in her arms stays inside when she goes out. Outside, the parcel pad sits to the left of the front path, so walking in never picks up a parcel by accident.
 - **The city's houses:** every finished house can be walked into. Each house MODEL has one floor plan (`scripts/buildings/city_house_layouts.gd`, kept apart from CityPlan so saved cities don't change), the size of the model as the city places it, with its front door where the model's door is (measured from front views, `docs/images/door_*.png`); the furniture varies with where the house stands. Mostly one floor: a living room across the front and a kitchen and a bedroom behind (the wide, shallow home_3 has them in a row); home_4 has two floors (stairs up the side, two bedrooms upstairs). Small rooms are furnished so nothing ever stands in a doorway or in front of a window (`SmallRoomFurnisher`). Each has an owner (a townsperson in one of six looks) who turns and cheers, and gives her the **house sticker** (a little house on green) on her first visit; one hidden star per house (floating low, under the windows). The way out is the doorway itself (walk into it), so crossing a small living room never takes her outside by accident.
@@ -403,6 +403,16 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - **Camera:** the chase camera rises part way with it, to keep it in the picture.
 - **Room:** under a roof or overhang, or near the sky's ceiling, it does a barrel roll instead. A crash or respawn mid-loop puts the model straight back.
 - `AircraftVisuals.loop()`, `Aircraft.trick()`, `loop_test`.
+
+## 13l. Fixes round 1 (after the user's playtest)
+
+- **See-through houses**: the city's walk-in house models are hollow shells with open window holes, drawn from outside only, so you could see straight through them. They now draw both sides of their walls (the tinted roofs' recolour shader too), plus a dim "room" box inside each (sized from the model's own walls), so the windows look like windows (`CityGrowth.double_sided`, `walls_of`).
+- **Boats sailed backwards**: the sail boat model's bow is +Z; her boat and the cruising boat now sail bow first (and she faces forward at the helm). The **dolphins** leapt tail first: turned round too.
+- **Boats through small islands and other boats**: `DeliveryManager.ground_at` now knows the islets and the lagoon atoll; boats (and the seaplane taxiing) stop for the cruising boat, the pirate ship, the whale, the mermaids' rocks (`SeaTraffic`) and piers; a boat sailing into hers nudges it aside.
+- **Red and green circles on the planes**: the Phase 9 navigation-light dots read as stray circles on the models and were removed.
+- **Her attic**: a third floor up a second flight of stairs from the landing (`"attic": true` in her_house.json: inside the roof, so the outside builds no walls for it; round windows in the gables).
+- **Bigger city house insides** (1.6x, see above).
+- Also: swapping out of the seaplane while afloat lifts the new plane into the air; the sticker book camera no longer prints an error in headless test runs.
 
 ## 14. Future Ideas
 

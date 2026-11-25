@@ -354,10 +354,10 @@ func _board_riders() -> void:
 		beacon.global_position = target().global_position
 
 
-## Ground height anywhere on the map (the highest island there; the sea
-## floor elsewhere).
+## Ground height anywhere on the map (the highest island there, the small
+## islets and the lagoon atoll included; the sea floor elsewhere).
 static func ground_at(x: float, z: float) -> float:
-	return maxf(IslandShape.height(x, z), maxf(maxf(IslandShape.palm_height(x, z), IslandShape.volcano_height(x, z)),
+	return maxf(maxf(IslandShape.height(x, z), Islets.height_at(x, z)), maxf(maxf(IslandShape.palm_height(x, z), IslandShape.volcano_height(x, z)),
 			maxf(maxf(OuterIslands.ice_height(x, z), OuterIslands.dino_height(x, z)),
 				maxf(OuterIslands.castle_height(x, z), OuterIslands.town_height(x, z)))))
 

@@ -109,7 +109,7 @@ static func _build() -> Array[RecipientData]:
 			OutfitData.make("sailor", "Rogue", {"r1c0": Color("f4f4f4"), "r0c5": Color("1d3f8a"), "r0c6": Color("1d3f8a"),
 				"r2c5": Color("1d3f8a"), "r1c7": Color("e63946")}, [["Beanie", "head"]], ["Rogue_Cape"]),
 			["Rogue", {"r0c1": Color("d9a066")}], Vector2(300, 1860), 0.0, Color("1d6fdb"), "boat", 1),
-			50.0, 70.0, "Boat", Vector3(0, 1.3, -3.5)))
+			50.0, 70.0, "Boat", Vector3(0, 1.3, 3.5)))
 	list.append(RecipientData.air(RecipientData.make("hiker",
 			OutfitData.make("hiker", "Rogue", {"r1c0": Color("ff5a5f"), "r0c5": Color("4a5a3a"), "r0c6": Color("6b4226"),
 				"r2c5": Color("6b4226")}, [["Sun_Hat", "head"]], ["Rogue_Cape"]),

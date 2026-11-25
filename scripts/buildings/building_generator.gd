@@ -354,6 +354,106 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			HatShopFurnisher.furnish(interior, data, room, rect, base, node)
 		"small_living", "small_kitchen", "small_bedroom":
 			SmallRoomFurnisher.new(interior, data, room, rect, base, node, rng).furnish()
+		"attic":
+			_furnish_attic(interior, data, room, rect, base, node, rng)
+
+
+## Her attic (up the second stairs): a cosy reading nook (armchair, lamp,
+## books, cushions), a toy box and a ball, bookshelves, a stack of old
+## cardboard boxes, a telescope by the window and a string of fairy lights
+## round the walls. Nothing overhead (the camera looks down into the room).
+static func _furnish_attic(interior: Interior, data: Dictionary, room: Dictionary, rect: Rect2, base: float, node: Node3D,
+		rng: RandomNumberGenerator) -> void:
+	var f: float = data.get("furniture_scale", 2.27)
+	var t: float = data.get("wall_thickness", 0.5)
+	_put(node, data, rect, base, "rug_oval_" + ("A" if rng.randf() < 0.5 else "B"), 0.62, 0.55, 0.0, 2.0, false)
+	# The reading nook, in the north-east corner.
+	var chair := _put(node, data, rect, base, "armchair_pillows", 0.82, _against(data, rect.size.y, 1.6), 200.0, 1.0)
+	if chair:
+		_bouncy_seat(chair, f)
+		interior.sofas.append(chair)
+	_put(node, data, rect, base, "lamp_standing", 0.94, _against(data, rect.size.y, 1.0))
+	_put(node, data, rect, base, "pillow_A", 0.7, 0.24, rng.randf() * 360.0, 2.0, false)
+	_put(node, data, rect, base, "pillow_B", 0.74, 0.3, rng.randf() * 360.0, 2.0, false)
+	_put(node, data, rect, base, "book_set", 0.66, 0.2, 30.0, 1.6, false)
+	# Bookshelves along the north wall, west of the nook.
+	var shelf_at := _free_spot(data, room, "N", 5.4)
+	if shelf_at >= 0.0:
+		_put(node, data, rect, base, "shelf_B_large_decorated", shelf_at, (t + 0.7) / rect.size.y, 0.0, 1.2, false, 5.0)
+	# A toy box and a ball (the same ones as the playroom: they work).
+	var tb := ToyBox.new()
+	tb.name = "AtticToyBox"
+	tb.position = Vector3(rect.position.x + 0.9 * rect.size.x, base, rect.position.y + 0.82 * rect.size.y)
+	tb.rotation.y = -PI * 0.5
+	node.add_child(tb)
+	interior.toy_boxes.append(tb)
+	var ball := BouncyBall.new()
+	ball.name = "AtticBall"
+	ball.home = Vector3(rect.position.x + 0.55 * rect.size.x, base + 2.0, rect.position.y + 0.75 * rect.size.y)
+	node.add_child(ball)
+	interior.balls.append(ball)
+	# A stack of old cardboard boxes in the south-west corner (with tape).
+	var boxes := Node3D.new()
+	boxes.name = "OldBoxes"
+	boxes.position = Vector3(rect.position.x + t + 3.5, base, rect.end.y - t - 3.5)
+	node.add_child(boxes)
+	for b: Array in [[Vector3(0, 1.2, 0), Vector3(3.6, 2.4, 3.2), 8.0], [Vector3(3.8, 0.9, 0.6), Vector3(2.8, 1.8, 2.6), -12.0],
+			[Vector3(0.4, 3.3, 0.2), Vector3(2.6, 1.8, 2.4), 20.0], [Vector3(-0.2, 0.7, 3.6), Vector3(2.4, 1.4, 2.2), 35.0]]:
+		var box := BuildKit.add(boxes, BuildKit.box(b[1]), "c9a06a", b[0], Vector3(0, b[2], 0))
+		BuildKit.add(box, BuildKit.box(Vector3(b[1].x * 0.25, 0.05, b[1].z + 0.02)), "e8d9b0", Vector3(0, b[1].y * 0.5, 0))
+	var bc := StaticBody3D.new()
+	bc.collision_layer = GameSettings.LAYER_WORLD
+	var bcs := CollisionShape3D.new()
+	bcs.shape = BuildKit.box_shape(Vector3(7.5, 4.0, 7.0))
+	bcs.position = Vector3(1.6, 2.0, 1.6)
+	bc.add_child(bcs)
+	boxes.add_child(bc)
+	# A telescope on its tripod, looking out of the east window.
+	var scope := Node3D.new()
+	scope.name = "Telescope"
+	scope.position = Vector3(rect.end.x - t - 3.2, base, rect.position.y + 0.24 * rect.size.y)  # beside the east window, peeking out
+	scope.rotation.y = -0.5
+	node.add_child(scope)
+	for k in 3:
+		var a := TAU * k / 3.0
+		var leg := BuildKit.add(scope, BuildKit.box(Vector3(0.18, 3.4, 0.18)), "6b4a2b", Vector3(cos(a) * 0.55, 1.6, sin(a) * 0.55))
+		leg.rotation = Vector3(sin(a) * 0.32, 0, -cos(a) * 0.32)
+	var tube := MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.32
+	cyl.bottom_radius = 0.42
+	cyl.height = 3.2
+	tube.mesh = cyl
+	tube.material_override = BuildKit.mat("3a7bd5")
+	tube.position = Vector3(0.3, 3.6, 0)
+	tube.rotation = Vector3(0, 0, -1.2)
+	scope.add_child(tube)
+	BuildKit.add(scope, BuildKit.box(Vector3(0.5, 0.5, 0.5)), "ffd23f", Vector3(1.75, 4.15, 0))
+	# Fairy lights: little glowing bulbs along the walls, high up.
+	var lights := Node3D.new()
+	lights.name = "FairyLights"
+	node.add_child(lights)
+	var colours := ["ffd23f", "ff7eb9", "7fd3ff", "9cf27a", "ffffff"]
+	var y := base + 8.5
+	var k := 0
+	for side in ["N", "E", "S", "W"]:
+		var along_x: bool = side == "N" or side == "S"
+		var length := rect.size.x if along_x else rect.size.y
+		var n := int(length / 2.2)
+		for i in n:
+			var u := (i + 0.5) / n
+			var p := Vector3()
+			match side:
+				"N": p = Vector3(rect.position.x + u * rect.size.x, y - sin(u * PI * 4.0) * 0.4, rect.position.y + t + 0.25)
+				"S": p = Vector3(rect.position.x + u * rect.size.x, y - sin(u * PI * 4.0) * 0.4, rect.end.y - t - 0.25)
+				"W": p = Vector3(rect.position.x + t + 0.25, y - sin(u * PI * 4.0) * 0.4, rect.position.y + u * rect.size.y)
+				_: p = Vector3(rect.end.x - t - 0.25, y - sin(u * PI * 4.0) * 0.4, rect.position.y + u * rect.size.y)
+			var bulb := BuildKit.add(lights, BuildKit.sphere(0.22, 6), colours[k % colours.size()], p)
+			var m := BuildKit.mat(colours[k % colours.size()], true)
+			bulb.material_override = m
+			k += 1
+	MeshMerge.merge_children(lights)
+	_put(node, data, rect, base, "pictureframe_standing_A", 0.35, _against(data, rect.size.y, 0.6), 0.0, 1.4, false)
 
 
 ## Along the back (north) wall: the fridge, counters, the sink and the stove

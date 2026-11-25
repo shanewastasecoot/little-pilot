@@ -53,7 +53,10 @@ func _process(delta: float) -> void:
 			y = -2.0 + sin(u * PI) * LEAP_HEIGHT
 			pitch = cos(u * PI) * 0.7  # nose up, then nose down
 		holder.position = Vector3(cos(m.angle) * radius, y, sin(m.angle) * radius)
-		holder.rotation = Vector3(0, -m.angle, 0)
+		# Swimming round the circle: travel is along the holder's +Z at this
+		# yaw. Mermaids face +Z; dolphins face -Z, so they're turned round
+		# (they used to swim and leap tail first).
+		holder.rotation = Vector3(0, -m.angle + (PI if kind == "dolphin" else 0.0), 0)
 		holder.rotation.x = 0.0
 		# Dolphins face -Z and mermaids +Z, so tilt them opposite ways.
 		holder.rotate_object_local(Vector3.RIGHT, pitch if kind == "dolphin" else -pitch)

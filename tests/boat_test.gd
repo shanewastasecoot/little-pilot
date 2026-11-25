@@ -6,6 +6,9 @@ extends Node
 ##             pier and Y puts her aboard (the boat camera)
 ##   sail      it sails forward, faster with the stick, and steers
 ##   aground   sailing at an island it stops before the shallows, never on land
+##   islets    the same for the small islands out at sea
+##   traffic   it stops short of the other boats; one sailing into her nudges
+##             her aside (never overlapping)
 ##   horn      the honk button toots the horn (things nearby hear it)
 ##   arrive    Y near another island's dock: it glides in and she steps off
 ##             onto the pier; that's where it's moored now (saved)
@@ -92,6 +95,51 @@ func _ready() -> void:
 	_boat.override_gust = false
 	print("  note: aground check: shallowest under the boat %.1f m, speed %.1f" % [deepest, _boat.speed])
 	_check("sailing at an island it stops before the shallows, never on land", deepest < SailBoat.SHALLOW and absf(_boat.speed) < 1.0)
+	# --- islets ----------------------------------------------------------------------------
+	var islet: Vector2 = Islets.LIST[0][0]
+	var from := Vector3(islet.x + 230.0, 0, islet.y)
+	_boat.global_position = from
+	_boat.yaw = atan2(from.x - islet.x, from.z - islet.y)  # facing the islet
+	_boat.rotation.y = _boat.yaw
+	_boat.speed = SailBoat.FAST
+	_boat.override_gust = true
+	var islet_shallowest := -999.0
+	for i in 900:
+		await get_tree().physics_frame
+		islet_shallowest = maxf(islet_shallowest, DeliveryManager.ground_at(_boat.global_position.x, _boat.global_position.z))
+	_boat.override_gust = false
+	print("  note: islet check: shallowest under the boat %.1f m, %.0f m from its middle, speed %.1f" % [islet_shallowest,
+			Vector2(_boat.global_position.x - islet.x, _boat.global_position.z - islet.y).length(), _boat.speed])
+	_check("the same for the small islands out at sea", islet_shallowest < SailBoat.SHALLOW and absf(_boat.speed) < 1.0)
+	# --- traffic ---------------------------------------------------------------------------
+	var other: Boat
+	for l in get_tree().get_nodes_in_group("landmarks"):
+		if l is Boat:
+			other = l
+	other.set_process(false)  # (held still for the test)
+	var hull: Node3D = other.get("_hull")
+	var towards := Vector3(hull.global_position.x + 150.0, 0, hull.global_position.z)
+	_boat.global_position = towards
+	_boat.yaw = atan2(towards.x - hull.global_position.x, towards.z - hull.global_position.z)
+	_boat.rotation.y = _boat.yaw
+	_boat.speed = SailBoat.FAST
+	_boat.override_gust = true
+	var closest := INF
+	for i in 600:
+		await get_tree().physics_frame
+		closest = minf(closest, Dock.flat_dist(_boat.global_position, hull.global_position))
+	_boat.override_gust = false
+	_boat.override_stick = Vector2.ZERO
+	var stopped_short := closest > SeaTraffic.RADII["Boat"] and absf(_boat.speed) < 1.0
+	# Now it sails into her (she's stopped): she's nudged aside.
+	other.position = Vector3(_boat.global_position.x + 3.0, 0, _boat.global_position.z)
+	await _frames(3)
+	var apart := Dock.flat_dist(_boat.global_position, hull.global_position)
+	other.set_process(true)
+	print("  note: traffic: closest %.1f m to the other boat; after it sailed into her, %.1f m apart" % [closest, apart])
+	_check("it stops short of the other boats; one sailing into her nudges her aside", stopped_short
+			and apart >= SeaTraffic.RADII["Boat"] + SailBoat.BEAM - 0.5)
+	_boat.override_stick = Vector2(0, 1)
 	# --- horn ------------------------------------------------------------------------------
 	var heard := [false]
 	WorldEvents.happened.connect(func(k, _w2, _i): if k == "honk": heard[0] = true)

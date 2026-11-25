@@ -7,9 +7,14 @@ extends RefCounted
 ## a few spots along a wall (or across the floor) and skips a piece rather
 ## than block a door.
 ##   small_living   sofa (or an armchair) against a plain wall, a low table,
-##                  a lamp, a rug, a picture; the owner stands in it
+##                  a lamp, a rug, a picture, an armchair, a cabinet and a
+##                  plant; the owner stands in it
 ##   small_kitchen  fridge, counters and stove along a wall, a small table
-##   small_bedroom  a bed, a shelf, a rug; the house's hidden star
+##                  with chairs
+##   small_bedroom  a bed, a bedside cabinet, a shelf, a rug, a little
+##                  plant; the house's hidden star
+## (The extras fill the bigger insides: CityHouseLayouts.INSIDE_SCALE. Each
+## only goes in if there's room for it.)
 
 var interior: Interior
 var data: Dictionary
@@ -163,6 +168,15 @@ func _living() -> void:
 	for side: String in ["E", "N", "W"]:
 		if place_on_wall("lamp_standing", side, 1.0, 1.0, 1.0, true, true, [0.1, 0.9, 0.15, 0.85]):
 			break
+	for side: String in ["E", "W", "N", "S"]:
+		if place_on_wall("armchair", side, 1.8, 1.6, 1.0, false, true, [0.3, 0.7, 0.5]):
+			break
+	for side: String in ["N", "E", "W"]:
+		if place_on_wall("cabinet_medium_decorated", side, 2.0, 1.0, 1.0, true, true, [0.2, 0.8, 0.35, 0.65]):
+			break
+	for side: String in ["W", "E", "N"]:
+		if place_on_wall(_ab("cactus_medium"), side, 0.8, 0.8, 1.0, true, true, [0.08, 0.92]):
+			break
 	var pic := BuildingGenerator._free_spot(data, room, "N", 3.0)
 	if pic >= 0.0:
 		BuildingGenerator._put(node, data, rect, base, _ab("pictureframe_small"), pic, (t + 0.3) / rect.size.y, 0.0, 1.4, false, 5.0)
@@ -236,6 +250,14 @@ func _kitchen() -> void:
 	var tp := free_floor(2.0 * f, 2.0 * f)
 	if tp != Vector2.INF:
 		BuildingGenerator._put(node, data, rect, base, "table_small", (tp.x - rect.position.x) / rect.size.x, (tp.y - rect.position.y) / rect.size.y)
+		# Two chairs at it, facing it (where there's room).
+		for sx in [-1.0, 1.0]:
+			var cp := tp + Vector2(sx * 1.55 * f, 0.0)
+			var cr := Rect2(cp.x - 0.5 * f, cp.y - 0.5 * f, 1.0 * f, 1.0 * f)
+			if _fits(cr, false):
+				_taken.append(cr)
+				BuildingGenerator._put(node, data, rect, base, "chair_A_wood", (cp.x - rect.position.x) / rect.size.x,
+						(cp.y - rect.position.y) / rect.size.y, -90.0 * sx)
 	if interior.has_meta("owner_pending"):
 		_place_owner()
 	place_star()
@@ -259,6 +281,12 @@ func _bedroom() -> void:
 		bed.add_child(seat)
 		interior.beds.append(bed)
 	BuildingGenerator._put(node, data, rect, base, _ab("rug_oval"), 0.5, 0.6, 0.0, 1.0, false)
+	for side: String in ["N", "E", "W"]:
+		if place_on_wall("cabinet_small_decorated", side, 1.2, 1.0, 1.0, true, true, [0.15, 0.85, 0.3, 0.7]):
+			break
+	for side: String in ["E", "W", "S"]:
+		if place_on_wall(_ab("cactus_small"), side, 0.6, 0.6, 1.0, false, true, [0.1, 0.9]):
+			break
 	if interior.has_meta("owner_pending"):
 		_place_owner()
 	for side in ["E", "W", "N"]:

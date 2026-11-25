@@ -8,6 +8,12 @@ extends RefCounted
 ## model's door is (measured from front views: docs/images/door_*.png).
 ## Plans use BuildingGenerator's format (x right, z towards the front door).
 ## Mostly one floor; home_4 (the tallest with room for stairs) has two.
+##
+## The insides are built on their own (up above the house), so they don't
+## have to fit the outside: they're INSIDE_SCALE times the model's size each
+## way, so the rooms feel like a home rather than a little shack (her own
+## house's rooms are bigger still).
+const INSIDE_SCALE := 1.6
 
 ## model -> [width, depth, door x offset, two floors]
 const MODELS := {
@@ -46,12 +52,22 @@ static func footprint(model: String) -> Vector2:
 	return Vector2(m[0], m[1])
 
 
+## The size of the inside (INSIDE_SCALE times the model's footprint).
+static func inside_size(model: String) -> Vector2:
+	return footprint(model) * INSIDE_SCALE
+
+
+## Where the front door is on the inside plan (x, at the front wall).
+static func inside_door_x(model: String) -> float:
+	return float(MODELS[model][2]) * INSIDE_SCALE
+
+
 ## The floor plan for a house of `model`, furniture varied by `seed`.
 static func layout(model: String, seed: int) -> Dictionary:
 	var m: Array = MODELS[model]
-	var w: float = m[0]
-	var d: float = m[1]
-	var door_x: float = m[2]
+	var w: float = float(m[0]) * INSIDE_SCALE
+	var d: float = float(m[1]) * INSIDE_SCALE
+	var door_x: float = inside_door_x(model)
 	var rooms: Array
 	var stairs: Array = []
 	if model == "home_3":
@@ -70,8 +86,8 @@ static func layout(model: String, seed: int) -> Dictionary:
 		r["floor_colour"] = ["c8a27a", "b98a5e", "d9b48a"][rng.randi() % 3]
 	# (A small exit trigger right in the doorway: the rooms are small, and
 	# crossing the living room shouldn't take her outside.)
-	return {"name": "city_house_" + model, "storey_height": 9.0, "wall_thickness": 0.5, "door_width": 4.0, "exit_radius": 1.6,
-		"door_height": 7.0, "furniture_scale": 2.27, "seed": seed, "backdrop": "plain", "rooms": rooms, "stairs": stairs,
+	return {"name": "city_house_" + model, "storey_height": 10.0, "wall_thickness": 0.5, "door_width": 4.0, "exit_radius": 1.6,
+		"door_height": 8.0, "furniture_scale": 2.27, "seed": seed, "backdrop": "plain", "rooms": rooms, "stairs": stairs,
 		"owner": OWNER_LOOKS[rng.randi() % OWNER_LOOKS.size()], "sticker": "city_house"}
 
 
@@ -103,7 +119,7 @@ static func _front_and_back(w: float, d: float, door_x: float) -> Array:
 		{"id": "kitchen", "type": "small_kitchen", "floor": 0, "rect": [x0, z0, kw, split - z0],
 			"doors": [{"side": "S", "at": 0.5}], "windows": [{"side": "W", "at": 0.5}]},
 		{"id": "bedroom", "type": "small_bedroom", "floor": 0, "rect": [x0 + kw, z0, w - kw, split - z0],
-			"doors": [{"side": "S", "at": 0.5}], "windows": [{"side": "N", "at": 0.3}, {"side": "E", "at": 0.5}]},
+			"doors": [{"side": "S", "at": 0.5}], "windows": [{"side": "N", "at": 0.7}, {"side": "E", "at": 0.5}]},
 	]
 
 
@@ -111,9 +127,9 @@ static func _front_and_back(w: float, d: float, door_x: float) -> Array:
 static func _side_by_side(w: float, d: float, door_x: float) -> Array:
 	var x0 := -w * 0.5
 	var z0 := -d * 0.5
-	var kw := 6.0
+	var kw := 6.0 * INSIDE_SCALE
 	var lx0 := x0 + kw
-	var lw := 10.0
+	var lw := 10.0 * INSIDE_SCALE
 	return [
 		{"id": "kitchen", "type": "small_kitchen", "floor": 0, "rect": [x0, z0, kw, d],
 			"doors": [{"side": "E", "at": 0.5}], "windows": [{"side": "W", "at": 0.5}]},
@@ -132,10 +148,10 @@ static func _side_by_side(w: float, d: float, door_x: float) -> Array:
 static func _two_floors(w: float, d: float, door_x: float) -> Array:
 	var x0 := -w * 0.5
 	var z0 := -d * 0.5
-	var sw := 6.0
+	var sw := 7.0
 	var sx0 := w * 0.5 - sw
 	var mw := w - sw
-	var split := z0 + 10.0
+	var split := z0 + 10.0 * INSIDE_SCALE
 	var bottom := z0 + 4.0
 	var top := d * 0.5 - 6.5
 	var sx := sx0 + sw * 0.5
@@ -144,9 +160,9 @@ static func _two_floors(w: float, d: float, door_x: float) -> Array:
 			"doors": [{"side": "S", "at": _at(door_x, x0, mw), "exit": true}, {"side": "N", "at": 0.5}],
 			"windows": [{"side": "W", "at": 0.5}, {"side": "S", "at": 0.15}]},
 		{"id": "kitchen", "type": "small_kitchen", "floor": 0, "rect": [x0, z0, mw, split - z0],
-			"doors": [{"side": "S", "at": 0.5}, {"side": "E", "at": 0.2}], "windows": [{"side": "W", "at": 0.5}, {"side": "N", "at": 0.3}]},
+			"doors": [{"side": "S", "at": 0.5}, {"side": "E", "at": 2.2 / (split - z0)}], "windows": [{"side": "W", "at": 0.5}, {"side": "N", "at": 0.3}]},
 		{"id": "stairwell", "type": "stairwell", "floor": 0, "rect": [sx0, z0, sw, d],
-			"doors": [{"side": "W", "at": 0.2 * (split - z0) / d}], "windows": [{"side": "E", "at": 0.12}]},
+			"doors": [{"side": "W", "at": 2.2 / d}], "windows": [{"side": "E", "at": 0.12}]},
 		{"id": "landing", "type": "landing", "floor": 1, "rect": [sx0, z0, sw, d],
 			"holes": [[sx0 + 1.0, bottom, sw - 2.0, top - bottom]],
 			"doors": [{"side": "W", "at": (top + 3.25 - z0) / d}], "windows": [{"side": "E", "at": 0.85}]},

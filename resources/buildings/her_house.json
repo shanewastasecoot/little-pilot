@@ -1,6 +1,6 @@
 {
 	"name": "her_house",
-	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door), floor = storey (0 down, 1 up). Doors and windows sit on a side (N, S, E, W) at a fraction along it; a doorway between two rooms is listed on both, at the same spot. A door with exit = true leads outside. holes = openings in a room's floor (the stairs come up through one). stairs: a straight flight from a room below to a room above (bottom and top ends on the plan, width). Ground floor: hall, stairwell, playroom, kitchen, dining room, living room. Upstairs: landing and four bedrooms (bedroom_nw is Sophia's: she picks its wall and bed colours). Upstairs sits wholly on top of the ground floor (one rectangle), so the outside house (BuildingGenerator.build_exterior, from this same plan) is a real two-storey house with single-storey wings.",
+	"_comment": "Her house's inside, built by scripts/buildings/building_generator.gd. Metres, sized for her 5 m character. rect = [x, z, width, depth] on the floor plan (x right, z towards the front door), floor = storey (0 down, 1 up). Doors and windows sit on a side (N, S, E, W) at a fraction along it; a doorway between two rooms is listed on both, at the same spot. A door with exit = true leads outside. holes = openings in a room's floor (the stairs come up through one). stairs: a straight flight from a room below to a room above (bottom and top ends on the plan, width). Ground floor: hall, stairwell, playroom, kitchen, dining room, living room. Upstairs: landing and four bedrooms (bedroom_nw is Sophia's: she picks its wall and bed colours). Upstairs sits wholly on top of the ground floor (one rectangle), so the outside house (BuildingGenerator.build_exterior, from this same plan) is a real two-storey house with single-storey wings. Attic (floor 2): one big cosy room under the roof, up a second flight of stairs from the landing; rooms with attic = true live inside the roof, so the outside house builds no walls for them (round attic windows in the big roof's gable ends instead).",
 	"storey_height": 11.0,
 	"wall_thickness": 0.5,
 	"door_width": 7.0,
@@ -385,6 +385,43 @@
 					"at": 0.5
 				}
 			]
+		},
+		{
+			"id": "attic",
+			"type": "attic",
+			"floor": 2,
+			"attic": true,
+			"rect": [
+				-25,
+				-20,
+				37,
+				30
+			],
+			"wall": "f3e3c3",
+			"floor_colour": "b98a5e",
+			"holes": [
+				[
+					-20.0,
+					-6.5,
+					16.5,
+					7.0
+				]
+			],
+			"doors": [],
+			"windows": [
+				{
+					"side": "N",
+					"at": 0.5
+				},
+				{
+					"side": "S",
+					"at": 0.7
+				},
+				{
+					"side": "E",
+					"at": 0.5
+				}
+			]
 		}
 	],
 	"stairs": [
@@ -397,6 +434,19 @@
 			],
 			"top": [
 				14.0,
+				-3.0
+			],
+			"width": 6.0
+		},
+		{
+			"from": "landing",
+			"to": "attic",
+			"bottom": [
+				-4.0,
+				-3.0
+			],
+			"top": [
+				-19.5,
 				-3.0
 			],
 			"width": 6.0
