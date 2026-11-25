@@ -59,6 +59,8 @@ const PLANE_CALL_HOLD := 1.0
 var plane_beacon: DeliveryBeacon
 ## Her room's colour chooser (opened with Y at a PaintStation).
 var colour_menu: ColourMenu
+## The hat shop's chooser (Y at its mirror).
+var hat_menu: HatMenu
 ## Her house: the landmark outside, the inside (built once, the first time
 ## you go in, by BuildingGenerator from resources/buildings/her_house.json),
 ## the indoor camera and lighting.
@@ -146,6 +148,14 @@ func _ready() -> void:
 	hud.add_child(colour_menu)
 	colour_menu.chosen.connect(_on_colour_chosen)
 	colour_menu.cancelled.connect(func(): _hold_walker(false))
+	hat_menu = HatMenu.new()
+	hat_menu.name = "HatMenu"
+	hud.add_child(hat_menu)
+	hat_menu.preview = func(id: String): walker.model.set_hat(id)
+	hat_menu.chosen.connect(_on_hat_chosen)
+	hat_menu.cancelled.connect(func():
+		_hold_walker(false)
+		indoor_camera.close_up = false)
 	var fade_layer := CanvasLayer.new()
 	fade_layer.layer = 40
 	add_child(fade_layer)
@@ -178,6 +188,9 @@ func _ready() -> void:
 	# The post offices' front doors: walk in.
 	for po in delivery.post_offices:
 		po.door_entered.connect(func(): if state == State.ON_FOOT: enter_building(po))
+	# The hat shop by the airport.
+	for hs in get_tree().get_nodes_in_group("hat_shops"):
+		hs.door_entered.connect(func(): if state == State.ON_FOOT: enter_building(hs))
 
 	character_screen = CharacterScreen.new()
 	add_child(character_screen)
@@ -262,7 +275,7 @@ func _process(delta: float) -> void:
 		hud.set_prompt("enter")
 	elif state == State.ON_FOOT and plane_far():
 		hud.set_prompt("call")
-	elif state == State.INDOORS and interior and not colour_menu.is_open() and not interior.interaction_at(walker).is_empty():
+	elif state == State.INDOORS and interior and not colour_menu.is_open() and not hat_menu.is_open() and not interior.interaction_at(walker).is_empty():
 		hud.set_prompt(interior.interaction_at(walker).kind)
 	elif _playing():
 		hud.set_prompt("")
@@ -765,7 +778,7 @@ func _on_all_stars() -> void:
 ## opens the chooser; by a dining chair she sits down (and eats her meal if
 ## there's one at her place). True if it did something.
 func open_colour_menu() -> bool:
-	if state != State.INDOORS or interior == null or colour_menu.is_open() or _doorway_busy:
+	if state != State.INDOORS or interior == null or colour_menu.is_open() or hat_menu.is_open() or _doorway_busy:
 		return false
 	var here := interior.interaction_at(walker)
 	if here.is_empty():
@@ -782,6 +795,18 @@ func open_colour_menu() -> bool:
 			_hold_walker(true)
 			hud.set_prompt("")
 			colour_menu.open(st.kind, SaveManager.house_wall if walls else SaveManager.house_bed)
+		"hat":
+			# On the mirror's rug, turned round to face the camera (and the
+			# camera in front of her) so she sees each hat on her face.
+			var mirror: HatMirror = here.target
+			var out_yaw := mirror.global_rotation.y
+			walker.place(mirror.stand_point() + Vector3.UP * 0.1, out_yaw + PI)
+			indoor_camera.snap_to(out_yaw)
+			indoor_camera.close_up = true
+			_hold_walker(true)
+			hud.set_prompt("")
+			hud.show_foot_hints(false)
+			hat_menu.open(SaveManager.hat)
 		"food":
 			colour_menu.preview = func(_i: int): pass
 			_hold_walker(true)
@@ -816,6 +841,22 @@ func _on_colour_chosen(i: int) -> void:
 		interior.colour_her_quilt(i, true)
 	if st:
 		st.celebrate(i)
+
+
+## A hat picked at the mirror: bought if it's new (the stars come out of
+## her purse), then worn, everywhere, from now on.
+func _on_hat_chosen(id: String) -> void:
+	_hold_walker(false)
+	# (A moment to see the new hat close up, then back over the walls.)
+	get_tree().create_timer(1.8, false).timeout.connect(func(): indoor_camera.close_up = false)
+	var bought := id != "" and not SaveManager.hats_owned.has(id)
+	if id == "" or SaveManager.buy_hat(id):
+		SaveManager.wear_hat(id)
+	walker.model.set_hat(SaveManager.hat)
+	if interior and not interior.hat_mirrors.is_empty():
+		interior.hat_mirrors[0].celebrate()
+	if bought:
+		walker.model.cheer()
 
 
 ## Keep her standing still (while a menu is open).

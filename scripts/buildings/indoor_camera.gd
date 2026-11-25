@@ -23,6 +23,13 @@ var cam: Camera3D
 var override_enabled := false
 var override_look := Vector2.ZERO
 var _since_look := 99.0
+## Close up, low and level at her head (the hat shop's try-on), eased in
+## and out.
+var close_up := false
+var _close := 0.0
+const CLOSE_DISTANCE := 11.0
+const CLOSE_PITCH_DEG := -12.0
+const CLOSE_PIVOT := 3.2
 
 
 func _ready() -> void:
@@ -32,6 +39,10 @@ func _ready() -> void:
 	cam.far = 800.0
 	add_child(cam)
 	_place_camera()
+
+
+static func _ease(x: float) -> float:
+	return x * x * (3.0 - 2.0 * x)
 
 
 ## Start behind the character, facing `view_yaw`, no easing.
@@ -56,7 +67,8 @@ func _physics_process(delta: float) -> void:
 		if _since_look > FOLLOW_DELAY and target.moving:
 			yaw = lerp_angle(yaw, target.facing, 1.0 - exp(-FOLLOW_RATE * delta))
 	target.camera_yaw = yaw
-	var want := target.global_position + Vector3.UP * PIVOT_HEIGHT
+	_close = move_toward(_close, 1.0 if close_up else 0.0, delta * 2.5)
+	var want := target.global_position + Vector3.UP * lerpf(PIVOT_HEIGHT, CLOSE_PIVOT, _ease(_close))
 	global_position = global_position.lerp(want, 1.0 - exp(-SMOOTH * delta))
 	_place_camera()
 	if interior:
@@ -69,7 +81,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _place_camera() -> void:
-	var p := deg_to_rad(PITCH_DEG)
+	var k := _ease(_close)
+	var p := deg_to_rad(lerpf(PITCH_DEG, CLOSE_PITCH_DEG, k))
+	var dist := lerpf(DISTANCE, CLOSE_DISTANCE, k)
 	var back := Vector3(sin(yaw), 0.0, cos(yaw))  # behind: opposite of facing -Z at yaw
-	cam.position = back * DISTANCE * cos(p) + Vector3.UP * (-sin(p)) * DISTANCE
+	cam.position = back * dist * cos(p) + Vector3.UP * (-sin(p)) * dist
 	cam.look_at(global_position, Vector3.UP)

@@ -95,7 +95,7 @@ func finish(celebrate: bool) -> void:
 		return
 	done = true
 	set_progress(1.0)
-	if is_house():
+	if is_house() or is_hat_shop():
 		_add_front_door()
 	if _site:
 		_site.queue_free()
@@ -198,11 +198,17 @@ func _build_playground() -> void:
 	set_progress(0.0)
 
 
-# --- Going in (houses) ------------------------------------------------------------------
+# --- Going in (houses, hat shops) -------------------------------------------------------
 
 ## A finished house you can walk into (its model has a floor plan).
 func is_house() -> bool:
 	return event.get("kind", "") == "house" and CityHouseLayouts.has(str(event.model))
+
+
+## A shop the city's news named a hat shop, on a model with a front door
+## (HatShopLayout): you can walk into it too.
+func is_hat_shop() -> bool:
+	return event.get("kind", "") == "shop" and "hat shop" in str(event.get("text", "")) and HatShopLayout.has(str(event.model))
 
 
 func _add_front_door() -> void:
@@ -222,10 +228,31 @@ func _add_front_door() -> void:
 			var game := get_tree().get_first_node_in_group("game_main")
 			if game:
 				game.door_walked_into(self))
+	if is_hat_shop():
+		# The sign: a big straw hat on the roof (seen from the air too).
+		var size: Vector3 = event.size
+		var hat := CharacterLook.prop("Straw_Hat") as MeshInstance3D
+		var hat_s := size.x * 0.3
+		hat.scale = Vector3.ONE * hat_s
+		var hb := hat.get_aabb()
+		hat.position = Vector3(-size.x * 0.22, size.y + 0.3, 0) - Vector3(hb.get_center().x, hb.position.y, hb.get_center().z) * hat_s
+		hat.rotation.y = 0.4
+		add_child(hat)
+	if is_hat_shop() and HatShopLayout.adds_door(str(event.model)):
+		# This model has no door on the ground floor: a blue one, with a
+		# pink-and-white awning over it.
+		var d := door_local()
+		BuildKit.add(self, BuildKit.box(Vector3(4.6, 7.4, 0.3)), "3a7bd5", d + Vector3(0, 3.7, 0.1))
+		BuildKit.add(self, BuildKit.box(Vector3(5.4, 0.5, 0.4)), "ffffff", d + Vector3(0, 7.6, 0.15))
+		for k in 6:
+			BuildKit.add(self, BuildKit.box(Vector3(1.2, 0.25, 2.4)), "ff9fc4" if k % 2 == 0 else "ffffff",
+					d + Vector3(-3.0 + (k + 0.5), 8.6, 1.1), Vector3(-18, 0, 0))
 
 
 ## The front door (local, on the ground at the front wall).
 func door_local() -> Vector3:
+	if is_hat_shop():
+		return HatShopLayout.door_local(str(event.model), float(event.scale), event.size)
 	return CityHouseLayouts.door_local(str(event.model))
 
 
@@ -246,10 +273,13 @@ func doorstep_yaw() -> float:
 
 func building_id() -> String:
 	var p: Vector3 = event.pos
-	return "city_house_%d_%d" % [roundi(p.x), roundi(p.z)]
+	return "city_%s_%d_%d" % ["hat_shop" if is_hat_shop() else "house", roundi(p.x), roundi(p.z)]
 
 
 ## Its floor plan (one per model; the furniture varies with where it stands).
 func interior_layout() -> Dictionary:
 	var p: Vector3 = event.pos
-	return CityHouseLayouts.layout(str(event.model), absi(roundi(p.x) * 73856093 ^ roundi(p.z) * 19349663) % 100000 + 1)
+	var seed := absi(roundi(p.x) * 73856093 ^ roundi(p.z) * 19349663) % 100000 + 1
+	if is_hat_shop():
+		return HatShopLayout.layout(str(event.model), float(event.scale), event.size, seed)
+	return CityHouseLayouts.layout(str(event.model), seed)

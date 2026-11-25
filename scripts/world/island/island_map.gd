@@ -118,6 +118,11 @@ func _place_landmarks() -> void:
 	her_house.name = "HerHouse"
 	her_house.rotation.y = PI  # front door towards the runway (north); before it builds
 	_add_landmark(her_house, IslandShape.HOUSE)
+	# The hat shop: beside the airport post office, facing the runway too.
+	var hat_shop := HatShop.new()
+	hat_shop.name = "HatShop"
+	hat_shop.position = Vector3(IslandShape.HAT_SHOP.x, _ground(IslandShape.HAT_SHOP), IslandShape.HAT_SHOP.y)
+	add_child(hat_shop)
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)

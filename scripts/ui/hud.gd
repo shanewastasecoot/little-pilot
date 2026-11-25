@@ -267,7 +267,7 @@ func set_prompt(kind: String) -> void:
 	_prompt_kind = kind
 	if kind != "":
 		_prompt_icon.icon = {"exit": UiIcon.Icon.PERSON, "paint": UiIcon.Icon.PAINT, "food": UiIcon.Icon.FOOD,
-				"sit": UiIcon.Icon.SIT}.get(kind, UiIcon.Icon.PLANE)
+				"sit": UiIcon.Icon.SIT, "hat": UiIcon.Icon.HAT}.get(kind, UiIcon.Icon.PLANE)
 	create_tween().tween_property(_prompt, "modulate:a", 1.0 if kind != "" else 0.0, 0.2)
 
 
@@ -324,6 +324,15 @@ class Sticker extends Control:
 				draw_polyline(PackedVector2Array([rect.position, c + Vector2(0, h * 0.08), Vector2(rect.end.x, rect.position.y)]),
 						Color("c9d3dd"), r * 0.06, true)
 				draw_rect(Rect2(Vector2(rect.end.x - w * 0.24, rect.position.y + h * 0.1), Vector2(w * 0.16, h * 0.22)), Color("e63946"))
+			"hat_shop":
+				draw_circle(c, r * 0.88, Color("ff9fc4"))
+				# A straw hat with a red band.
+				draw_set_transform(c + Vector2(0, r * 0.22), 0.0, Vector2(1.0, 0.32))
+				draw_circle(Vector2.ZERO, r * 0.7, Color("f2b33d"))
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+				draw_circle(c + Vector2(0, r * 0.02), r * 0.36, Color("f2b33d"))
+				draw_rect(Rect2(c + Vector2(-r * 0.36, r * 0.02), Vector2(r * 0.72, r * 0.2)), Color("f2b33d"))
+				draw_rect(Rect2(c + Vector2(-r * 0.36, r * 0.04), Vector2(r * 0.72, r * 0.1)), Color("e63946"))
 			"city_house":
 				draw_circle(c, r * 0.88, Color("4cc06a"))
 				var hw := r * 0.9

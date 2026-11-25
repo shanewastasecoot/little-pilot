@@ -350,6 +350,8 @@ static func _furnish(interior: Interior, data: Dictionary, room: Dictionary, rec
 			_furnish_bedroom(interior, data, room, rect, base, node, rng)
 		"post_office":
 			_furnish_post_office(interior, data, room, rect, base, node)
+		"hat_shop":
+			HatShopFurnisher.furnish(interior, data, room, rect, base, node)
 		"small_living", "small_kitchen", "small_bedroom":
 			SmallRoomFurnisher.new(interior, data, room, rect, base, node, rng).furnish()
 

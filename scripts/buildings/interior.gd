@@ -25,6 +25,8 @@ var pots: Array = []
 var tvs: Array[TVSet] = []
 var shopkeepers: Array[Shopkeeper] = []
 var post_office_things: Array[PostOfficeThings] = []
+## The hat shop's try-on mirror(s).
+var hat_mirrors: Array[HatMirror] = []
 ## The people living here (Family), if any.
 var family: Family
 var mermaid_toys: Array[Node3D] = []
@@ -441,14 +443,18 @@ func station_near() -> PaintStation:
 	return null
 
 
-## What she can do with Y where she's standing: {"kind": "paint" | "food" |
-## "sit", "target": the station, fridge or table, "seat": index}, or {}.
+## What she can do with Y where she's standing: {"kind": "paint" | "hat" |
+## "food" | "sit", "target": the station, mirror, fridge or table, "seat":
+## index}, or {}.
 func interaction_at(walker: Walker) -> Dictionary:
 	if walker.sitting or walker.lying:
 		return {}
 	var st := station_near()
 	if st:
 		return {"kind": "paint", "target": st}
+	for m in hat_mirrors:
+		if m.is_player_near():
+			return {"kind": "hat", "target": m}
 	for f in fridges:
 		if f.is_open() and not walker.model.carrying:
 			return {"kind": "food", "target": f}

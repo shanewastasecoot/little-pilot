@@ -103,7 +103,7 @@ func _ready() -> void:
 
 ## Wear what's saved (the save changes when the player picks new looks).
 func _dress() -> void:
-	model.apply(SaveManager.char_body, SaveManager.char_hair, SaveManager.char_outfit)
+	model.apply(SaveManager.char_body, SaveManager.char_hair, SaveManager.char_outfit, SaveManager.hat)
 
 
 ## Switch the character on (visible, moving, solid) or away.
