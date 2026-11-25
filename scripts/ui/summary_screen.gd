@@ -70,6 +70,18 @@ func _draw_page() -> void:
 	var t: Dictionary = SaveManager.today()
 	# Title: a little calendar page and "Today".
 	_page.draw_string(font, Vector2(150, 90), "Today", HORIZONTAL_ALIGNMENT_LEFT, -1, 52, Color.WHITE)
+	# Every star found so far, ever (all of them: the rainbow sparkles).
+	var total := 0
+	var found := 0
+	for st in get_tree().get_nodes_in_group("stars"):
+		total += 1
+		if SaveManager.stars_found.has(st.key):
+			found += 1
+	if total > 0:
+		var txt := "%d / %d stars found" % [found, total]
+		var tw := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28).x
+		_icon("star", Vector2(s.x - tw - 90, 78), 18.0, Color("ffd23f") if found < total else Color("ffe680"))
+		_page.draw_string(font, Vector2(s.x - tw - 60, 88), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color.WHITE)
 	# The four big counts.
 	var items := [
 		["star", int(t.get("stars", 0)), Color("ffd23f")],
