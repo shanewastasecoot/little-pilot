@@ -26,8 +26,8 @@ static func blocked_doorways(interior: Interior) -> Array[String]:
 				if other.floor != info.floor:
 					continue
 				for gi: GeometryInstance3D in (other.node as Node).find_children("*", "GeometryInstance3D", true, false):
-					if wall_bits.has(gi):
-						continue
+					if wall_bits.has(gi) or not gi.is_visible_in_tree():
+						continue  # (invisible parts block nothing)
 					var box: AABB = interior.global_transform.affine_inverse() * gi.global_transform * gi.get_aabb()
 					if box.size.y < 0.5 or box.size.x > 30.0 or box.size.z > 30.0:
 						continue
@@ -54,7 +54,7 @@ static func covered_windows(interior: Interior) -> Array[String]:
 				"W": box = AABB(Vector3(rect.position.x + 0.3, y - ws.y * 0.5, rect.position.y + at * rect.size.y - ws.x * 0.5), Vector3(2.0, ws.y, ws.x))
 				_: box = AABB(Vector3(rect.end.x - 2.3, y - ws.y * 0.5, rect.position.y + at * rect.size.y - ws.x * 0.5), Vector3(2.0, ws.y, ws.x))
 			for gi: GeometryInstance3D in (info.node as Node).find_children("*", "GeometryInstance3D", true, false):
-				if wall_bits.has(gi) or gi.get_parent() is LightSwitch:
+				if wall_bits.has(gi) or gi.get_parent() is LightSwitch or not gi.is_visible_in_tree():
 					continue
 				var b: AABB = interior.global_transform.affine_inverse() * gi.global_transform * gi.get_aabb()
 				if b.size.y < 0.5 or b.size.x > 30.0 or b.size.z > 30.0:
