@@ -76,6 +76,9 @@ var stickers: Array[String] = []
 ## these), the hats she's bought (Hats ids) and the one she's wearing
 ## ("" = her outfit's own headgear).
 var stars_spent: int = 0
+## Parent setting: the loudest the game gets (0.2..1.0 of full; 1.0 = no cap).
+var max_volume: float = 1.0
+const MAX_VOLUME_MIN := 0.2
 var hats_owned: Array[String] = []
 var hat: String = ""
 var treasure_ready_at: float = 0.0
@@ -149,6 +152,7 @@ func _load_file() -> void:
 			if id is String and AircraftCatalog.has(id) and idx is int and idx >= 0 and idx < Paint.COLORS.size():
 				paints[id] = idx
 	music_volume = _volume(cfg.get_value("settings", "music_volume", music_volume), music_volume)
+	max_volume = clampf(_volume(cfg.get_value("settings", "max_volume", 1.0), 1.0), MAX_VOLUME_MIN, 1.0)
 	sfx_volume = _volume(cfg.get_value("settings", "sfx_volume", sfx_volume), sfx_volume)
 	var saver = cfg.get_value("settings", "battery_saver", battery_saver)
 	if saver is bool:
@@ -262,6 +266,7 @@ func save_now() -> void:
 	cfg.set_value("progress", "city_time", city_time)
 	cfg.set_value("progress", "city_seed", city_seed)
 	cfg.set_value("settings", "music_volume", music_volume)
+	cfg.set_value("settings", "max_volume", max_volume)
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
 	cfg.set_value("settings", "battery_saver", battery_saver)
 	cfg.set_value("settings", "city_arrow", city_arrow)
@@ -348,6 +353,13 @@ func set_paint(id: String, idx: int) -> void:
 
 func set_music_volume(v: float) -> void:
 	music_volume = clampf(v, 0.0, 1.0)
+	settings_changed.emit()
+	request_save()
+
+
+## The parent's cap on how loud everything gets (MAX_VOLUME_MIN..1).
+func set_max_volume(v: float) -> void:
+	max_volume = clampf(v, MAX_VOLUME_MIN, 1.0)
 	settings_changed.emit()
 	request_save()
 
@@ -502,6 +514,7 @@ func _reset_to_defaults() -> void:
 	_unsaved_play = 0.0
 	paints = {}
 	music_volume = 0.7
+	max_volume = 1.0
 	sfx_volume = 1.0
 	battery_saver = false
 	city_arrow = true

@@ -13,6 +13,7 @@ func _init() -> void:
 	landmark_name = "Farm"
 	discovery_radius = 200.0
 	discovery_sound = "moo"
+	WorldReaction.add(self, 170.0, ["honk", "low_pass"], 5.0, _startled)
 
 
 func build() -> void:
@@ -39,6 +40,31 @@ func build() -> void:
 		var animal := AssetLib.place(self, ENV + ("cow.glb" if cow else "sheep.glb"),
 			Vector3(-30 + cos(a) * 13, 0, 40 + sin(a) * 7), 1.1 if cow else 1.3, randf() * 360.0, "Armature|Idle")
 		_animals.append(animal)
+
+
+## A honk or a low pass near the farm (WorldEvents): the sheep scatter
+## away from it in little hops, the cows trot off and moo; after a while
+## they all wander back and graze again.
+func _startled(_kind: String, where: Vector3) -> void:
+	var from := to_local(where)
+	Sfx.play_at("moo", global_position + Vector3(-30, 4, 40), randf_range(0.9, 1.05))
+	for animal in _animals:
+		if not animal.has_meta("home"):
+			animal.set_meta("home", animal.position)
+		var home: Vector3 = animal.get_meta("home")
+		var out := home - from
+		out.y = 0.0
+		out = out.normalized() if out.length() > 0.1 else Vector3.RIGHT
+		var cow := String(animal.scene_file_path).ends_with("cow.glb")
+		AssetLib.play_loop(animal, "Armature|Run" if cow else "Armature|Jump")
+		animal.rotation.y = atan2(out.x, out.z)
+		var tw := animal.create_tween()
+		tw.tween_property(animal, "position", home + out * (9.0 if cow else 7.0), 1.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_callback(func(): AssetLib.play_loop(animal, "Armature|Walk" if cow else "Armature|Idle"))
+		tw.tween_interval(randf_range(2.5, 4.0))
+		tw.tween_callback(func(): animal.rotation.y = atan2(-out.x, -out.z))
+		tw.tween_property(animal, "position", home, 4.0)
+		tw.tween_callback(func(): AssetLib.play_loop(animal, "Armature|Idle"))
 
 
 func react() -> void:

@@ -16,6 +16,8 @@ func _init() -> void:
 func build() -> void:
 	_body = Node3D.new()
 	add_child(_body)
+	# A honk or a low pass near her (WorldEvents): she blows a spout.
+	WorldReaction.add(self, 240.0, ["honk", "low_pass"], 5.0, func(_k: String, _w: Vector3): react()).centre = _body
 	# Model is ~1.13 long, head along +Z, origin under her belly.
 	AssetLib.place(_body, "res://assets/environment/whale.glb", Vector3(0, -6.0, 2.6), 23.0)
 

@@ -1,7 +1,8 @@
 class_name SettingsPanel
 extends CanvasLayer
 ## Parent settings, opened from the pause menu (gear button):
-## music volume, sound volume, a battery saver (30 FPS cap), whether the
+## music volume, sound volume, the loudest it ever gets (a cap on
+## everything: a speaker under a ceiling line), a battery saver (30 FPS cap), whether the
 ## city-fireworks arrow is shown, whether the plane can crash, whether the
 ## dragon lives on the island and how tough it is (1-3 flames).
 ## Bottom row: how long they've played, "Restart the city" (press once and
@@ -18,6 +19,7 @@ const CITY_ARMED := Color("ff9f1c")
 
 var _music: VolumeBar
 var _sounds: VolumeBar
+var _max: VolumeBar
 var _battery: BigButton
 var _arrow: BigButton
 var _parcel_arrow: BigButton
@@ -46,7 +48,7 @@ func _ready() -> void:
 
 	var col := VBoxContainer.new()
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 34)
+	col.add_theme_constant_override("separation", 22)
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(col)
 
@@ -63,6 +65,15 @@ func _ready() -> void:
 	_sounds.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_sounds.changed.connect(SaveManager.set_sfx_volume)
 	col.add_child(_sounds)
+
+	_max = VolumeBar.new()
+	_max.icon_type = UiIcon.Icon.VOLUME_CAP
+	_max.color = Color("ff7a59")
+	_max.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_max.changed.connect(func(v: float):
+		SaveManager.set_max_volume(v)
+		_max.set_value(SaveManager.max_volume))  # (never all the way off)
+	col.add_child(_max)
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -175,6 +186,7 @@ func _on_visibility_changed() -> void:
 		return
 	_music.set_value(SaveManager.music_volume)
 	_sounds.set_value(SaveManager.sfx_volume)
+	_max.set_value(SaveManager.max_volume)
 	_battery.set_pressed_no_signal(SaveManager.battery_saver)
 	_arrow.set_pressed_no_signal(SaveManager.city_arrow)
 	_crash.set_pressed_no_signal(SaveManager.crashes)

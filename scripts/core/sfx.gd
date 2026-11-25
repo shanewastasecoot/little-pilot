@@ -122,12 +122,13 @@ func play_at(sound: String, where: Vector3, pitch: float = 1.0, volume_db: float
 	p.play()
 
 
-func play(sound: String, pitch: float = 1.0, volume_db: float = 0.0) -> void:
+func play(sound: String, pitch: float = 1.0, volume_db: float = 0.0, bus: StringName = &"") -> void:
 	if not _streams.has(sound):
 		push_warning("Unknown sound: %s" % sound)
 		return
 	var p := _players[_next]
 	_next = (_next + 1) % VOICES
+	p.bus = bus if bus != &"" else GameSettings.BUS_SFX
 	p.stream = _streams[sound]
 	p.pitch_scale = clampf(pitch, 0.25, 4.0)
 	p.volume_db = volume_db

@@ -111,6 +111,7 @@ var _scent_t := 20.0         # seconds until it next sniffs the air
 
 
 func _ready() -> void:
+	WorldEvents.happened.connect(_hear)
 	_model = (load(MODEL) as PackedScene).instantiate()
 	_model.scale = Vector3.ONE * SCALE
 	add_child(_model)
@@ -175,6 +176,11 @@ func treasure_taken(at: Vector3) -> void:
 
 
 ## Wake up and come out now (tests, and when the plane buzzes the cave).
+func _hear(kind: String, _where: Vector3, _info: Dictionary) -> void:
+	if kind == "honk":
+		_honked = 1.5
+
+
 func wake() -> void:
 	if state == State.SLEEP:
 		_set_state(State.WAKE)
@@ -183,8 +189,6 @@ func wake() -> void:
 func _physics_process(delta: float) -> void:
 	if plane == null:
 		plane = get_tree().get_first_node_in_group("aircraft") as Node3D
-		if plane and plane.get("input"):
-			plane.input.honk_pressed.connect(func(): _honked = 1.5)
 	_honked = maxf(0.0, _honked - delta)
 	_t_state += delta
 	_fire_cool = maxf(0.0, _fire_cool - delta)

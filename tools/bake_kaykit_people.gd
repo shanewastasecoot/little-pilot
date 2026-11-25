@@ -13,8 +13,9 @@ extends Node
 ## come from their repainted palette texture (sampled at each vertex's UV),
 ## props on bones (hats, bags) ride their bone rigidly. Parts are merged,
 ## simplified to about KEEP of their triangles, then Walking_A (played faster
-## so the feet match the crowd's walking speed) and Idle are skinned on the
-## CPU at BAKE_FPS into rows of an RGBAH image (positions, then normals).
+## so the feet match the crowd's walking speed), Idle and Cheer (waving back
+## at her) are skinned on the CPU at BAKE_FPS into rows of an RGBAH image
+## (positions, then normals).
 
 const OUT_DIR := "res://assets/characters/people/"
 const BAKE_FPS := 12.0
@@ -150,7 +151,7 @@ func _bake(char_name: String, look: OutfitData, head: Array) -> void:
 	var count := used.size()
 	# 3. Skin every used vertex for each frame (the walk sped up to the crowd's pace).
 	var speedup := CROWD_WALK / CharacterModel.WALK_NATURAL
-	var anims := [["Walking_A", speedup], ["Idle", 1.0]]
+	var anims := [["Walking_A", speedup], ["Idle", 1.0], ["Cheer", 1.0]]
 	var frames_per: Array[int] = []
 	for a in anims:
 		frames_per.append(maxi(int(round(ap.get_animation(a[0]).length / a[1] * BAKE_FPS)), 1))

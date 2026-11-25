@@ -96,6 +96,12 @@ var crashes := true:
 ## The player may start a take-off roll (false behind the menus).
 var ground_controls := false
 var mode: Mode = Mode.FLYING
+## A "low pass" (WorldEvents) is sent when lower than this over the ground,
+## faster than LOW_PASS_SPEED, at most every LOW_PASS_EVERY seconds.
+const LOW_PASS_HEIGHT := 22.0
+const LOW_PASS_SPEED := 18.0
+const LOW_PASS_EVERY := 1.5
+var _low_pass_cool := 0.0
 var _ground_y := 0.0
 ## The current ground roll is a landing (slowing down), not a take-off.
 var _landing := false
@@ -178,6 +184,12 @@ func _physics_process(delta: float) -> void:
 	var below := _ground_ray(global_position)
 	_airborne += delta
 	var height := global_position.y - (below.position as Vector3).y if not below.is_empty() else INF
+	# Sweeping low and fast over the ground: the world notices (sheep
+	# scatter, people cheer...). Not while coming in to land.
+	_low_pass_cool -= delta
+	if height < LOW_PASS_HEIGHT and speed > LOW_PASS_SPEED and not safety.landing and _low_pass_cool <= 0.0 and not below.is_empty():
+		_low_pass_cool = LOW_PASS_EVERY
+		WorldEvents.send("low_pass", below.position, {"height": height})
 	var nose_down := pitch < -deg_to_rad(LAND_NOSE_DOWN_DEG) or input.stick.y < -0.1
 	var heading_down := nose_down and velocity.y < -LAND_SINK and input.stick.y < LAND_PULL_UP \
 			and _airborne > LAND_AFTER_LIFTOFF
@@ -301,7 +313,9 @@ func cycle_paint(direction: int) -> void:
 
 func _on_honk() -> void:
 	visuals.honk()
-	Sfx.play("honk", stats.honk_pitch)
+	# Through the echo of wherever the plane is (mountains, cave, city).
+	Sfx.play("honk", stats.honk_pitch, 0.0, EchoZone.honk_bus())
+	WorldEvents.send("honk", global_position)
 
 
 ## Sit on the ground (runway) at `pos`, facing `yaw`, engine idling. The
@@ -380,6 +394,7 @@ func _try_touch_down(delta: float) -> bool:
 	boost_amount = 0.0
 	Sfx.play("pop", 0.55)
 	touched_down.emit()
+	WorldEvents.send("landing", global_position)
 	return true
 
 
@@ -519,6 +534,8 @@ func lift_off() -> void:
 	safety.enforce()
 	Sfx.play("whoosh", 1.0)
 	takeoff_finished.emit()
+	var on_tarmac := IslandShape.on_runway(global_position.x, global_position.z)
+	WorldEvents.send("takeoff", global_position - Vector3.UP * stats.ground_offset, {"surface": "runway" if on_tarmac else "grass"})
 
 
 func _crash() -> void:
@@ -528,6 +545,7 @@ func _crash() -> void:
 	velocity = Vector3.ZERO
 	boost_amount = 0.0
 	crashed.emit(global_position, into_water)
+	WorldEvents.send("crash", global_position, {"water": into_water})
 
 
 ## Blown up (by the dragon): the plane vanishes in a fireball. main.gd
@@ -542,6 +560,7 @@ func explode() -> void:
 	velocity = Vector3.ZERO
 	boost_amount = 0.0
 	crashed.emit(global_position, false)
+	WorldEvents.send("crash", global_position, {"water": false})
 
 
 ## Below this height the plane is in the sea (waves included).

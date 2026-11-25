@@ -43,6 +43,8 @@ var _settings: SettingsPanel
 const CRASH_HOLD := 1.3
 const CRASH_FADE := 0.45
 var _fade: ColorRect
+## The moment under the sea after a splash (inside the crash's pause).
+var underwater: UnderwaterView
 var _respawning := false
 var _dragon: Dragon
 ## On foot: the character, its camera, and the zone round the parked plane
@@ -78,6 +80,10 @@ var building: Node3D
 var indoor_camera: IndoorCamera
 var _outdoor_env: Environment
 var _doorway_busy := false
+## Y pressed while the plane was still rolling: get out as soon as it stops
+## (forgotten if it takes off again or she pushes on).
+var exit_queued := false
+var ground_dust: GroundDust
 ## The game last stopped with her inside: start outside the front door.
 var _start_at_house := false
 var _call_hold := 0.0
@@ -164,6 +170,10 @@ func _ready() -> void:
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fade_layer.add_child(_fade)
+	underwater = UnderwaterView.new()
+	underwater.name = "Underwater"
+	fade_layer.add_child(underwater)
+	fade_layer.move_child(underwater, _fade.get_index())  # under the white fade
 	hud.bind(stars)
 	stars.all_collected.connect(_on_all_stars)
 	stars.city_party_due.connect(_on_city_party_due)
@@ -185,6 +195,12 @@ func _ready() -> void:
 	delivery.name = "Delivery"
 	add_child(delivery)
 	delivery.setup(self, map)
+	# Dust off the grass: the plane's take-off roll, her running.
+	ground_dust = GroundDust.new()
+	ground_dust.name = "GroundDust"
+	ground_dust.aircraft = aircraft
+	ground_dust.walker = walker
+	add_child(ground_dust)
 	# The post offices' front doors: walk in.
 	for po in delivery.post_offices:
 		po.door_entered.connect(func(): if state == State.ON_FOOT: enter_building(po))
@@ -269,7 +285,13 @@ func _process(delta: float) -> void:
 	var waiting := aircraft.mode == Aircraft.Mode.PARKED
 	hud.show_idle_hint(_in_plane() and (waiting or _idle_time > IDLE_HINT_DELAY))
 	# Y prompt: get out when parked in the plane, get in when beside it.
-	if _can_exit_plane():
+	if exit_queued:
+		if not _in_plane() or aircraft.mode == Aircraft.Mode.FLYING or aircraft.mode == Aircraft.Mode.CRASHED \
+				or aircraft.input.raw_throttle > 0.3:
+			exit_queued = false
+		elif _can_exit_plane():
+			toggle_plane()
+	if _can_exit_plane() or exit_queued:
 		hud.set_prompt("exit")
 	elif state == State.ON_FOOT and _near_plane:
 		hud.set_prompt("enter")
@@ -353,6 +375,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _in_plane() and event.is_action_pressed("paint_prev"):
 		aircraft.cycle_paint(-1)
+		get_viewport().set_input_as_handled()
+		return
+	# X on foot (or indoors): a big cheer; nearby people cheer back.
+	if event.is_action_pressed("trick") and cheer():
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("interact") and open_colour_menu():
@@ -452,7 +478,13 @@ func _can_exit_plane() -> bool:
 ## Y: get out of the parked plane, or back into it when beside it.
 ## Returns true if it did either.
 func toggle_plane() -> bool:
+	if _in_plane() and aircraft.mode == Aircraft.Mode.ROLLING and aircraft.ground_controls:
+		# Still rolling: remember, and hop out the moment it stops.
+		exit_queued = true
+		Sfx.play("ui_confirm", 0.9, -6.0)
+		return true
 	if _can_exit_plane():
+		exit_queued = false
 		if not _place_walker():
 			return false  # nowhere to stand (shouldn't happen on landable ground)
 		Sfx.play("pop", 1.2)
@@ -698,7 +730,13 @@ func _on_crashed(where: Vector3, into_water: bool) -> void:
 		splash.scale_amount_max = 1.6
 		splash.position = where  # set before adding (main sits at the origin)
 		add_child(splash)
+		# A moment later, a look under the sea (bubbles, fish, muffled).
+		get_tree().create_timer(0.35, false).timeout.connect(func():
+			if _respawning:
+				underwater.dive(0.3))
 	else:
+		if _near_volcano(where):
+			_lava_glow(where)
 		Sfx.play("boom", 1.5, -6.0)
 		Sfx.play("pop", 0.6)
 		var puff := PickupBurst.new(40, 10.0, [Color("d9d9d9"), Color("ffffff"), Color("b0b0b0")])
@@ -718,11 +756,37 @@ func _on_crashed(where: Vector3, into_water: bool) -> void:
 	await tw.finished
 	aircraft.park(map.runway_start(), map.spawn_heading())
 	chase_camera.snap_to_target()
+	underwater.surface()
+	_fade.color = Color(1, 1, 1, 1)
 	if _dragon:
 		_dragon.forgive(12.0)  # a fresh start: it leaves you alone for a bit
 	tw = create_tween()
 	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE)
 	_respawning = false
+
+
+func _near_volcano(p: Vector3) -> bool:
+	return Vector2(p.x - IslandShape.VOLCANO.x, p.z - IslandShape.VOLCANO.y).length() < IslandShape.VOLCANO_RADIUS
+
+
+## Crashed on the volcano: a hot orange-red glow washes over the screen
+## and fades, with glowing embers (inside the usual pause before the fade).
+func _lava_glow(where: Vector3) -> void:
+	var embers := PickupBurst.new(46, 16.0, [Color(2.2, 1.3, 0.5), Color("ff7b1c"), Color("c0261a")]).keep_scale()
+	embers.scale_amount_min = 0.6
+	embers.scale_amount_max = 1.4
+	embers.lifetime = 1.3
+	embers.gravity = Vector3(0, 4, 0)
+	embers.position = where
+	add_child(embers)
+	Sfx.play("rumble", 1.1, -4.0)
+	_fade.color = Color(1.0, 0.32, 0.08, 0.0)
+	var glow := create_tween()
+	glow.tween_property(_fade, "color:a", 0.5, 0.12)
+	glow.tween_property(_fade, "color:a", 0.15, 0.35)
+	glow.tween_property(_fade, "color:a", 0.38, 0.25)
+	glow.tween_property(_fade, "color:a", 0.0, 0.4)
+	glow.tween_callback(func(): _fade.color = Color(1, 1, 1, 0))
 
 
 ## The dragon got the plane: a fireball, smoke, bits of plane flying off
@@ -857,6 +921,21 @@ func _on_hat_chosen(id: String) -> void:
 		interior.hat_mirrors[0].celebrate()
 	if bought:
 		walker.model.cheer()
+
+
+## She cheers (X on foot or indoors), arms up; outside, the world hears it
+## (WorldEvents "cheer": townspeople and recipients nearby cheer back).
+## True if she did.
+func cheer() -> bool:
+	if not state in [State.ON_FOOT, State.INDOORS] or colour_menu.is_open() or hat_menu.is_open():
+		return false
+	if not walker.is_on_floor() or walker.sitting or walker.lying or not walker.is_physics_processing():
+		return false
+	walker.model.cheer(1.6)
+	Sfx.play("lala", randf_range(1.0, 1.1), -6.0)
+	if state == State.ON_FOOT:
+		WorldEvents.send("cheer", walker.global_position)
+	return true
 
 
 ## Keep her standing still (while a menu is open).

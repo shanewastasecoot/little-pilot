@@ -24,6 +24,10 @@ func _init() -> void:
 
 func build() -> void:
 	var h := OuterIslands.dino_height
+	# A honk near the island (WorldEvents): the dinosaurs call back.
+	WorldReaction.add(self, 520.0, ["honk"], 6.0, func(_k: String, _w: Vector3):
+		Sfx.play_at("rawr", global_position + Vector3(0, 40.0, 0), randf_range(0.85, 1.0))
+		react())
 	IslandDecor.scatter(self, ENV + "tree_round.glb", 70, C, 40.0, 420.0, h, 2.6, 3.6, 8.0, 120.0, 9)
 	IslandDecor.scatter(self, ENV + "palm.glb", 30, C, 300.0, 460.0, h, 4.5, 6.0, 4.0, 40.0, 10)
 	var plan := [

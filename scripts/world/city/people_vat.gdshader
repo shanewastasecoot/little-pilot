@@ -2,12 +2,13 @@ shader_type spatial;
 // Townspeople crowd: plays baked walk/idle loops from a vertex animation
 // texture (tools/bake_kaykit_people.gd), so every copy of a character is one
 // MultiMesh draw. Per instance (INSTANCE_CUSTOM): r = time offset (s),
-// g = 1 when standing (idle loop), else walking.
+// g = which loop: 0 walking, 1 standing (idle), 2 cheering (waving at her).
 render_mode cull_back;
 
 uniform sampler2D vat : filter_nearest, repeat_disable;
 uniform int walk_frames = 20;
 uniform int idle_frames = 25;
+uniform int cheer_frames = 0;
 uniform float bake_fps = 12.0;
 
 varying vec3 v_col;
@@ -18,11 +19,14 @@ vec3 to_linear(vec3 c) {
 
 void vertex() {
 	int column = int(UV2.x);
-	int total = walk_frames + idle_frames;
+	int total = walk_frames + idle_frames + cheer_frames;
 	float t = (TIME + INSTANCE_CUSTOM.r) * bake_fps;
-	int f = INSTANCE_CUSTOM.g > 0.5
-		? walk_frames + int(mod(t, float(idle_frames)))
-		: int(mod(t, float(walk_frames)));
+	int f = int(mod(t, float(walk_frames)));
+	if (INSTANCE_CUSTOM.g > 1.5 && cheer_frames > 0) {
+		f = walk_frames + idle_frames + int(mod(t, float(cheer_frames)));
+	} else if (INSTANCE_CUSTOM.g > 0.5) {
+		f = walk_frames + int(mod(t, float(idle_frames)));
+	}
 	VERTEX = texelFetch(vat, ivec2(column, f), 0).xyz;
 	NORMAL = normalize(texelFetch(vat, ivec2(column, f + total), 0).xyz);
 	v_col = to_linear(COLOR.rgb);

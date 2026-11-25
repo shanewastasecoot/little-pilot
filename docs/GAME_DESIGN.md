@@ -350,6 +350,16 @@ Any building with a front door, a doorstep and a floor plan can be walked into t
 
 ---
 
+## 13c. The World Reacts (Phase 6)
+
+- **WorldEvents** (autoload, `scripts/core/world_events.gd`): one signal, `happened(kind, where, info)`, for what she does: `honk`, `low_pass` (lower than 22 m over the ground, faster than 18 m/s, at most every 1.5 s, not while landing), `landing`, `takeoff` (`info.surface` = runway or grass), `crash` (`info.water`), and `cheer` (her, on foot). The dragon hears honks through it now (not the plane's input).
+- **Reactions** (`WorldReaction.add(node, radius, kinds, cooldown, callback)`: one line per reaction, so more are easy to add): the farm's sheep hop away and the cows trot off mooing, then wander back (honk or low pass within 170 m); a flock of white birds flaps up out of the forest below the plane (`BirdFlock`); townspeople within 70 m of a honk, 60 m of a low pass, or 28 m of her cheer stop, turn to face it and cheer (a third loop baked into the crowd's vertex animation, `tools/bake_kaykit_people.tscn`); the boat toots back with a puff of steam; the whale spouts; the penguins hop and slide off on their tummies, then waddle back; the dinosaurs call back. Not yet: castle flags.
+- **Cheering**: X on foot (or indoors) makes her cheer, arms up; townspeople and delivery recipients nearby cheer back (mermaids wave).
+- **Honk echoes** (`EchoZone`, buses made by GameSettings): over the mountains and Dragon Peak the honk comes back twice (delay); in the dragon's cave it booms (big reverb); over the city it rings off the buildings (short reverb); elsewhere, plain. Same honk sound, no new files.
+- **Crash moments**: into the sea, a moment under the water (blue, light rays, bubbles, fish swimming by, everything muffled) inside the crash's usual pause, so it's still 1.75 s from the splash to the runway; on the volcano, a hot orange glow and embers.
+- **Dust**: a cloud billows out from the wheels lifting off from grass (not the runway), puffs behind them on a fast grass roll, and little puffs at her feet when she runs.
+- **Forgiveness**: Y while the plane is still rolling is remembered (the get-out prompt shows) and she hops out as soon as it stops (forgotten if she takes off again or pushes on). The parcel pickup (6.5 m, round a 4.6 m pad), hand-over (8.5 m) and get-back-in (9 m) distances were checked: already generous (a bigger pickup would grab a parcel walking straight into the post office). Parents have a third volume bar, the **loudest it ever gets** (a speaker under a ceiling line; 20-100 %, default 100 %), a cap on everything through the Master bus, separate from the limiter that only stops clipping (saved, `[settings] max_volume`).
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |
