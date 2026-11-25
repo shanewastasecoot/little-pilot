@@ -87,6 +87,8 @@ var _doorway_busy := false
 var exit_queued := false
 var ground_dust: GroundDust
 var sky_writer: SkyWriter
+## Follow-the-leader (Phase 14): a friendly plane invites her to follow it.
+var leader: FollowLeader
 ## Today's summary for the parent (pause menu, Phase 14).
 var summary: SummaryScreen
 var today_tracker: TodayTracker
@@ -249,6 +251,9 @@ func _ready() -> void:
 	sail_camera.name = "SailCamera"
 	sail_camera.target = boat
 	add_child(sail_camera)
+	leader = FollowLeader.new()
+	leader.main = self
+	add_child(leader)
 	# Sky-writing (Phase 14): hold RB while flying.
 	sky_writer = SkyWriter.new()
 	sky_writer.name = "SkyWriter"

@@ -420,6 +420,14 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - The parent pointed at vinish.dev's free models (CC BY 4.0: credit required, already allowed by the asset rules). Its **Biplane** replaces the old biplane (her character flies it from the rear cockpit), its **Light Plane** is a new plane in the hangar, and the **Seaplane** is now the light plane on floats (a real floatplane shape). The jet stays (theirs is a military fighter).
 - Credited in `resources/credits.json` / CREDITS.md with what was changed.
 
+## 13n. Follow-the-leader (Phase 14, item 7)
+
+- Every few minutes of free flying (first after about 2 minutes, then every 4), a **friendly plane** (the Light Plane in bright orange, with bold rainbow trails) pulls up just ahead of her, toots twice and waggles its wings: follow me!
+- It flies a loose scenic loop, chosen by where she is: **round the city and the lighthouse**, **over the farm and the forest**, or **through the mountain valley**. It always stays well above the ground (at least 60 m over the highest ground near its path).
+- **No timer and no penalty.** Close behind, it matches her speed. If she lags, it slows down. Far away (or out of the plane), it circles where it is and waits. If she's been far away for a while (she went off to do something else), it waggles goodbye, climbs away and comes back another time.
+- At the end of the loop: bursts of colour in the sky, booms and a fanfare, and **5 bonus stars**. Honk at it and it toots back.
+- `FollowLeader` (`main.leader`), `follow_test`.
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |
