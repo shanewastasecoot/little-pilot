@@ -109,6 +109,14 @@ func _place_landmarks() -> void:
 	add_child(EchoZone.make(GameSettings.BUS_HONK_ECHO, Vector3(IslandShape.DRAGON_PEAK.x, 150, IslandShape.DRAGON_PEAK.y), Vector3(360, 0, 0), 1))
 	add_child(EchoZone.make(GameSettings.BUS_HONK_CAVE, Vector3(IslandShape.LAIR.x, IslandShape.LAIR_FLOOR + 20.0, IslandShape.LAIR.y), Vector3(IslandShape.LAIR_RADIUS + 15.0, 0, 0), 3))
 	add_child(EchoZone.make(GameSettings.BUS_HONK_CITY, Vector3(IslandShape.CITY.x, 120, IslandShape.CITY.y), Vector3(960, 320, 960), 2))
+	# Quiet sounds of places (AmbientZone).
+	add_child(AmbientZone.make("amb_birds", _air(IslandShape.FARM, 10.0), 220.0, -14.0))
+	add_child(AmbientZone.make("amb_city", Vector3(IslandShape.CITY.x, 20.0, IslandShape.CITY.y), 520.0, -16.0))
+	add_child(AmbientZone.make("amb_wind", _air(IslandShape.FOREST, 25.0), 420.0, -15.0))
+	add_child(AmbientZone.make("amb_rumble", Vector3(IslandShape.VOLCANO.x, IslandShape.VOLCANO_HEIGHT * 0.6, IslandShape.VOLCANO.y), 650.0, -10.0))
+	add_child(AmbientZone.make("amb_cave", Vector3(IslandShape.LAIR.x, IslandShape.LAIR_FLOOR + 8.0, IslandShape.LAIR.y), 140.0, -9.0))
+	for shore in [Vector2(-560, 900), Vector2(820, 150), IslandShape.PALM_ISLAND + Vector2(-260, 0)]:
+		add_child(AmbientZone.make("amb_waves", Vector3(shore.x, 3.0, shore.y), 260.0, -15.0))
 	var rainbow := RainbowArch.new()
 	rainbow.position = Vector3(IslandShape.RAINBOW.x, 0, IslandShape.RAINBOW.y)
 	add_child(rainbow)

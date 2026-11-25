@@ -314,7 +314,8 @@ func cycle_paint(direction: int) -> void:
 func _on_honk() -> void:
 	visuals.honk()
 	# Through the echo of wherever the plane is (mountains, cave, city).
-	Sfx.play("honk", stats.honk_pitch, 0.0, EchoZone.honk_bus())
+	# Its own horn, a touch higher or lower each time.
+	Sfx.play(stats.honk_sound, stats.honk_pitch * randf_range(0.96, 1.04), 0.0, EchoZone.honk_bus())
 	WorldEvents.send("honk", global_position)
 
 
