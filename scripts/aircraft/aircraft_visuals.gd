@@ -22,6 +22,8 @@ var _roll_dir: float = 1.0
 ## Size of the model in flight (AircraftStats.model_scale); honk hops around it.
 ## Nav lights and wingtip vapour (AircraftExtras).
 var extras: AircraftExtras
+## Trim colour and decal (Phase 13).
+var livery: Livery
 
 var base_scale: float = 1.0:
 	set(v):
@@ -33,6 +35,17 @@ func _ready() -> void:
 	extras = AircraftExtras.new()
 	extras.place_from(self, boost_trails)
 	add_child(extras)
+	livery = Livery.new()
+	livery.name = "Livery"
+	add_child(livery)
+
+
+## Wear plane `stats`'s saved livery (trim colour and decal).
+func show_livery(stats: AircraftStats) -> void:
+	if livery == null:
+		return
+	livery.body = stats.livery_body
+	livery.show_livery(SaveManager.get_decal(stats.id), Paint.color(SaveManager.get_trim(stats.id)))
 
 
 ## The pilot's eye in the world: the model's CockpitCameraMarker if it has

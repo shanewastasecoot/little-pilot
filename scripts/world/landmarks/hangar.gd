@@ -24,9 +24,19 @@ const DOOR := Color("2b6cc4")
 
 var _beacon: MeshInstance3D
 var _t := 0.0
+## The big sliding doors (Phase 13): shut until a plane comes to be
+## serviced (HangarService).
+var _doors: Array[Node3D] = []
+var _open := false
+var _door_t := 0.0
+var service: HangarService
 
 
 func _ready() -> void:
+	service = HangarService.new()
+	service.name = "Service"
+	service.hangar = self
+	add_child(service)
 	_build_shell()
 	_build_facade(LENGTH * 0.5, true)
 	_build_facade(-LENGTH * 0.5, false)
@@ -35,7 +45,28 @@ func _ready() -> void:
 	BuildKit.collider(self, BuildKit.box_shape(Vector3(WIDTH, HEIGHT, LENGTH)), Vector3(0, HEIGHT * 0.5, 0))
 
 
+## Open or shut the doors (they slide over a second and a half).
+func set_doors(open: bool) -> void:
+	if open != _open:
+		_open = open
+		Sfx.play_at("whoosh", global_position + Vector3(0, 6, LENGTH * 0.5), 0.5)
+
+
+func doors_open() -> bool:
+	return _open
+
+
+## How open the doors are (0 shut .. 1 open).
+func door_amount() -> float:
+	return _door_t
+
+
 func _process(delta: float) -> void:
+	_door_t = move_toward(_door_t, 1.0 if _open else 0.0, delta / 1.5)
+	var k := smoothstep(0.0, 1.0, _door_t)
+	for d in _doors:
+		var side: float = d.get_meta("side")
+		d.position.x = side * lerpf(DOOR_W * 0.25, DOOR_W * 0.75 + 0.4, k)
 	_t += delta
 	_beacon.visible = fmod(_t, 1.2) < 0.6
 
@@ -122,14 +153,22 @@ func _build_facade(z: float, front: bool) -> void:
 		var mid := (p0 + p1) * 0.5
 		var seg := BuildKit.add(self, BuildKit.box(Vector3(p0.distance_to(p1) + 0.4, d, d)), "ffffff", Vector3(mid.x, mid.y, z + 0.3))
 		seg.rotation.z = (p1 - p0).angle()
-	# Sliding door panels pushed back to the sides (just inside the opening).
-	for side in [-1.0, 1.0]:
-		var panel := Node3D.new()
-		panel.position = Vector3(side * (DOOR_W * 0.5 - 3.5), 0, z - 1.0)
-		add_child(panel)
-		BuildKit.add(panel, BuildKit.box(Vector3(7, DOOR_H - 0.4, 0.4)), DOOR.to_html(false), Vector3(0, (DOOR_H - 0.4) * 0.5, 0))
-		for k in 4:
-			BuildKit.add(panel, BuildKit.box(Vector3(7.05, 0.25, 0.45)), "ffffff", Vector3(0, 2.5 + k * 3.0, 0))
+	# Two big sliding doors on rails across the front: shut, they meet in
+	# the middle; open, they slide out to the sides.
+	if front:
+		BuildKit.add(self, BuildKit.box(Vector3(DOOR_W * 2.0, 0.4, 0.5)), "8a94a6", Vector3(0, DOOR_H + 0.2, z + 0.9))
+		for side in [-1.0, 1.0]:
+			var panel := Node3D.new()
+			panel.position = Vector3(side * DOOR_W * 0.25, 0, z + 0.6)
+			add_child(panel)
+			BuildKit.add(panel, BuildKit.box(Vector3(DOOR_W * 0.5, DOOR_H - 0.3, 0.4)), DOOR.to_html(false), Vector3(0, (DOOR_H - 0.3) * 0.5, 0))
+			for k in 4:
+				BuildKit.add(panel, BuildKit.box(Vector3(DOOR_W * 0.5 + 0.05, 0.25, 0.45)), "ffffff", Vector3(0, 2.5 + k * 3.0, 0))
+			BuildKit.add(panel, BuildKit.box(Vector3(0.3, DOOR_H - 0.3, 0.5)), "ffffff", Vector3(-side * DOOR_W * 0.25, (DOOR_H - 0.3) * 0.5, 0))
+			# Solid when shut (you can't walk or fly through a closed door).
+			BuildKit.collider(panel, BuildKit.box_shape(Vector3(DOOR_W * 0.5, DOOR_H - 0.3, 0.6)), Vector3(0, (DOOR_H - 0.3) * 0.5, 0))
+			panel.set_meta("side", side)
+			_doors.append(panel)
 	# Emblem: yellow star on a red disc above the door.
 	var disc := BuildKit.add(self, BuildKit.cyl(3.4, 0.3, -1, 24), "ff5a5f", Vector3(0, DOOR_H + 3.8, z + 0.35), Vector3(90, 0, 0))
 	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

@@ -483,6 +483,14 @@ func _on_character_back() -> void:
 
 
 ## Sitting in the parked plane with the controls: can get out.
+## Is the plane in the middle of the hangar service?
+func _service_busy() -> bool:
+	for s in get_tree().get_nodes_in_group("hangar_service"):
+		if s.busy:
+			return true
+	return false
+
+
 func _can_exit_plane() -> bool:
 	return _in_plane() and aircraft.mode == Aircraft.Mode.PARKED and aircraft.ground_controls
 
@@ -495,6 +503,8 @@ func toggle_plane() -> bool:
 		exit_queued = true
 		Sfx.play("ui_confirm", 0.9, -6.0)
 		return true
+	if _service_busy():
+		return true  # (being serviced in the hangar: out when it's done)
 	if _can_exit_plane():
 		exit_queued = false
 		if not _place_walker():
