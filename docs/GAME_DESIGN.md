@@ -115,7 +115,7 @@ Taken from the input map in `project.godot` (and checked by `controller_test` on
 | **A** or **R2** | Boost (A for small hands) | A = jump |
 | **L2** | Slow down; low over flat ground, flare and land, then brake | — |
 | **B** | Honk 🎺 (the world reacts) | Sprint |
-| **X** | Barrel roll | Cheer (people nearby cheer back) |
+| **X** (hold climb + X: a loop) | Barrel roll | Cheer (people nearby cheer back) |
 | **Y** | Get out when parked (pressed while still rolling: as soon as it stops) | Get back in beside the plane; hold Y to call the plane when it's far; at the end of a pier: sail (or call the boat); sailing: step off at a dock; indoors: use what's here (paint easel, quilt chest, fridge, sit at the table, hat mirror) |
 | **Right-stick click** | Change camera: close, far, cockpit (with instruments) | — |
 | **D-pad ◀ ▶** | Paint colour (each plane remembers its own) | — |
@@ -393,6 +393,16 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
   - On the water it turns more readily, and noses round before beaches, piers and boats (never runs aground).
 - Afloat at sea there's nowhere to stand, so she stays in (no Y to get out). Other planes still splash into the sea as before.
 - `SeaplaneFloats`, `seaplane.tres`, `seaplane_test`.
+
+## 13k. The loop trick (Phase 14, item 6)
+
+- **X while holding the stick to climb** does a loop; X on its own is still the barrel roll.
+- **Purely visual, like the barrel roll.** The plane can't fly real loops (its pitch limit is untouched), and its real flight path, pitch limits and safety system don't change. The model swings up and over in a circle about 9 m across *above* the real path, never below it, so it can't hit the ground.
+  - It goes upside down at the top and really travels backwards there.
+  - It lands back on the path after 2.6 s, while the rainbow trails draw the loop.
+- **Camera:** the chase camera rises part way with it, to keep it in the picture.
+- **Room:** under a roof or overhang, or near the sky's ceiling, it does a barrel roll instead. A crash or respawn mid-loop puts the model straight back.
+- `AircraftVisuals.loop()`, `Aircraft.trick()`, `loop_test`.
 
 ## 14. Future Ideas
 
