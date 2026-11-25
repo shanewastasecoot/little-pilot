@@ -4,8 +4,10 @@ extends Node3D
 ## right stick look around and drifts back when released. No shake, no cuts.
 ## Scene layout: ChaseCamera (this) > SpringArm3D > Camera3D.
 
-## Distance multipliers for the camera button: Close, Far.
-const PRESETS: Array[float] = [1.0, 1.7]
+## Distance multipliers for the camera button: Close, Far, and then the
+## cockpit (0: the pilot's view, with the instruments: Phase 9).
+const PRESETS: Array[float] = [1.0, 1.7, 0.0]
+const COCKPIT := 2
 ## How far the right stick can look (degrees).
 const LOOK_YAW_DEG := 150.0
 const LOOK_PITCH_DEG := 35.0
@@ -49,6 +51,9 @@ func _physics_process(delta: float) -> void:
 	_yaw = lerp_angle(_yaw, target.heading, t)
 	_pitch = lerpf(_pitch, target.pitch * 0.4, t)
 
+	if in_cockpit():
+		_place_cockpit()
+		return
 	global_position = target.global_position + Vector3.UP * stats.camera_height
 	rotation = Vector3(deg_to_rad(BASE_PITCH_DEG) + _pitch + _look.y, _yaw + _look.x, 0.0)
 
@@ -59,10 +64,33 @@ func _physics_process(delta: float) -> void:
 
 func cycle_preset() -> void:
 	preset = (preset + 1) % PRESETS.size()
+	if in_cockpit():
+		_place_cockpit()
+		reset_physics_interpolation()
+
+
+## Looking out of the cockpit (the camera button's third press).
+func in_cockpit() -> bool:
+	return preset == COCKPIT
+
+
+## At the pilot's eyes, facing where the plane faces (banking and rolling
+## with it); the right stick still looks around.
+func _place_cockpit() -> void:
+	var vis: AircraftVisuals = target.visuals
+	var b := vis.global_transform.basis.orthonormalized()
+	b = b * Basis(Vector3.UP, _look.x) * Basis(Vector3.RIGHT, _look.y - deg_to_rad(target.stats.cockpit_look_down_deg))
+	global_transform = Transform3D(b, vis.cockpit_point(target.stats))
+	arm.spring_length = 0.0
+	cam.fov = target.stats.cockpit_fov
 
 
 ## Jump straight behind the target with no smoothing (spawn, respawn).
 func snap_to_target() -> void:
+	if in_cockpit():
+		_place_cockpit()
+		reset_physics_interpolation()
+		return
 	_yaw = target.heading
 	_pitch = target.pitch * 0.4
 	global_position = target.global_position + Vector3.UP * target.stats.camera_height

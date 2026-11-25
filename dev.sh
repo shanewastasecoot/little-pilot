@@ -10,6 +10,7 @@
 #   credits  write CREDITS.md from resources/credits.json
 #   bench-sim     simulation cost along a fixed route, headless (not FPS)
 #   bench-render  frame times per area on screen, 1280x800 (add -- --bench-...)
+#   audit-aircraft  what each aircraft model is made of (parts, triangles...)
 set -euo pipefail
 cd "$(dirname "$0")"
 GODOT="${GODOT:-flatpak run org.godotengine.Godot}"
@@ -19,7 +20,7 @@ case "${1:-}" in
   editor) $GODOT --path . --editor ;;
   run)    if [[ "${2:-}" == full ]]; then $GODOT --path . --fullscreen; else $GODOT --path .; fi ;;
   test)   fail=0
-          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test treasure_test post_office_test city_house_test hat_shop_test reactions_test credits_test stress_test; do
+          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test treasure_test post_office_test city_house_test hat_shop_test reactions_test credits_test aircraft_view_test stress_test; do
             echo "=== $t"
             # Capture the exit code directly (a pipe would lose it).
             out=$($GODOT --headless --path . --fixed-fps 60 "res://tests/$t.tscn" 2>&1) && status=0 || status=$?
@@ -66,5 +67,6 @@ case "${1:-}" in
   bench-render) shift
           $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_render.tscn "$@" 2>&1 \
             | grep -vE "^(Godot Engine|Vulkan|WARNING|   at:|$)" ;;
-  *)      sed -n '2,13p' "$0"; exit 1 ;;
+  audit-aircraft) $GODOT --headless --path . res://tools/aircraft_audit.tscn 2>&1 | grep -vE "^(Godot Engine|WARNING|   at:|$)" ;;
+  *)      sed -n '2,14p' "$0"; exit 1 ;;
 esac

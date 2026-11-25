@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_stats")
 id = "jet"
-display_name = "Fighter Jet"
+display_name = "Trainer Jet"
 model_scene = ExtResource("2_model")
 menu_color = Color(0.25, 0.55, 1, 1)
 model_scale = 2.0
@@ -30,5 +30,7 @@ min_clearance = 5.0
 max_rescue_pitch_deg = 35.0
 camera_distance = 14.5
 camera_height = 3.8
+cockpit_eye = Vector3(0, 1.2, 0.2)
+cockpit_look_down_deg = 15.0
 camera_fov = 70.0
 boost_fov_bonus = 12.0

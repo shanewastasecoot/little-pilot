@@ -20,13 +20,31 @@ var _honk_tween: Tween
 var _roll: float = -1.0   # 0..1 while rolling, -1 when not
 var _roll_dir: float = 1.0
 ## Size of the model in flight (AircraftStats.model_scale); honk hops around it.
+## Nav lights and wingtip vapour (AircraftExtras).
+var extras: AircraftExtras
+
 var base_scale: float = 1.0:
 	set(v):
 		base_scale = v
 		scale = Vector3.ONE * v
 
 
+func _ready() -> void:
+	extras = AircraftExtras.new()
+	extras.place_from(self, boost_trails)
+	add_child(extras)
+
+
+## The pilot's eye in the world: the model's CockpitCameraMarker if it has
+## one, else the aircraft's `cockpit_eye`.
+func cockpit_point(stats: AircraftStats) -> Vector3:
+	var m := find_child("CockpitCameraMarker", true, false) as Node3D
+	return m.global_position if m else to_global(stats.cockpit_eye)
+
+
 func update_visuals(turn: float, speed: float, stats: AircraftStats, delta: float, boost: float = 0.0, keep_rolling := false) -> void:
+	if extras:
+		extras.update(turn, speed, stats.cruise_speed, delta)
 	for trail in boost_trails:
 		trail.strength = maxf(boost, 0.8 if _roll >= 0.0 else 0.0)  # trails corkscrew during rolls
 	var target := -turn * deg_to_rad(stats.max_bank_deg)
