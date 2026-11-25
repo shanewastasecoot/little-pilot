@@ -36,6 +36,11 @@ func is_mermaid() -> bool:
 	return data.kind == "mermaid"
 
 
+## Parachute mail: their parcel is dropped from the plane (mermaids too).
+func by_air() -> bool:
+	return data.by_air or is_mermaid()
+
+
 func _ready() -> void:
 	WorldReaction.add(self, 30.0, ["cheer"], 2.5, cheer_back)
 	if is_mermaid():
@@ -49,7 +54,7 @@ func _ready() -> void:
 	_want_yaw = _home_yaw
 	model.rotation.y = _home_yaw
 	for gi: GeometryInstance3D in model.find_children("*", "GeometryInstance3D", true, false):
-		gi.visibility_range_end = DRAW_DISTANCE
+		gi.visibility_range_end = DRAW_DISTANCE * (3.0 if data.by_air else 1.0)  # parachute friends: seen from the air
 	set_outlined(false)  # the manager turns them on when you come close
 
 
@@ -84,6 +89,8 @@ func _build_mermaid() -> void:
 
 ## Where a dropped parcel should land: in her hands.
 func catch_point() -> Vector3:
+	if not is_mermaid():
+		return global_position + Vector3(0, 2.6, 0)  # in their arms
 	return global_position + Vector3(0, ROCK_TOP + 4.5, 0)
 
 
