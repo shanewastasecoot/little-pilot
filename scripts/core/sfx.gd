@@ -192,6 +192,7 @@ func get_loop(loop_name: String) -> AudioStream:
 			"amb_rumble": _streams[key] = _to_wav(_normalize(_seamless_noise(4 * RATE, 0.012, 11), 0.7), true)
 			"amb_wind": _streams[key] = _gust_loop()
 			"amb_cave": _streams[key] = _cave_loop()
+			"amb_rain": _streams[key] = _to_wav(_normalize(_seamless_noise(3 * RATE, 0.55, 23), 0.28), true)  # a soft shower hiss
 	return _streams[key]
 
 

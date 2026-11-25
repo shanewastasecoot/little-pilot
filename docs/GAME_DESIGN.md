@@ -437,6 +437,13 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - The parent's **Today** page shows how many she's found ("150 / 224 stars found").
 - `StarManager.every_star_found`, `RainbowArch.set_golden`, `all_stars_test`.
 
+## 13p. Gentle weather (Phase 14, item 9)
+
+- Every few minutes of play (first after about 3, then every 6) a **soft grey rain cloud** drifts slowly across near her (4 m/s, at least 135 m up), rain streaks falling from it with a quiet shower hiss (`amb_rain`; a real `assets/audio/loops/amb_rain.ogg` replaces it). **No thunder, no lightning**, and the sky stays bright.
+- **Flying under it washes the paint off**: a splash, and the plane is plain white. Only for now: her chosen colour is kept in the save.
+- Then **a rainbow** grows up just ahead of her, tall enough to fly under its arch. **Flying through it brings her colour back** with a sparkle and a fanfare. If she doesn't, the colour comes back by itself when the rainbow fades after a minute (and the D-pad still paints the plane any time). On foot nothing is washed.
+- `Weather` (`main.weather`), `weather_test`.
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |
