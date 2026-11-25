@@ -8,6 +8,8 @@
 #   check    import, load every script/scene, boot headless; fail on errors
 #   export   build ../LittlePilot-builds/LittlePilot.x86_64 (release)
 #   credits  write CREDITS.md from resources/credits.json
+#   bench-sim     simulation cost along a fixed route, headless (not FPS)
+#   bench-render  frame times per area on screen, 1280x800 (add -- --bench-...)
 set -euo pipefail
 cd "$(dirname "$0")"
 GODOT="${GODOT:-flatpak run org.godotengine.Godot}"
@@ -59,5 +61,10 @@ case "${1:-}" in
   credits) # (Import first, so a new script class is known; then write the file.)
           $GODOT --headless --path . --import >/dev/null 2>&1 || true
           $GODOT --headless --path . res://tools/make_credits.tscn 2>&1 | grep -E "Wrote|ERROR" ;;
-  *)      sed -n '2,11p' "$0"; exit 1 ;;
+  bench-sim) shift
+          $GODOT --headless --path . --fixed-fps 60 res://tools/bench_sim.tscn "$@" 2>&1 | grep -vE "^(Godot Engine|WARNING|   at:|$)" ;;
+  bench-render) shift
+          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_render.tscn "$@" 2>&1 \
+            | grep -vE "^(Godot Engine|Vulkan|WARNING|   at:|$)" ;;
+  *)      sed -n '2,13p' "$0"; exit 1 ;;
 esac

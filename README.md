@@ -142,6 +142,9 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 | `./dev.sh check` | Import the project, load every script and scene, and start the game headless for a moment; fails (exit code 1) on any error. Only says "No errors." when everything is clean |
 | `./dev.sh export` | Release build to `../LittlePilot-builds/LittlePilot.x86_64` (set `BUILD_DIR=...` to build somewhere else) |
 | `./dev.sh credits` | Write `CREDITS.md` from `resources/credits.json` (the one place credits are kept; the credits test fails if they differ) |
+| `./dev.sh bench-sim` | Headless: what the simulation costs along a fixed route (airport, grown city, ocean, Dragon Peak): physics and game-logic time per frame (median, 95th percentile) and each system on its own (flight safety, the crowd, the growing city, the dragon), compared with the last run. Runs in CI. Never claims FPS (nothing is drawn). |
+| `./dev.sh bench-render` | On screen at 1280×800, Mobile renderer, vsync off: flies the same route twice (cold run, then warm) and reports per area the median and 95th-percentile frame time, the 1 % low and draw calls, plus launch-to-first-controllable-frame; saved to `user://bench/render.json` and compared with the last run. Toggles for one run: `./dev.sh bench-render -- --bench-shadows=2048 --bench-aa=msaa\|ssaa\|both\|none --bench-refraction=off --bench-far-waves=simple --bench-glow=off --bench-crowd=150` |
+| `./dev.sh run -- --record-playtest` | Debug runs only: keep a local playtest diary (route, crashes, landings, landmarks) in `user://playtests/`. Nothing is ever sent anywhere. |
 
 Press **F3** in game to toggle the debug overlay (FPS, speed, clearance, safety state). It's on by default in debug runs and off in release builds.
 

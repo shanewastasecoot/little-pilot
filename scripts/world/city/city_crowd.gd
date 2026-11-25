@@ -21,6 +21,8 @@ const EDGE := 32.0               # block edge (building fronts)
 const WALK_SPEED := 3.4          # m/s at this scale (matches the walk loop)
 const PAVEMENT_Y := 0.36
 const DRAW_RADIUS := 300.0       # people further than this from the camera aren't drawn
+## (The draw radius in use: DRAW_RADIUS, or the --bench-crowd toggle.)
+var draw_radius := DRAW_RADIUS
 const MAX_DRAWN := 50            # per character
 const MAX_PEOPLE := 900
 ## Only people this near the camera are moved each frame; the rest wait
@@ -49,6 +51,8 @@ var _frame := 0
 
 func _ready() -> void:
 	_rng.seed = 99
+	if BenchToggles.value("crowd") != "":
+		draw_radius = clampf(float(BenchToggles.value("crowd")), 20.0, STEP_RADIUS)
 	for c in CHARACTERS:
 		var mesh: ArrayMesh = load(PEOPLE_DIR + c + "_crowd.res")
 		var img: Image = load(PEOPLE_DIR + c + "_vat.res")
@@ -168,7 +172,7 @@ func _process(delta: float) -> void:
 		return  # far away: nobody to see, nothing to update
 	delta = minf(delta, 0.1)
 	var counts: Array[int] = [0, 0, 0, 0, 0, 0]
-	var r2 := DRAW_RADIUS * DRAW_RADIUS
+	var r2 := draw_radius * draw_radius
 	var s2 := STEP_RADIUS * STEP_RADIUS
 	var n2 := NEAR_RADIUS * NEAR_RADIUS
 	_frame += 1

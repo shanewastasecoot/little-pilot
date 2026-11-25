@@ -64,3 +64,8 @@ jobs:
 
       - name: ./dev.sh test
         run: ./dev.sh test
+
+      # The simulation's cost along a fixed route (headless: not FPS). A
+      # report only: it never fails the build on speed (CI machines vary).
+      - name: ./dev.sh bench-sim
+        run: ./dev.sh bench-sim
