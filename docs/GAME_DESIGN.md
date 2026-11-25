@@ -119,7 +119,7 @@ Taken from the input map in `project.godot` (and checked by `controller_test` on
 | **Y** | Get out when parked (pressed while still rolling: as soon as it stops) | Get back in beside the plane; hold Y to call the plane when it's far; indoors: use what's here (paint easel, quilt chest, fridge, sit at the table, hat mirror) |
 | **Right-stick click** | Change camera: close, far, cockpit (with instruments) | — |
 | **D-pad ◀ ▶** | Paint colour (each plane remembers its own) | — |
-| **LB / RB** | Hold RB: sky-writing (smoke in the paint colour) | Change tab on the character screen; decals on plane select |
+| **LB / RB** | LB: take a postcard; hold RB: sky-writing (smoke in the paint colour) | Change tab on the character screen; decals on plane select |
 | **Menu (≡)** | Pause menu | Pause menu |
 
 #### Control Design Rules
@@ -354,6 +354,13 @@ Any building with a front door, a doorstep and a floor plan can be walked into t
 ## 13f. Today, for the parent (Phase 14, item 3)
 
 - A calendar button beside the gear in the pause menu opens **Today**: big pictures with numbers for the stars collected, parcels delivered, crashes and minutes played today, and a row of the islands (lit with a tick when she visited them today). From data the game already tracks: stars, deliveries and time where they're counted, crashes from WorldEvents, islands from a tracker that checks where she is every few seconds (`TodayTracker`). A new day starts afresh. New save keys only (`[today] date`, `counts`). `SummaryScreen`, `summary_test`.
+
+## 13g. Sticker book and postcard camera (Phase 14, item 2)
+
+- **The book**: a big purple book button in the pause menu. All pictures, five tabs (LB / RB, or tap the tab pictures): **places** (every landmark), **animals** (farm animals, penguins, dinosaurs, the whale, dolphins, the dragon), **friends** (everyone she can deliver to), **stickers** (from the buildings) and **postcards**. Things not found yet are "?" cards; the stick moves round the page; B closes. Small names under the pictures, for the grown-up reading along.
+- **Pictures that take themselves** (`Spotter`): the first time a place, animal or friend is near and on screen, the game snaps its picture into the book (the HUD hidden for that one frame); a friend is snapped when she hands them a parcel. Places she found before this existed get their picture the next time she's near.
+- **Postcards**: **LB** while playing (flying, on foot or indoors) takes a photo, with a click and a white flash; the newest 48 are kept. Why LB: it's free everywhere in play (RB is sky-writing).
+- Saved as small pictures in `user://book/` and `user://postcards/`; which ones exist in new save keys (`[book] seen`, `postcards`). Nothing leaves the computer. `StickerBook`, `sticker_book_test`.
 
 ## 14. Future Ideas
 

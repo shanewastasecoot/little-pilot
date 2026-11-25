@@ -11,6 +11,7 @@ signal quit_requested
 signal settings_requested
 signal character_requested
 signal today_requested
+signal book_requested
 
 var _resume: BigButton
 
@@ -38,6 +39,9 @@ func _ready() -> void:
 	plane.pressed.connect(func(): change_plane_requested.emit())
 	var me := _button(row, UiIcon.Icon.PERSON, Color("ff8c42"), Vector2(200, 200))
 	me.pressed.connect(func(): character_requested.emit())
+	# Her sticker book.
+	var book := _button(row, UiIcon.Icon.BOOK, Color("9b5de5"), Vector2(200, 200))
+	book.pressed.connect(func(): book_requested.emit())
 	var quit := HoldButton.new()
 	quit.icon_type = UiIcon.Icon.QUIT
 	quit.base_color = Color("ff5a5f")

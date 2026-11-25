@@ -80,6 +80,11 @@ var stickers: Array[String] = []
 ## these), the hats she's bought (Hats ids) and the one she's wearing
 ## ("" = her outfit's own headgear).
 var stars_spent: int = 0
+## The sticker book (Phase 14): which pictures she has (ids like
+## "place:Farm"; the pictures are in user://book/) and her postcards (numbers;
+## user://postcards/<n>.png).
+var book: Array[String] = []
+var postcards: Array[int] = []
 ## Today, for the parent summary (Phase 14): the date it's for and the
 ## counts ({stars, deliveries, crashes, seconds, islands}); a new day starts
 ## afresh. New keys ([today]).
@@ -319,6 +324,16 @@ func _load_file() -> void:
 	if td is String and tc is Dictionary:
 		today_date = td
 		_today = tc
+	var bk = cfg.get_value("book", "seen", [])
+	if bk is Array:
+		for x in bk:
+			if x is String and not book.has(x):
+				book.append(x)
+	var pc = cfg.get_value("book", "postcards", [])
+	if pc is Array:
+		for x in pc:
+			if x is int and not postcards.has(x):
+				postcards.append(x)
 	var hat_on = cfg.get_value("shop", "hat", "")
 	if hat_on is String and hats_owned.has(hat_on):
 		hat = hat_on
@@ -391,6 +406,8 @@ func save_now() -> void:
 	cfg.set_value("livery", "decals", decals)
 	cfg.set_value("today", "date", today_date)
 	cfg.set_value("today", "counts", _today)
+	cfg.set_value("book", "seen", book)
+	cfg.set_value("book", "postcards", postcards)
 	cfg.set_value("shop", "stars_spent", stars_spent)
 	cfg.set_value("shop", "hats_owned", hats_owned)
 	cfg.set_value("shop", "hat", hat)
@@ -601,6 +618,33 @@ func _roll_day() -> void:
 		_today = {"stars": 0.0, "deliveries": 0.0, "crashes": 0.0, "seconds": 0.0, "islands": []}
 
 
+func book_has(id: String) -> bool:
+	return book.has(id)
+
+
+func book_add(id: String) -> void:
+	if not book.has(id):
+		book.append(id)
+	request_save()
+
+
+func next_postcard() -> int:
+	var m := 0
+	for n in postcards:
+		m = maxi(m, n)
+	return m + 1
+
+
+## Keep postcard `n` (at most `keep`); returns the one dropped to make room, or -1.
+func add_postcard(n: int, keep: int) -> int:
+	postcards.append(n)
+	var gone := -1
+	if postcards.size() > keep:
+		gone = postcards.pop_front()
+	request_save()
+	return gone
+
+
 ## Stars she has to spend in the shop.
 func star_purse() -> int:
 	return maxi(lifetime_stars - stars_spent, 0)
@@ -716,6 +760,8 @@ func _reset_to_defaults() -> void:
 	treasure_ready_at = 0.0
 	stickers = []
 	stars_spent = 0
+	book = []
+	postcards = []
 	today_date = ""
 	_today = {}
 	trims = {}
