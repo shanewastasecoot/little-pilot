@@ -62,7 +62,7 @@ func _ready() -> void:
 	await _frames(2)
 	var sparkles := rainbow.find_child("Sparkles", false, false) as CPUParticles3D
 	_check("the last new star unlocks it (once, saved), and the rainbow sparkles", not before and SaveManager.all_stars
-			and unlocked[0] == 1 and rainbow.golden and sparkles != null and sparkles.emitting and sparkles.amount == 220)
+			and unlocked[0] == 1 and rainbow.golden and sparkles != null and sparkles.emitting and sparkles.amount >= 220)  # (220+ twinkle on the arch above the sea)
 	# --- show ---------------------------------------------------------------------------
 	rainbow._cooldown = 0.0
 	main.aircraft.teleport(rainbow.global_position + Vector3(-60, 70, 0), PI * 0.5)
