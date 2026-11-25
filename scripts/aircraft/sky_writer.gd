@@ -49,6 +49,7 @@ func _ready() -> void:
 	_mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = _mm
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # puffs change every drawn frame
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.custom_aabb = AABB(Vector3(-6000, -100, -6000), Vector3(12000, 1500, 12000))
 	add_child(mmi)

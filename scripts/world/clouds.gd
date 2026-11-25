@@ -30,6 +30,7 @@ func _ready() -> void:
 		mm.instance_count = count / SHAPES.size()
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # moved every drawn frame
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.material_override = _cloud_material()
 		mmi.custom_aabb = AABB(Vector3(-radius, 0, -radius), Vector3(radius * 2, max_height + 50, radius * 2))

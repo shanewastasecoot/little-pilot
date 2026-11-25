@@ -1,9 +1,16 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/aircraft/models/prop_plane_model.tscn" id="1_prop"]
+[ext_resource type="PackedScene" path="res://scenes/aircraft/models/light_plane_model.tscn" id="1_light"]
 [ext_resource type="Script" path="res://scripts/aircraft/seaplane_floats.gd" id="2_floats"]
 
-[node name="SeaplaneModel" instance=ExtResource("1_prop")]
+[node name="SeaplaneModel" instance=ExtResource("1_light")]
 
 [node name="Floats" type="Node3D" parent="."]
 script = ExtResource("2_floats")
+length = 3.4
+width = 0.3
+height = 0.28
+apart = 0.62
+bottom = 1.0
+belly = -0.15
+forward = -0.1

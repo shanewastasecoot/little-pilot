@@ -43,7 +43,9 @@ Each asset has two checkboxes:
 
 - **Prop Plane** · Status: ✅ Final · Phase 2
   - [x] Placeholder Asset: CSG boxes and cylinders (body, wings, tail, propeller)
-  - [x] Final Asset: red biplane `.glb` (Jake Blakeley, CC-BY 3.0) + code-built spinning propeller
+  - [x] Final Asset: vintage biplane `.glb` (vinish.dev, CC BY 4.0), her character in the cockpit (replaced the old biplane in fixes round 2)
+- **Light Plane / Seaplane** · Status: ✅ Final · fixes round 2
+  - [x] Final Asset: high-wing light plane `.glb` (vinish.dev, CC BY 4.0); the seaplane adds code-built floats
 - **Fighter Jet** · Status: ✅ Final · Phase 3
   - [x] Placeholder Asset: CSG shapes in a different colour from the prop plane
   - [x] Final Asset: trainer jet `.glb` (Poly by Google, CC-BY 3.0), recoloured blue, no weapons

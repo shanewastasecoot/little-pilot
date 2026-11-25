@@ -14,19 +14,36 @@
  ],
  "assets": [
   {
-   "name": "Biplane (\"Toy plane\")",
+   "name": "Biplane",
    "files": [
-    "assets/aircraft/toy_biplane.glb"
+    "assets/aircraft/vinish_biplane.glb"
    ],
-   "author": "law",
+   "author": "vinish.dev",
    "license": "CC-BY 4.0",
    "license_url": "https://creativecommons.org/licenses/by/4.0/",
    "sources": [
     {
-     "label": "Sketchfab",
-     "url": "https://sketchfab.com/3d-models/toy-plane-9b4e13700da14d31b9d923c499e18f64"
+     "label": "vinish.dev free 3D models",
+     "url": "https://vinish.dev/free-3d-models/aircraft/"
     }
-   ]
+   ],
+   "notes": "Changed: turned to face the game's forward, scaled, the yellow paint recoloured in game; her character sits in the cockpit."
+  },
+  {
+   "name": "Light Plane",
+   "files": [
+    "assets/aircraft/vinish_light_plane.glb"
+   ],
+   "author": "vinish.dev",
+   "license": "CC-BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0/",
+   "sources": [
+    {
+     "label": "vinish.dev free 3D models",
+     "url": "https://vinish.dev/free-3d-models/aircraft/"
+    }
+   ],
+   "notes": "Changed: turned to face the game's forward, scaled, the white paint recoloured in game; also the Seaplane (with floats added)."
   },
   {
    "name": "Jet trainer (\"Jet\")",

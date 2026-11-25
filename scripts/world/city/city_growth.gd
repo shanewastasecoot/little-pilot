@@ -433,6 +433,7 @@ func _multi(mesh: Mesh, xforms: Array[Transform3D], material: Material, view: fl
 		mm.set_instance_transform(i, xforms[i])
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # never moves (rebuilt as the city grows)
 	mmi.visibility_range_end = view
 	if material:
 		mmi.material_override = material

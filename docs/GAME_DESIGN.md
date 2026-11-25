@@ -85,7 +85,8 @@ Both aircraft share the same controller code and differ only in a tuning resourc
 
 ### 3.1 Prop Plane — *the default*
 - **Medium speed, easy control.** Wide, forgiving turns; jerky stick movements still look graceful.
-- A biplane in bright paint (8 colours) with a spinning propeller and the pilot in the cockpit. No face on the plane. (Phase 9 replaces the current model with a more realistic civilian aircraft.)
+- A realistic vintage two-seat biplane (vinish.dev, CC BY 4.0): navy fuselage, the wings and stripes in her paint colour (8 colours), a radial engine with a spinning propeller, and **her own character in the rear cockpit** (her outfit, hair and hat; `PilotSeat`). No face on the plane. In the hangar it's called "Biplane" (its save id is still `prop`).
+- **Light Plane** (vinish.dev, CC BY 4.0): a high-wing four-seat trainer, white with blue and red cheat lines (the white is her paint colour). Flies like the biplane, a touch faster. The **Seaplane** is this plane on floats.
 
 ### 3.2 Trainer Jet — *the zippy one*
 - **Faster, more responsive.** Tighter turns and less smoothing.
@@ -413,6 +414,11 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - **Her attic**: a third floor up a second flight of stairs from the landing (`"attic": true` in her_house.json: inside the roof, so the outside builds no walls for it; round windows in the gables).
 - **Bigger city house insides** (1.6x, see above).
 - Also: swapping out of the seaplane while afloat lifts the new plane into the air; the sticker book camera no longer prints an error in headless test runs.
+
+## 13m. Fixes round 2: realistic planes (vinish.dev models)
+
+- The parent pointed at vinish.dev's free models (CC BY 4.0: credit required, already allowed by the asset rules). Its **Biplane** replaces the old biplane (her character flies it from the rear cockpit), its **Light Plane** is a new plane in the hangar, and the **Seaplane** is now the light plane on floats (a real floatplane shape). The jet stays (theirs is a military fighter).
+- Credited in `resources/credits.json` / CREDITS.md with what was changed.
 
 ## 14. Future Ideas
 
