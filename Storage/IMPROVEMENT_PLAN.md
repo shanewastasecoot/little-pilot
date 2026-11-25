@@ -21,7 +21,7 @@ You are working on Little Pilot, a Godot 4 flying game for a 4-year-old, in this
 - Run `./dev.sh check` and `./dev.sh test` before finishing each phase. Everything must pass.
 - NEVER delete, skip, or loosen a test to make it pass. Fix the code, or stop and explain why you think the test is wrong.
 - Don't rewrite working systems (flight controller, flight safety, save manager, the state machine in main.gd) unless a phase requires it. Prefer small, additive changes.
-- The performance target is the Steam Deck at 90 FPS, 1280x800, Mobile renderer. Don't use Forward+-only features (e.g. the normal-roughness screen texture).
+- The performance target is the Steam Deck at 90 FPS most of the time (a median of at least 90 FPS in every area, with 1% lows of at least 60 FPS), 1280x800, Mobile renderer. Don't use Forward+-only features (e.g. the normal-roughness screen texture).
 - Every new third-party asset must be CC0 or CC-BY and recorded in the credits data (see Phase 7) before it is committed.
 - If a phase needs an asset or model change you can't do well in code, stop and tell me rather than faking it. No runtime geometry tricks, and no scripts that auto-split meshes someone else made.
 
@@ -170,7 +170,7 @@ Reuse the Phase 3 door, INDOORS state, camera and generator. Nothing new should 
 1. Update README.md, docs/GAME_DESIGN.md, docs/STEAM_DECK.md and docs/ASSET_LIST.md so they match the real game:
    - Crashing and the dragon are on by default and parents can turn them off. Reword the philosophy as "failure is quick, silly and never punishing".
    - The real controls come from project.godot's input map (e.g. Y gets in and out of the plane; right-stick click changes the camera).
-   - The performance target is 90 FPS everywhere.
+   - The performance target is 90 FPS most of the time everywhere (median at least 90, 1% lows at least 60).
    - The world size is correct.
 2. Check that the Phase 0 wording changes are still in place, and that nothing added since then describes the aircraft as toys.
 3. Move the old DEVELOPMENT_ROADMAP.md to docs/HISTORY.md and replace it with a short, current roadmap based on this plan.

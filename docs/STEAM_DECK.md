@@ -85,7 +85,7 @@ Pressing the power button to sleep mid-flight is safe. When the Deck wakes up th
 ## Checking performance
 
 - Press **`...`** (Quick Access), go to **Performance**, and set the **Overlay Level** to 2+ to see FPS.
-- Target: **90 FPS** everywhere at 1280×800 (the OLED Deck's refresh rate), and a warm-run **1% low of at least 90 FPS**, not just the median. The busiest place is a fully grown city street.
+- Target at 1280×800 (the OLED Deck's refresh rate is 90 Hz): **90 FPS most of the time**, meaning a warm-run median of at least 90 FPS (11.1 ms) in every area, and a **1% low of at least 60 FPS** (short dips are fine; it must never feel choppy). The busiest place is a fully grown city street.
 - The Deck's overlay (level 3 or 4) shows the CPU and GPU load side by side: if the CPU is near 100% while the GPU isn't, the game is **CPU-bound** (game code, physics, culling); the other way round, **GPU-bound** (pixels, shaders).
 
 ### Measuring (Graphics Phase G0)

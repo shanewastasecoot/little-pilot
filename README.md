@@ -33,7 +33,7 @@ The secondary audience is the parent or developer, who should find the project e
 
 | Platform | Status | Notes |
 |---|---|---|
-| **Steam Deck** | ✅ Primary target | Native Linux x86_64 build, added as a non-Steam game. 1280×800, kept at 90 FPS everywhere (the OLED panel's refresh rate), Mobile renderer. |
+| **Steam Deck** | ✅ Primary target | Native Linux x86_64 build, added as a non-Steam game. 1280×800, 90 FPS most of the time everywhere (the OLED panel's refresh rate; 1% lows at least 60), Mobile renderer. |
 | **Linux (desktop)** | ✅ Supported | Same build as the Steam Deck. Used for day-to-day development. |
 | **Windows** | 🔜 Future | Godot exports it with little extra work. Needs controller testing. |
 | **iPad** | 🔜 Future | Needs touch controls, a Mac with Xcode, and an Apple Developer account for installs that last longer than 7 days. |

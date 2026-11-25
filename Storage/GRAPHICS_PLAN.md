@@ -19,12 +19,12 @@ About the 1% lows: I suspect a bug that dropped the game to 1-2 FPS caused them.
 What that means for graphics work:
 - Per-pixel improvements (shaders, materials, environment settings, baked shading) are relatively affordable right now, because the GPU has headroom. Measure GPU time to confirm.
 - Anything that adds objects, nodes, draw calls, scripts, CPU-side culling or per-frame CPU work is expensive, because the CPU is already the bottleneck.
-- If the fresh G0 numbers confirm the slow frames, fix those first, or every visual addition makes the 1% lows worse. If the fresh numbers show 1% lows already at or above 90, G1 shrinks to whatever the hitch log finds.
+- If the fresh G0 numbers miss the target below, fix that first, or every visual addition makes it worse. If the fresh numbers already meet it, G1 shrinks to whatever the hitch log finds.
 
 ## Graphics rules (in addition to the main plan's ground rules)
 
 - Run `./dev.sh bench-render` before and after every change, and report median, p95, 1% low, draw calls, and (once Phase G0 adds them) CPU and GPU time per area. Change one thing at a time.
-- The target is a warm-run **1% low of at least 90 FPS** in every area, not just the median.
+- The target (changed by the parent after G0, November 25) is a warm-run **median of at least 90 FPS** (11.1 ms) in every area, so it hits 90 most of the time, and a warm-run **1% low of at least 60 FPS**. Short dips are fine; the game should run at 90 most of the time and never feel choppy.
 - Every visual change needs before/after screenshots from fixed camera spots (G0 adds them). Show them to me and let me choose before making it the default.
 - Prefer per-pixel improvements over adding objects. Don't add new MultiMeshes, scatter layers, lights, nodes or per-object scripts without measuring the CPU cost.
 - Keep the Mobile renderer. Don't switch to Forward+ for SSAO, SSR or volumetric fog.
@@ -47,7 +47,7 @@ What that means for graphics work:
 
 ## Graphics Phase G1: Fix the slow frames (CPU)
 
-The goal is a warm-run 1% low of at least 90 FPS everywhere before any visual additions. No visual changes in this phase. If G0 shows every area already meets that, skip item 1 and do only item 2 (plus any stalls G0 found).
+The goal is a warm-run **median of at least 90 FPS** (11.1 ms) in every area, so it hits 90 most of the time, and a warm-run **1% low of at least 60 FPS** before any visual additions. No visual changes in this phase. If G0 shows every area already meets that, skip item 1 and do only item 2 (plus any stalls G0 found).
 1. City crowd: city_crowd.gd loops over every person (the `for p in people` loops) and checks distance per person. Bucket people spatially by city block, visit only blocks near the camera, keep full-rate movement close to the player and lower-rate updates farther away. Keep the existing six MultiMesh batches and the no-shadow setup. Prove with bench-sim that the crowd cost drops, and that behaviour (doors, shrinking at doors, crowd_blocks) is unchanged in the tests.
 2. Fix the top causes from the G0 hitch log. Likely candidates:
    - First-use shader pipeline compiles: pre-instantiate hidden examples of every spawned effect (crash smoke, explosion debris, fireworks, dragon fire, smoke trails, sky-writing, parachutes, rain, dust) during loading so their pipelines compile before play.
@@ -115,7 +115,7 @@ The ocean is already strong (six Gerstner waves, depth colour, foam, Fresnel, re
 
 ## Graphics Phase G10: Release check
 
-Export the release build, then run it in Game Mode at 1280x800 with vsync on. Run the full bench, including the new routes, and confirm a warm-run 1% low of at least 90 FPS in every area. Update the numbers in docs/GAME_DESIGN.md and docs/STEAM_DECK.md.
+Export the release build, then run it in Game Mode at 1280x800 with vsync on. Run the full bench, including the new routes, and confirm a warm-run **median of at least 90 FPS** (11.1 ms) in every area, so it hits 90 most of the time, and a warm-run **1% low of at least 60 FPS**. Update the numbers in docs/GAME_DESIGN.md and docs/STEAM_DECK.md.
 
 ---
 
