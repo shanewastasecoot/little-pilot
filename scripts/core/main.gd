@@ -257,6 +257,11 @@ func _ready() -> void:
 	leader = FollowLeader.new()
 	leader.main = self
 	add_child(leader)
+	if OS.is_debug_build():
+		# Graphics G0: slow frames logged (debug builds and the benches only).
+		var stalls := StallDetector.new()
+		stalls.main = self
+		add_child(stalls)
 	weather = Weather.new()
 	weather.name = "Weather"
 	weather.main = self
@@ -311,6 +316,7 @@ func _in_plane() -> bool:
 
 func _enter(new_state: State) -> void:
 	state = new_state
+	StallDetector.note("state " + String(State.keys()[new_state]).to_lower())
 	if _playing():
 		_play_state = state
 	title.visible = state == State.TITLE
@@ -678,6 +684,7 @@ func door_walked_into(b: Node3D) -> void:
 func enter_building(b: Node3D) -> void:
 	if _doorway_busy or b == null:
 		return
+	StallDetector.note("enter building")
 	_doorway_busy = true
 	var tw := create_tween()
 	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)

@@ -41,6 +41,7 @@ func _ready() -> void:
 
 
 func _on_star_collected(star: Star) -> void:
+	StallDetector.note("star")
 	if SaveManager.star_found(star.key) and not SaveManager.all_stars and found_count() >= total and total > 0:
 		SaveManager.set_all_stars()
 		every_star_found.emit()

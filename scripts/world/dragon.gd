@@ -301,6 +301,8 @@ func _chase_speed() -> float:
 # --- States ------------------------------------------------------------------
 
 func _set_state(s: int) -> void:
+	if s == State.BREATHE:
+		StallDetector.note("dragon fire")
 	if s == state:
 		return
 	state = s

@@ -92,6 +92,7 @@ func invite(which := "") -> bool:
 	if plane == null:
 		return false
 	route = which if ROUTES.has(which) else _nearest_route(plane.global_position)
+	StallDetector.note("follow leader")
 	var fwd := Vector3(-sin(plane.heading), 0.0, -cos(plane.heading))
 	var left := Vector3(-fwd.z, 0.0, fwd.x)
 	# Close, to one side and a little higher: clearly in view, above her plane.
