@@ -326,6 +326,8 @@ func _enter(new_state: State) -> void:
 		_near_plane = false
 	if not _playing():
 		hud.set_prompt("")
+	if not on_foot:
+		hud.show_foot_hints(false)  # (A jump / B run are for walking only)
 	aircraft.input.override_enabled = not player_flying
 	aircraft.input.override_stick = Vector2.ZERO if _playing() else AUTOPILOT_STICK
 	aircraft.ground_controls = player_flying
@@ -719,8 +721,8 @@ func start_outside_house() -> void:
 ## Out through the front door: back on the building's doorstep (nothing
 ## standing on it), the world as you left it, the things inside tidied away.
 func exit_house() -> void:
-	if _doorway_busy:
-		return
+	if _doorway_busy or interior == null or state != State.INDOORS:
+		return  # (only from inside)
 	_doorway_busy = true
 	var b: Node3D = building if building else house
 	var tw := create_tween()
