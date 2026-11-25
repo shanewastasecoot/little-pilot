@@ -76,6 +76,12 @@ var stickers: Array[String] = []
 ## these), the hats she's bought (Hats ids) and the one she's wearing
 ## ("" = her outfit's own headgear).
 var stars_spent: int = 0
+## Save safety (Phase 10): the format version written now; the version of
+## the file that was loaded (0 = none, defaults); the city plan version the
+## saved city was made with (CityPlan.VERSION).
+const SAVE_VERSION := 2
+var loaded_version := 0
+var city_plan_version := 0
 ## Parent setting: the loudest the game gets (0.2..1.0 of full; 1.0 = no cap).
 var max_volume: float = 1.0
 const MAX_VOLUME_MIN := 0.2
@@ -108,6 +114,50 @@ func _notification(what: int) -> void:
 			save_now()
 
 
+## Bring an older save's values up to date (from `from_version` to
+## SAVE_VERSION), before anything is read from it. New features add new keys,
+## which simply start at their defaults, so nothing needs changing yet:
+##   1 -> 2  (Phase 10: progress/city_plan_version, the shop, the volume cap)
+func _migrate(_cfg: ConfigFile, from_version: int) -> void:
+	if from_version >= SAVE_VERSION:
+		return
+	# (Future migrations go here, one `if from_version < N:` per step.)
+
+
+## The city's plan: made from the seed by the current plan code, unless the
+## saved city was made by older plan code (city_plan_version differs from
+## CityPlan.VERSION), in which case the plan kept when it was made is used,
+## so an update never silently swaps her city for a different one. The plan
+## is kept beside the save (city_snapshot_path) whenever it's made.
+func city_plan() -> Array[Dictionary]:
+	if city_plan_version > 0 and city_plan_version != CityPlan.VERSION:
+		var kept := ConfigFile.new()
+		if kept.load(city_snapshot_path()) == OK and int(kept.get_value("plan", "seed", -1)) == city_seed:
+			var events: Array[Dictionary] = []
+			events.assign(kept.get_value("plan", "events", []))
+			if not events.is_empty():
+				return events
+		push_warning("No kept plan for this city; making it with the current plan code.")
+	var plan := CityPlan.make(city_seed)
+	if city_plan_version != CityPlan.VERSION:
+		city_plan_version = CityPlan.VERSION
+		request_save()
+	var snap := ConfigFile.new()
+	if snap.load(city_snapshot_path()) != OK or int(snap.get_value("plan", "seed", -1)) != city_seed \
+			or int(snap.get_value("plan", "version", -1)) != CityPlan.VERSION:
+		snap = ConfigFile.new()
+		snap.set_value("plan", "seed", city_seed)
+		snap.set_value("plan", "version", CityPlan.VERSION)
+		snap.set_value("plan", "events", plan)
+		snap.save(city_snapshot_path())
+	return plan
+
+
+## Where the city's plan is kept, beside the save (save.cfg -> save_city.cfg).
+func city_snapshot_path() -> String:
+	return path.get_basename() + "_city.cfg"
+
+
 ## Switch to another save file (used by tests) and load it.
 func use_path(new_path: String) -> void:
 	path = new_path
@@ -127,13 +177,35 @@ func _new_seed() -> int:
 
 func _load_file() -> void:
 	_reset_to_defaults()
+	# The save, else (if it's there but broken) the newer copy left beside it
+	# when a swap failed, else the last good save (.bak), else the defaults.
+	# Never an error for her.
 	var cfg := ConfigFile.new()
-	var err := cfg.load(path)
-	if err == ERR_FILE_NOT_FOUND:
+	var found := false
+	# No save at all is a fresh start (deleting save.cfg resets the game): the
+	# copies are only for a save that's there but broken.
+	var there := FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path))
+	if not there:
 		return
-	if err != OK:
-		push_warning("Save file %s unreadable (error %d); using defaults." % [path, err])
+	for p in [path, path + ".tmp", path + ".bak"]:
+		if not FileAccess.file_exists(p):
+			continue
+		var err := cfg.load(p)
+		# (A file that parses to nothing at all isn't a save: garbage text
+		# can do that. Try the next one.)
+		if err == OK and cfg.get_sections().is_empty():
+			err = ERR_FILE_CORRUPT
+		if err == OK:
+			found = true
+			if p != path:
+				push_warning("Save file %s unreadable; loaded %s instead." % [path, p])
+			break
+		push_warning("Save file %s unreadable (error %d)." % [p, err])
+		cfg = ConfigFile.new()
+	if not found:
 		return
+	loaded_version = int(cfg.get_value("meta", "version", 1))
+	_migrate(cfg, loaded_version)
 	var plane = cfg.get_value("player", "selected_aircraft", selected_aircraft)
 	if plane is String and AircraftCatalog.has(plane):
 		selected_aircraft = plane
@@ -145,6 +217,9 @@ func _load_file() -> void:
 	var cs = cfg.get_value("progress", "city_seed", 0)
 	if cs is int and cs > 0:
 		city_seed = cs
+	# (Saves from before the plan had a version were made by version 1.)
+	var cpv = cfg.get_value("progress", "city_plan_version", 1)
+	city_plan_version = cpv if cpv is int and cpv > 0 else 1
 	var saved_paints = cfg.get_value("player", "paints", {})
 	if saved_paints is Dictionary:
 		for id in saved_paints:
@@ -258,13 +333,14 @@ func save_now() -> void:
 	_save_timer.stop()
 	_unsaved_play = 0.0
 	var cfg := ConfigFile.new()
-	cfg.set_value("meta", "version", 1)
+	cfg.set_value("meta", "version", SAVE_VERSION)
 	cfg.set_value("player", "selected_aircraft", selected_aircraft)
 	cfg.set_value("player", "paints", paints)
 	cfg.set_value("progress", "lifetime_stars", lifetime_stars)
 	cfg.set_value("progress", "playtime", playtime)
 	cfg.set_value("progress", "city_time", city_time)
 	cfg.set_value("progress", "city_seed", city_seed)
+	cfg.set_value("progress", "city_plan_version", city_plan_version if city_plan_version > 0 else CityPlan.VERSION)
 	cfg.set_value("settings", "music_volume", music_volume)
 	cfg.set_value("settings", "max_volume", max_volume)
 	cfg.set_value("settings", "sfx_volume", sfx_volume)
@@ -298,7 +374,23 @@ func save_now() -> void:
 	if cfg.save(tmp) != OK:
 		push_warning("Could not write save file %s" % tmp)
 		return
-	DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(path))
+	# Only swap in a file that reads back.
+	if ConfigFile.new().load(tmp) != OK:
+		push_warning("Save file %s didn't read back; keeping the old save." % tmp)
+		return
+	var abs_path := ProjectSettings.globalize_path(path)
+	var abs_tmp := ProjectSettings.globalize_path(tmp)
+	# Keep the last good save as .bak (only one that reads).
+	if FileAccess.file_exists(path) and ConfigFile.new().load(path) == OK:
+		DirAccess.copy_absolute(abs_path, abs_path + ".bak")
+	if DirAccess.rename_absolute(abs_tmp, abs_path) != OK:
+		# The swap failed: try copying over instead; if that fails too, the
+		# new save stays beside it as .tmp (loaded next time) and the old
+		# save and the .bak are untouched. Nothing is lost.
+		if DirAccess.copy_absolute(abs_tmp, abs_path) == OK:
+			DirAccess.remove_absolute(abs_tmp)
+		else:
+			push_warning("Could not replace %s; the new save is kept in %s." % [path, tmp])
 
 
 func set_selected_aircraft(id: String) -> void:
@@ -330,6 +422,7 @@ func add_playtime(delta: float) -> void:
 func reset_city() -> void:
 	city_time = 0.0
 	city_seed = _new_seed()  # a restarted city grows a new way
+	city_plan_version = CityPlan.VERSION
 	city_reset.emit()
 	request_save()
 
@@ -511,6 +604,8 @@ func _reset_to_defaults() -> void:
 	playtime = 0.0
 	city_time = 0.0
 	city_seed = 0
+	city_plan_version = 0
+	loaded_version = 0
 	_unsaved_play = 0.0
 	paints = {}
 	music_volume = 0.7

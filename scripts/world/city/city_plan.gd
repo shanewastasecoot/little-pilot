@@ -39,6 +39,11 @@ extends RefCounted
 ##   lot    the lot's ground style the first time a lot is used, else ""
 ##   start, dur   seconds of city time
 
+## The city plan's version (Phase 10). Raise it whenever a change here would
+## make the same seed grow a different city: saved cities made with an older
+## version then keep their own plan (SaveManager.city_plan()) instead of
+## silently turning into a different city.
+const VERSION := 1
 const PITCH := IslandShape.CITY_PITCH
 const FIRST_RING := 3
 const MAX_RING := IslandShape.CITY_MAX_RING
