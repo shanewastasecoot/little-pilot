@@ -147,7 +147,7 @@ git clone https://github.com/shanewastasecoot/little-pilot.git
 | `./dev.sh audit-aircraft` | What each aircraft model is made of: node tree, meshes, triangles, materials, animations, and which parts (propeller, wheels, control surfaces, gear, markers) are separate. See `docs/AIRCRAFT_MODELS.md` |
 | `./dev.sh run -- --record-playtest` | Debug runs only: keep a local playtest diary (route, crashes, landings, landmarks) in `user://playtests/`. Nothing is ever sent anywhere. |
 
-Press **F3** in game to toggle the debug overlay (FPS, speed, clearance, safety state). It's on by default in debug runs and off in release builds.
+Press **F3** in game to toggle the debug overlay (FPS, speed, clearance, safety state; **T** flips the tonemapper between Linear and AgX to compare). It's on by default in debug runs and off in release builds. The sky, fog and glow live in `resources/world_environment.tres`: open it in the editor to tune the look live.
 
 ### How CI works
 

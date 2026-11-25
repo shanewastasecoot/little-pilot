@@ -7,6 +7,7 @@ extends RefCounted
 ## on loop if it has one.
 static func place(parent: Node3D, path: String, pos := Vector3.ZERO, scale := 1.0, yaw_deg := 0.0, anim := "") -> Node3D:
 	var node: Node3D = load(path).instantiate()
+	StyleProfiles.apply(node, path)
 	node.position = pos
 	node.scale = Vector3.ONE * scale
 	node.rotation_degrees.y = yaw_deg
@@ -52,6 +53,7 @@ static func mesh_of(path: String) -> Array:
 			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 			mesh.surface_set_material(i, m)
 	root.free()
+	StyleProfiles.apply_mesh(mesh, path)
 	_mesh_cache[path] = [mesh, xf]
 	return _mesh_cache[path]
 
@@ -87,6 +89,7 @@ static func merged_mesh(path: String, from_hue := -1.0, hue_range := 0.06, to_co
 			var col := mat.albedo_color if mat else Color.WHITE
 			if from_hue >= 0.0 and col.s > 0.35 and absf(wrapf(col.h - from_hue, -0.5, 0.5)) < hue_range:
 				col = Color.from_hsv(to_color.h, to_color.s, clampf(to_color.v * col.v / 0.8, 0.0, 1.0))
+			col = StyleProfiles.vertex_colour(col, path)
 			var arrays := mi.mesh.surface_get_arrays(i)
 			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 			var normals = arrays[Mesh.ARRAY_NORMAL]
@@ -104,5 +107,6 @@ static func merged_mesh(path: String, from_hue := -1.0, hue_range := 0.06, to_co
 	m.vertex_color_is_srgb = true
 	m.roughness = 0.7
 	mesh.surface_set_material(0, m)
+	StyleProfiles.apply_mesh(mesh, path)
 	_merged_cache[key] = mesh
 	return mesh

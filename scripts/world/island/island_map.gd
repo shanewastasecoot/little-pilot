@@ -37,33 +37,13 @@ func _ready() -> void:
 	add_child(Clouds.new())
 
 
+## The sky, fog, glow and tonemap (resources/world_environment.tres: tune it
+## live in the editor). The sun stays here, below.
+const ENVIRONMENT := "res://resources/world_environment.tres"
+
+
 func _build_environment() -> void:
-	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color("2f8cf5")
-	sky_mat.sky_horizon_color = Color("bfe6ff")
-	sky_mat.sky_curve = 0.12
-	sky_mat.sun_angle_max = 20.0
-	sky_mat.ground_horizon_color = Color("bfe6ff")
-	sky_mat.ground_bottom_color = Color("2f7fc0")
-	var sky := Sky.new()
-	sky.sky_material = sky_mat
-	var env := Environment.new()
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.55
-	# Bright and vivid (linear), with a touch of contrast so shading reads.
-	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
-	env.adjustment_enabled = true
-	env.adjustment_saturation = 1.08
-	env.adjustment_contrast = 1.08
-	env.fog_enabled = true
-	env.fog_light_color = Color("cfeaff")
-	env.fog_density = 0.00032
-	env.fog_sky_affect = 0.15
-	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	env.glow_hdr_threshold = 1.1
+	var env: Environment = load(ENVIRONMENT)
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
