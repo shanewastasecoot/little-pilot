@@ -14,6 +14,8 @@ signal collected(star: Star)
 static var _material: StandardMaterial3D
 
 var is_collected: bool = false
+## Where it sits, as a key for the save (every star she's ever found).
+var key := ""
 var _time: float = 0.0
 var _mesh: MeshInstance3D
 var _home: Vector3
@@ -23,6 +25,7 @@ var _plane: Aircraft
 
 func _ready() -> void:
 	add_to_group("stars")
+	key = "%d,%d,%d" % [roundi(global_position.x), roundi(global_position.y), roundi(global_position.z)]
 	collision_layer = GameSettings.LAYER_COLLECTIBLES
 	collision_mask = GameSettings.LAYER_AIRCRAFT
 	monitorable = false

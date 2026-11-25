@@ -428,6 +428,15 @@ Mermaid mail grew into **parachute mail** for friends where the plane can't land
 - At the end of the loop: bursts of colour in the sky, booms and a fanfare, and **5 bonus stars**. Honk at it and it toots back.
 - `FollowLeader` (`main.leader`), `follow_test`.
 
+## 13o. All-stars reward (Phase 14, item 8)
+
+- Every floating star she's ever picked up is remembered (by where it sits: `[progress] stars_found`), across all her days of play, so "all the stars" means **every star found at least once**, not all in one go. (There are 224 at the moment.)
+- **Finding the last new one changes the world for good** (`[progress] all_stars`): a fanfare and a news line ("Every star found! The rainbow sparkles for ever."). From then on:
+  - the **rainbow arch sparkles for ever**: gold and white twinkles all over it;
+  - **flying through it sets off fireworks**: big bursts all round the arch straight away, and a show of rockets high above it for ten seconds.
+- The parent's **Today** page shows how many she's found ("150 / 224 stars found").
+- `StarManager.every_star_found`, `RainbowArch.set_golden`, `all_stars_test`.
+
 ## 14. Future Ideas
 
 | Idea | Description | Complexity |

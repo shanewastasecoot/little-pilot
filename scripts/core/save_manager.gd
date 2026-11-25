@@ -20,6 +20,10 @@ const MAX_PLAY_TICK := 0.5
 var path: String = DEFAULT_PATH
 var selected_aircraft: String = AircraftCatalog.DEFAULT_ID
 var lifetime_stars: int = 0
+## Every floating star she's ever picked up (by where it is), and whether
+## she's found every one (Phase 14: then the rainbow sparkles for ever).
+var stars_found: Dictionary = {}
+var all_stars: bool = false
 ## Seconds spent actually flying, ever (shown to parents).
 var playtime: float = 0.0
 ## Seconds of flying since the city was last restarted; the city grows from
@@ -225,6 +229,12 @@ func _load_file() -> void:
 	var plane = cfg.get_value("player", "selected_aircraft", selected_aircraft)
 	if plane is String and AircraftCatalog.has(plane):
 		selected_aircraft = plane
+	var found_stars = cfg.get_value("progress", "stars_found", [])
+	if found_stars is Array:
+		for k in found_stars:
+			if k is String:
+				stars_found[k] = true
+	all_stars = bool(cfg.get_value("progress", "all_stars", false))
 	var stars = cfg.get_value("progress", "lifetime_stars", 0)
 	if stars is int and stars >= 0:
 		lifetime_stars = stars
@@ -379,6 +389,8 @@ func save_now() -> void:
 	cfg.set_value("player", "selected_aircraft", selected_aircraft)
 	cfg.set_value("player", "paints", paints)
 	cfg.set_value("progress", "lifetime_stars", lifetime_stars)
+	cfg.set_value("progress", "stars_found", stars_found.keys())
+	cfg.set_value("progress", "all_stars", all_stars)
 	cfg.set_value("progress", "playtime", playtime)
 	cfg.set_value("progress", "city_time", city_time)
 	cfg.set_value("progress", "city_seed", city_seed)
@@ -446,6 +458,20 @@ func set_selected_aircraft(id: String) -> void:
 	if AircraftCatalog.has(id) and id != selected_aircraft:
 		selected_aircraft = id
 		request_save()
+
+
+## A floating star (`key`: where it is) picked up: true if it's a new one.
+func star_found(key: String) -> bool:
+	if key == "" or stars_found.has(key):
+		return false
+	stars_found[key] = true
+	request_save()
+	return true
+
+
+func set_all_stars() -> void:
+	all_stars = true
+	request_save()
 
 
 func add_lifetime_star() -> void:
@@ -741,6 +767,8 @@ func set_invert_y(on: bool) -> void:
 func _reset_to_defaults() -> void:
 	selected_aircraft = AircraftCatalog.DEFAULT_ID
 	lifetime_stars = 0
+	stars_found = {}
+	all_stars = false
 	playtime = 0.0
 	city_time = 0.0
 	city_seed = 0

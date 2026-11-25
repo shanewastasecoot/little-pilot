@@ -195,6 +195,7 @@ func _ready() -> void:
 	fade_layer.move_child(underwater, _fade.get_index())  # under the white fade
 	hud.bind(stars)
 	stars.all_collected.connect(_on_all_stars)
+	stars.every_star_found.connect(_on_every_star_found)
 	stars.city_party_due.connect(_on_city_party_due)
 	for l in get_tree().get_nodes_in_group("landmarks"):
 		if l is CityDistrict:
@@ -975,6 +976,16 @@ func _explosion(where: Vector3) -> void:
 
 func _on_landmark_discovered(_landmark: Landmark) -> void:
 	hud.celebrate_discovery()
+
+
+## Every star in the world found at least once (Phase 14): the rainbow
+## sparkles for ever from now on (and fireworks when she flies through it).
+func _on_every_star_found() -> void:
+	Sfx.play("fanfare")
+	hud.show_news("Every star found! The rainbow sparkles for ever.")
+	for l in get_tree().get_nodes_in_group("landmarks"):
+		if l is RainbowArch:
+			l.set_golden(true)
 
 
 func _on_all_stars() -> void:

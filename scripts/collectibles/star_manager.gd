@@ -12,6 +12,8 @@ signal city_party_due
 ## Reward stars (from deliveries): they go into the lifetime total and count
 ## towards city parties, but not towards the floating stars' "all found".
 signal bonus_stars(n: int)
+## Every floating star in the world found at least once, ever (once).
+signal every_star_found
 
 ## Session counts that trigger a small celebration.
 @export var milestones: Array[int] = [10, 25]
@@ -38,7 +40,10 @@ func _ready() -> void:
 		total += 1
 
 
-func _on_star_collected(_star: Star) -> void:
+func _on_star_collected(star: Star) -> void:
+	if SaveManager.star_found(star.key) and not SaveManager.all_stars and found_count() >= total and total > 0:
+		SaveManager.set_all_stars()
+		every_star_found.emit()
 	count += 1
 	session_count += 1
 	var now := Time.get_ticks_msec()
@@ -56,6 +61,15 @@ func _on_star_collected(_star: Star) -> void:
 	elif count in milestones:
 		milestone_reached.emit(count)
 		Sfx.play("jingle")
+
+
+## How many of the world's stars she's ever found.
+func found_count() -> int:
+	var n := 0
+	for s in get_tree().get_nodes_in_group("stars"):
+		if SaveManager.stars_found.has(s.key):
+			n += 1
+	return n
 
 
 ## Give `n` reward stars (a delivery): lifetime total and city-party
