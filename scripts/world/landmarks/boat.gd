@@ -44,5 +44,5 @@ func _toot_back(_kind: String, _where: Vector3) -> void:
 func react() -> void:
 	var puff := PickupBurst.new(14, 4.0, [Color.WHITE, Color("dddddd")])
 	puff.gravity = Vector3(0, 3, 0)
+	puff.position = Vector3(0, 16, 0)  # (placed before adding: a burst added first starts its sparks where it was added)
 	_hull.add_child(puff)
-	puff.position = Vector3(0, 16, 0)

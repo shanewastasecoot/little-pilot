@@ -40,6 +40,6 @@ func react() -> void:
 	spout.spread = 15.0
 	spout.gravity = Vector3(0, -14, 0)
 	spout.lifetime = 1.6
+	spout.position = Vector3(0, 6, 8)  # (placed before adding: a burst added first starts its sparks where it was added)
 	_body.add_child(spout)
-	spout.position = Vector3(0, 6, 8)
 	_t = 1.5  # pop up right away

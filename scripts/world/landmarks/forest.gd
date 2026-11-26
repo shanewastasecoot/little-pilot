@@ -167,5 +167,5 @@ func react() -> void:
 	var birds := PickupBurst.new(18, 14.0, [Color("333344"), Color("554433")])
 	birds.gravity = Vector3(0, 4, 0)
 	birds.lifetime = 2.5
+	birds.position = to_local(global_position + Vector3(0, 20, 0))  # (placed before adding: a burst added first starts its sparks where it was added)
 	add_child(birds)
-	birds.global_position = global_position + Vector3(0, 20, 0)

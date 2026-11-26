@@ -393,8 +393,9 @@ func _grumpy_step(delta: float) -> void:
 		_stomp = 2.4
 		Sfx.play_at("roar", global_position, randf_range(0.85, 1.0), 5.0)
 		var puff := PickupBurst.new(30, 10.0, [Color("666666"), Color("888888"), Color("ff7b2e")])
-		(lair if lair else self).add_child(puff)
-		puff.global_position = global_position + _forward() * 22.0 + Vector3.UP * 14.0
+		var puff_parent: Node3D = lair if lair else self
+		puff.position = puff_parent.to_local(global_position + _forward() * 22.0 + Vector3.UP * 14.0)  # (placed before adding: a burst added first starts its sparks where it was added)
+		puff_parent.add_child(puff)
 		var base := global_position.y
 		var tw := create_tween()
 		tw.tween_property(self, "global_position:y", base + 4.0, 0.25).set_ease(Tween.EASE_OUT)
