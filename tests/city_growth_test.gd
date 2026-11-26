@@ -12,6 +12,7 @@ extends Node
 ##           while of walking nobody is inside a building or out in the
 ##           road (except crossing at corners), and people really do go in
 ##           and come back out of doors
+##   lights  no street light stands in a road (they used to at crossings)
 ##   reset   "Restart the city" puts everything back to the start
 ## Exit code 0 = pass, 1 = fail.
 
@@ -170,6 +171,7 @@ func _live_checks(main: Node) -> void:
 	g.rebuild()
 	_check("the full city builds", g._active.is_empty() and g.opened_count(g.now()) == g.plan.size() and city._sites.is_empty())
 	_check("a full city's crowd is capped", crowd.population() == CityCrowd.MAX_PEOPLE)
+	_street_light_checks(city, g)
 	_crowd_walk_checks(crowd)
 
 
@@ -214,6 +216,22 @@ func _where_wrong(crowd: CityCrowd, p: Dictionary) -> String:
 	if m < CityCrowd.EDGE - 0.6:
 		return "person inside block %s at %s (state %d)" % [p.block, pos, p.state]
 	return ""
+
+
+## Every street light (the old city's and the growing city's) stands beside
+## a road, never in one: none within half a road's width of a road's centre
+## line (roads run between blocks, at (n + 0.5) * PITCH in the city).
+func _street_light_checks(city: CityDistrict, g: CityGrowth) -> void:
+	var spots: Array[Vector3] = city.street_lights.duplicate()
+	for p in g.street_lights:
+		spots.append(city.to_local(g.to_global(p)))
+	var bad := ""
+	for at in spots:
+		for v: float in [at.x, at.z]:
+			var off := absf(v - (roundf(v / CityDistrict.PITCH - 0.5) + 0.5) * CityDistrict.PITCH)
+			if off < CityDistrict.ROAD_W * 0.5 and bad == "":
+				bad = "- one in the road at %s" % at
+	_check("street lights stand beside the roads, not in them (%d lights) %s" % [spots.size(), bad], spots.size() > 100 and bad == "")
 
 
 func _check(name: String, ok: bool) -> void:

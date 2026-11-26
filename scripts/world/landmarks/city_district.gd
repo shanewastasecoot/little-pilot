@@ -173,6 +173,10 @@ func clear_site(cell: Vector2i) -> void:
 
 # --- Streets -------------------------------------------------------------------
 
+## Where each street light stands (city-local), for the tests.
+var street_lights: Array[Vector3] = []
+
+
 func _build_streets() -> void:
 	var half := GRID * 0.5
 	var span := PITCH * GRID + ROAD_W
@@ -206,14 +210,18 @@ func _build_streets() -> void:
 	# downtown crossings.
 	var data: Array = AssetLib.mesh_of(ENV + "street_light.glb")
 	var xforms: Array[Transform3D] = []
+	street_lights.clear()
 	for k in GRID + 1:
 		var o := -PITCH * half + k * PITCH
-		for d in GRID * 2 + 1:
-			var t := -PITCH * half + d * PITCH * 0.5
+		# A quarter and three quarters along each block, never at a
+		# crossing (there the light would stand in the cross street).
+		for d in GRID * 2:
+			var t := -PITCH * half + (d + 0.5) * PITCH * 0.5
 			for along_x in [true, false]:
 				var p := Vector3(t, 0, o + ROAD_W * 0.5 + 1.5) if along_x else Vector3(o + ROAD_W * 0.5 + 1.5, 0, t)
 				var yaw := PI if along_x else PI * 0.5
 				xforms.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * 1.6), p) * data[1])
+				street_lights.append(p)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = data[0]
