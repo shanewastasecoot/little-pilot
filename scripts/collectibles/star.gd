@@ -80,8 +80,9 @@ func _collect() -> void:
 	set_deferred("monitoring", false)
 	collected.emit(self)
 	var burst := PickupBurst.new()
-	get_parent().add_child(burst)
-	burst.global_position = _mesh.global_position
+	var parent := get_parent()
+	burst.position = (parent as Node3D).to_local(_mesh.global_position) if parent is Node3D else _mesh.global_position  # (placed before adding: a burst added first starts its sparks where it was added)
+	parent.add_child(burst)
 	var tw := create_tween().set_trans(Tween.TRANS_BACK)
 	tw.tween_property(_mesh, "scale", Vector3.ONE * 1.6, 0.08)
 	tw.tween_property(_mesh, "scale", Vector3.ZERO, 0.18)

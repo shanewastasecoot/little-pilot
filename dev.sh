@@ -69,7 +69,7 @@ case "${1:-}" in
           $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_render.tscn "$@" 2>&1 \
             | grep -vE "^(Godot Engine|Vulkan|WARNING|   at:|$)" ;;
   shots)  shift
-          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_shots.tscn -- --label="${1:-now}" 2>&1 \
+          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_shots.tscn -- --label="${1:-now}" --variants="${2:-}" 2>&1 \
             | grep -E "shot|Saved|SCRIPT ERROR" ;;
   audit-aircraft) $GODOT --headless --path . res://tools/aircraft_audit.tscn 2>&1 | grep -vE "^(Godot Engine|WARNING|   at:|$)" ;;
   *)      sed -n '2,14p' "$0"; exit 1 ;;

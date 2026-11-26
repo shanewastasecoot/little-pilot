@@ -8,7 +8,7 @@ extends Node
 ##   batching   two copies of the same asset share the same materials
 ##   sky        the sky is the custom sky shader; the environment comes
 ##              from resources/world_environment.tres
-##   tonemap    the debug overlay flips Linear <-> AgX, Linear by default
+##   tonemap    AgX by default (G2, the parent's pick); the debug overlay flips AgX <-> Linear
 ## Exit code 0 = pass, 1 = fail.
 
 const ENV := "res://assets/environment/"
@@ -74,12 +74,12 @@ func _ready() -> void:
 	we.environment = env.duplicate()
 	add_child(we)
 	var hud: DebugHud = load("res://scenes/ui/debug_hud.tscn").instantiate() if ResourceLoader.exists("res://scenes/ui/debug_hud.tscn") else null
-	var linear_default := we.environment.tonemap_mode == Environment.TONE_MAPPER_LINEAR
+	var agx_default := we.environment.tonemap_mode == Environment.TONE_MAPPER_AGX
 	var flipped := -2
 	if hud:
 		add_child(hud)
 		flipped = hud.toggle_tonemap()
-	_check("Linear by default; the debug overlay flips it to AgX to compare", linear_default and flipped == Environment.TONE_MAPPER_AGX)
+	_check("AgX by default; the debug overlay flips it to Linear to compare", agx_default and flipped == Environment.TONE_MAPPER_LINEAR)
 	print("\nSTYLE TEST %s" % ("PASSED" if _fails == 0 else "FAILED (%d)" % _fails))
 	get_tree().quit(1 if _fails else 0)
 

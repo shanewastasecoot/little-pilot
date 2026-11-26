@@ -112,8 +112,8 @@ static func _build_room(interior: Interior, data: Dictionary, room: Dictionary, 
 	var lamp := OmniLight3D.new()
 	lamp.position = Vector3(rect.get_center().x, base + storey * 0.8, rect.get_center().y)
 	lamp.omni_range = maxf(rect.size.x, rect.size.y) * 0.9
-	lamp.light_energy = 0.35
-	lamp.light_color = Color("fff1d6")
+	lamp.light_energy = 0.42  # warm and cosy (G2, the parent's pick)
+	lamp.light_color = Color("ffd49a")
 	node.add_child(lamp)
 	info["light"] = lamp
 	# Walls, side by side.
@@ -228,6 +228,39 @@ static func _build_side(interior: Interior, data: Dictionary, room: Dictionary, 
 ## A piece of KayKit furniture at (fx, fz) as fractions of the room, turned
 ## `yaw` degrees, `scale` x the furniture scale. Solid pieces get a box
 ## you bump into. Returns the node.
+## A lamp glows where its shade opens at the top: an emissive disc, not a
+## light (G2, warm and cosy indoors). One shared material.
+static var _lamp_mat: StandardMaterial3D
+
+
+static func _lamp_glow(lamp: Node3D) -> void:
+	var top := 0.0
+	for mi: MeshInstance3D in lamp.find_children("*", "MeshInstance3D", true, false):
+		top = maxf(top, (mi.transform * mi.get_aabb()).end.y)
+	if top <= 0.0:
+		return
+	if _lamp_mat == null:
+		_lamp_mat = StandardMaterial3D.new()
+		_lamp_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_lamp_mat.albedo_color = Color(1.0, 0.86, 0.6)
+		_lamp_mat.emission_enabled = true
+		_lamp_mat.emission = Color(1.0, 0.8, 0.5)
+		_lamp_mat.emission_energy_multiplier = 2.5
+	var disc := MeshInstance3D.new()
+	disc.name = "Glow"
+	var m := CylinderMesh.new()
+	m.top_radius = top * 0.1
+	m.bottom_radius = top * 0.1
+	m.height = top * 0.04
+	m.radial_segments = 16
+	m.rings = 1
+	disc.mesh = m
+	disc.material_override = _lamp_mat
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	disc.position = Vector3(0, top * 1.003, 0)
+	lamp.add_child(disc)
+
+
 static func _put(node: Node3D, data: Dictionary, rect: Rect2, base: float, item: String, fx: float, fz: float,
 		yaw := 0.0, scale := 1.0, solid := true, lift := 0.0) -> Node3D:
 	var s: float = float(data.get("furniture_scale", 2.27)) * scale
@@ -241,6 +274,8 @@ static func _put(node: Node3D, data: Dictionary, rect: Rect2, base: float, item:
 	piece.rotation_degrees.y = yaw
 	piece.position = Vector3(rect.position.x + fx * rect.size.x, base + lift, rect.position.y + fz * rect.size.y)
 	node.add_child(piece)
+	if item.begins_with("lamp_"):
+		_lamp_glow(piece)
 	if solid:
 		var box := AABB()
 		var first := true

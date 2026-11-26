@@ -51,7 +51,7 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-46, -30, 0)
 	sun.light_energy = 1.3
-	sun.light_color = Color(1.0, 0.96, 0.88)  # warm afternoon sun
+	sun.light_color = Color(1.0, 0.92, 0.78)  # golden afternoon sun (G2, the parent's pick)
 	sun.shadow_enabled = true
 	sun.shadow_blur = 1.5
 	# Two cascades: crisp shadows near the plane, buildings and trees
