@@ -179,7 +179,7 @@ A world of islands about 9 km across (the boundary is 4.7 km from the middle), a
 - **Tonemap comparison**: with the F3 overlay showing, T flips Linear (the game's) and AgX, to compare. Never saved.
 
 ### 6.2 Performance Budget (Steam Deck)
-- **90 FPS everywhere at 1280×800** (the OLED Deck's refresh rate), with the Mobile renderer. A 30 FPS battery saver is a parent setting.
+- **90 FPS most of the time at 1280×800** (the OLED Deck's refresh rate): a median of at least 90 FPS everywhere, with 1% lows of at least 60 FPS. Mobile renderer. A 30 FPS battery saver is a parent setting.
 - MultiMesh for trees and the crowd (one draw per townsperson look); visibility ranges on trees and small props; people far away aren't drawn or moved.
 - New work is measured before it ships: `./dev.sh bench-render` (frame times per area, cold and warm, 1 % lows, draw calls) and `./dev.sh bench-sim` (simulation cost, headless, in CI). First results on the Deck (desktop mode, vsync off): median frame time 7.6-10.5 ms (the fully grown city the slowest, about 96 FPS median), 1 % lows 64-83 FPS, 170-535 draw calls; physics about 1.2-2.2 ms and game logic 4.5-7 ms a frame, the city's crowd update the biggest single cost (1.4 ms). Turning shadows, glow, refraction and anti-aliasing down barely moves the numbers: the game is limited by the processor, not the graphics, so that's where speed-ups belong.
 

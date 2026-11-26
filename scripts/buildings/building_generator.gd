@@ -35,6 +35,7 @@ static func load_data(path: String) -> Dictionary:
 
 ## Build the interior described by `data` (a parsed JSON layout).
 static func build(data: Dictionary) -> Interior:
+	StallDetector.note("build inside")
 	var interior := Interior.new()
 	interior.name = "Interior_" + str(data.get("name", "building"))
 	interior.data = data

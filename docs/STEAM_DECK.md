@@ -85,7 +85,15 @@ Pressing the power button to sleep mid-flight is safe. When the Deck wakes up th
 ## Checking performance
 
 - Press **`...`** (Quick Access), go to **Performance**, and set the **Overlay Level** to 2+ to see FPS.
-- Target: **90 FPS** everywhere at 1280×800 (the OLED Deck's refresh rate). The busiest place is a fully grown city street.
+- Target at 1280×800 (the OLED Deck's refresh rate is 90 Hz): **90 FPS most of the time**, meaning a warm-run median of at least 90 FPS (11.1 ms) in every area, and a **1% low of at least 60 FPS** (short dips are fine; it must never feel choppy). The busiest place is a fully grown city street.
+- The Deck's overlay (level 3 or 4) shows the CPU and GPU load side by side: if the CPU is near 100% while the GPU isn't, the game is **CPU-bound** (game code, physics, culling); the other way round, **GPU-bound** (pixels, shaders).
+
+### Measuring (Graphics Phase G0)
+
+- `./dev.sh bench-render`: frame times in nine areas (airport, grown city, ocean, Dragon Peak, on foot in the city, inside her house, in the rain, fireworks, the dragon's fire), cold and warm, 30 s each: median, p95, p99, worst frame, 1% low, draw calls, script and physics time, render CPU and GPU time. A **hitch log** lists every warm-run frame over 11.1 ms with what happened that frame (the top causes are summarised). `-- --bench-areas=city,rain` measures only those; `-- --bench-measure=10` shortens each area.
+- **Stalls**: debug builds (and the benches) log any frame over 250 ms to `user://bench/stalls.log`, with the game state and what happened that frame.
+- `./dev.sh shots <label>`: pictures from fixed camera spots (airport apron, low over the city, farmland, lagoon shallows, Dragon Peak, the plane up close, inside the house) to `user://bench/shots/<label>/`, for before/after comparisons.
+- **Final numbers come from the exported release build, in Game Mode at 1280×800 with vsync ON, after warm-up** (play a minute first). Desktop-mode runs with vsync off are for comparing changes with each other, not for the final word.
 
 ## Troubleshooting
 

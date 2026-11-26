@@ -105,6 +105,7 @@ func visible_parts() -> Array[String]:
 
 
 func _build() -> void:
+	StallDetector.note("character build")
 	var playing := anim
 	if _model:
 		_model.free()

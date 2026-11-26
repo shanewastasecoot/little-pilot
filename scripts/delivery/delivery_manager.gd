@@ -198,6 +198,7 @@ func _start(id: String, save: bool) -> void:
 
 
 func _deliver() -> void:
+	StallDetector.note("delivery")
 	var who := target()
 	var id := job
 	_last = id

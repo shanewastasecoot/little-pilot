@@ -52,6 +52,7 @@ func _process(delta: float) -> void:
 
 
 func _launch() -> void:
+	StallDetector.note("firework")
 	var pad: Vector3 = PADS[randi() % PADS.size()] + Vector3(randf_range(-10, 10), 0, randf_range(-10, 10))
 	var rocket := Node3D.new()
 	rocket.position = pad
@@ -75,6 +76,7 @@ func _launch() -> void:
 
 
 func _burst(at: Vector3) -> void:
+	StallDetector.note("firework burst")
 	var burst := FireworkBurst.new(COLORS[randi() % COLORS.size()], COLORS[randi() % COLORS.size()])
 	burst.position = at
 	add_child(burst)

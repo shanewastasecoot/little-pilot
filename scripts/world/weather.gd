@@ -78,6 +78,7 @@ func _physics_process(delta: float) -> void:
 func spawn_cloud() -> void:
 	if cloud:
 		return
+	StallDetector.note("rain cloud")
 	var at: Vector3 = main.aircraft.global_position if main._in_plane() else main.walker.global_position
 	var a := randf() * TAU
 	_drift = Vector3(cos(a), 0.0, sin(a)) * DRIFT

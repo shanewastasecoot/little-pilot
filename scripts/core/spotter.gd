@@ -113,6 +113,7 @@ func _take_postcard() -> void:
 ## The screen without the HUD, small.
 func _grab() -> Image:
 	_busy = true
+	StallDetector.note("photo")
 	var hidden := []
 	if main and main.get("hud"):
 		hidden.append(main.hud)

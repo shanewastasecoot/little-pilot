@@ -106,6 +106,7 @@ func advance(t: float, live: bool) -> void:
 				if not _segments.has(key):
 					_segments[key] = seg
 					roads_changed = true
+		StallDetector.note("city build " + str(e.kind))
 		var b := CityBuild.new().setup(e, city)
 		_builds.add_child(b)
 		_active[_next] = b
@@ -115,6 +116,7 @@ func advance(t: float, live: bool) -> void:
 		var b: CityBuild = _active[i]
 		var p: float = (t - e.start) / e.dur
 		if p >= 1.0:
+			StallDetector.note("building opened")
 			b.finish(live)
 			if e.model != "":
 				b.release_model()
