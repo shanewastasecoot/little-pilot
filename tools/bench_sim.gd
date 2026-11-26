@@ -105,6 +105,7 @@ func _systems(area: String, at: Vector3) -> Dictionary:
 
 ## Average µs per call of `f`, over REPEATS calls.
 func _time(f: Callable) -> float:
+	StallDetector.note("bench-sim timing loop")  # (its own long frame, not a game stall)
 	f.call()  # (warm up)
 	var t0 := Time.get_ticks_usec()
 	for i in REPEATS:

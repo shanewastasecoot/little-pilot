@@ -24,6 +24,7 @@ func setup(creature: String, circle_radius: float, count: int, seed_value: int) 
 
 
 func _ready() -> void:
+	add_to_group("sea_leapers")
 	var tails: Array[Color] = [Color("ff7eb9"), Color("9b5de5"), Color("3fd0c9"), Color("ffd23f"), Color("ff8c42")]
 	for i in _members.size():
 		var m := _members[i]

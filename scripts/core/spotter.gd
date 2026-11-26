@@ -38,8 +38,11 @@ func _ready() -> void:
 			continue
 		named[n] = true
 		targets.append(["place:" + n, "place", l, maxf(float(l.get("discovery_radius")), 120.0)])
+	# (G1: looked up in groups, not by searching the whole scene six times.)
+	var candidates: Array = get_tree().get_nodes_in_group("landmarks") + get_tree().get_nodes_in_group("dragon") \
+			+ get_tree().get_nodes_in_group("sea_leapers")
 	for a in ANIMALS:
-		for n in get_tree().root.find_children("*", "Node3D", true, false):
+		for n in candidates:
 			if n.get_script() and (n.get_script() as Script).get_global_name() == a[1]:
 				var at: Node3D = n
 				if a[1] == "Whale" and n.get("_body"):

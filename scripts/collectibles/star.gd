@@ -11,7 +11,7 @@ signal collected(star: Star)
 @export var spin_speed: float = 1.6
 @export var bob_height: float = 0.6
 
-static var _material: StandardMaterial3D
+static var _material: ShaderMaterial
 
 var is_collected: bool = false
 ## Where it sits, as a key for the save (every star she's ever found).
@@ -38,8 +38,11 @@ func _ready() -> void:
 	_mesh.mesh = StarMesh.get_mesh()
 	_mesh.material_override = _get_material()
 	_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# The spin and bob happen in the shader (star.gdshader): room for the bob.
+	_mesh.extra_cull_margin = bob_height + 0.5
 	add_child(_mesh)
 	_time = randf() * TAU  # stars don't bob in lockstep
+	_mesh.set_instance_shader_parameter("phase", _time)
 	_home = global_position
 	body_entered.connect(_on_body_entered)
 
@@ -62,14 +65,6 @@ func _physics_process(delta: float) -> void:
 		_collect()
 	else:
 		global_position += to_plane / dist * step
-
-
-func _process(delta: float) -> void:
-	if is_collected:
-		return
-	_time += delta
-	_mesh.rotation.y = _time * spin_speed
-	_mesh.position.y = sin(_time * 2.0) * bob_height
 
 
 func _on_body_entered(body: Node3D) -> void:
@@ -105,12 +100,13 @@ func respawn() -> void:
 	set_deferred("monitoring", true)
 
 
-static func _get_material() -> StandardMaterial3D:
+static func _get_material() -> ShaderMaterial:
 	if _material == null:
-		_material = StandardMaterial3D.new()
-		_material.albedo_color = Color("ffd23f")
-		_material.emission_enabled = true
-		_material.emission = Color("ffb800")
-		_material.emission_energy_multiplier = 1.6
-		_material.roughness = 0.3
+		# Gold and glowing, spinning and bobbing on the graphics card (G1).
+		_material = ShaderMaterial.new()
+		_material.shader = preload("res://scripts/collectibles/star.gdshader")
+		_material.set_shader_parameter("albedo", Color("ffd23f"))
+		_material.set_shader_parameter("emission_color", Color("ffb800"))
+		_material.set_shader_parameter("emission_energy", 1.6)
+		_material.set_shader_parameter("roughness", 0.3)
 	return _material

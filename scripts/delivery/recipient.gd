@@ -42,6 +42,7 @@ func by_air() -> bool:
 
 
 func _ready() -> void:
+	add_to_group("recipients")
 	WorldReaction.add(self, 30.0, ["cheer"], 2.5, cheer_back)
 	if is_mermaid():
 		_build_mermaid()

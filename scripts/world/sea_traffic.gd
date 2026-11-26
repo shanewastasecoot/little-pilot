@@ -29,7 +29,7 @@ static func obstacles(tree: SceneTree) -> Array:
 			if RADII.has(String(cls)):
 				var at: Node3D = l.get("_body") if l.get("_body") is Node3D else (l.get("_hull") if l.get("_hull") is Node3D else l)
 				_list.append([at, RADII[String(cls)]])
-		for n in tree.root.find_children("*", "Node3D", true, false):
+		for n in tree.get_nodes_in_group("recipients"):
 			if n is Recipient and (n as Recipient).is_mermaid():
 				_list.append([n, ROCK_RADIUS])
 	return _list
