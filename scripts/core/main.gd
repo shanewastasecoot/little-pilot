@@ -28,6 +28,7 @@ const AWAY_TIME := 120.0
 ## Gentle circle flown behind the menus.
 const AUTOPILOT_STICK := Vector2(0.3, 0.0)
 
+var animation_lod: AnimationLod
 var state: State = State.TITLE
 ## The play state to go back to after pausing (FLYING or LANDED).
 var _play_state: State = State.FLYING
@@ -163,6 +164,7 @@ func _ready() -> void:
 		if l is HerHouse:
 			house = l
 			house.door_entered.connect(func(): if state == State.ON_FOOT: enter_house())
+	_prebuild_house_inside.call_deferred()  # (G1: no freeze at her door)
 	_door.body_entered.connect(func(b): if b == walker: _near_plane = true)
 	_door.body_exited.connect(func(b): if b == walker: _near_plane = false)
 	SaveManager.settings_changed.connect(func(): aircraft.crashes = SaveManager.crashes)
@@ -262,6 +264,10 @@ func _ready() -> void:
 		var stalls := StallDetector.new()
 		stalls.main = self
 		add_child(stalls)
+	# Graphics G1: far-away animations updated less often.
+	animation_lod = AnimationLod.new()
+	animation_lod.name = "AnimationLod"
+	add_child(animation_lod)
 	weather = Weather.new()
 	weather.name = "Weather"
 	weather.main = self
@@ -690,18 +696,13 @@ func enter_building(b: Node3D) -> void:
 	tw.tween_property(_fade, "color:a", 1.0, CRASH_FADE * 0.7)
 	await tw.finished
 	building = b
-	var id: String = b.building_id()
-	interior = interiors.get(id)
-	if interior == null:
-		var plan: Dictionary = b.interior_layout() if b.has_method("interior_layout") else BuildingGenerator.load_data(b.interior_data())
-		interior = BuildingGenerator.build(plan)
-		add_child(interior)
-		interior.global_position = Vector3(b.global_position.x, INTERIOR_HEIGHT, b.global_position.z)
-		interior.exit_reached.connect(func(): if state == State.INDOORS: exit_house())
-		interiors[id] = interior
-		if b == house:
-			interior.paint_her_walls(SaveManager.house_wall)
-			interior.colour_her_quilt(SaveManager.house_bed)
+	var built_now := not interiors.has(b.building_id())
+	interior = _interior_for(b)
+	if built_now:
+		# (Built just now, behind the black screen: a slow frame. Wait a
+		# couple of frames so the fade back in starts smoothly, not with a jump.)
+		await get_tree().process_frame
+		await get_tree().process_frame
 	for other: Interior in interiors.values():
 		if other != interior:
 			other.visible = false
@@ -719,6 +720,35 @@ func enter_building(b: Node3D) -> void:
 	tw.tween_property(_fade, "color:a", 0.0, CRASH_FADE * 0.7)
 	await tw.finished
 	_doorway_busy = false
+
+
+## The inside of building `b`, built the first time it's needed and kept.
+func _interior_for(b: Node3D) -> Interior:
+	var id: String = b.building_id()
+	var inside: Interior = interiors.get(id)
+	if inside != null:
+		return inside
+	var plan: Dictionary = b.interior_layout() if b.has_method("interior_layout") else BuildingGenerator.load_data(b.interior_data())
+	inside = BuildingGenerator.build(plan)
+	add_child(inside)
+	inside.global_position = Vector3(b.global_position.x, INTERIOR_HEIGHT, b.global_position.z)
+	inside.exit_reached.connect(func(): if state == State.INDOORS: exit_house())
+	interiors[id] = inside
+	if b == house:
+		inside.paint_her_walls(SaveManager.house_wall)
+		inside.colour_her_quilt(SaveManager.house_bed)
+	return inside
+
+
+## Graphics G1: her own house's inside (and her family) is built while the
+## game loads, so going in for the first time doesn't freeze for a moment.
+## Hidden and paused until she goes in.
+func _prebuild_house_inside() -> void:
+	if house == null or interiors.has(house.building_id()):
+		return
+	var inside := _interior_for(house)
+	inside.visible = false
+	inside.process_mode = Node.PROCESS_MODE_DISABLED
 
 
 ## The game stopped while she was inside: start on foot outside the front

@@ -20,7 +20,7 @@ func _ready() -> void:
 	var by_class := {"PalmIsland": ["palm", 450.0], "VolcanoIsland": ["volcano", 520.0], "MermaidLagoon": ["mermaid", 380.0],
 		"DragonLair": ["dragon", 420.0], "IceIsland": ["ice", 520.0], "DinoIsland": ["dino", 560.0],
 		"CastleIsland": ["castle", 480.0], "TownIsland": ["town", 520.0]}
-	for n in get_tree().root.find_children("*", "Node3D", true, false):
+	for n in get_tree().get_nodes_in_group("landmarks"):  # (G1: not a search of the whole scene)
 		for cls in by_class:
 			if n.get_script() and (n.get_script() as Script).get_global_name() == cls:
 				_places.append([by_class[cls][0], n, by_class[cls][1]])

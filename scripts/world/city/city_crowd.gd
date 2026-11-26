@@ -28,13 +28,24 @@ const MAX_PEOPLE := 900
 ## Only people this near the camera are moved each frame; the rest wait
 ## where they are (nobody can see them) and carry on when you come back.
 const STEP_RADIUS := DRAW_RADIUS + 30.0
-## Beyond this, people are moved every third frame (three frames' worth at
-## a time), spread across frames: a third of the work, too far to notice.
+## Nearer than this people are moved every frame. Out to MID_RADIUS, every
+## second frame (two frames' worth at a time); beyond, every third frame:
+## spread across frames, too small a step to notice at that distance.
+const CLOSE_RADIUS := 50.0
 const NEAR_RADIUS := 120.0
 ## People per thing in a block.
 const PER_DOOR := 4
 const PER_PARK := 10
 const PER_PLAZA := 20
+## How far a person can be from their block's centre (the pavement loop's
+## corner, or halfway over the road to the next block): a block whose
+## centre is further than STEP_RADIUS + this from the camera has nobody
+## to move or draw, so it's skipped in one go.
+const BLOCK_REACH := 62.0
+## The nearest blocks are visited first (so the people drawn, at most
+## MAX_DRAWN of each kind, are the nearest); the order is refreshed this
+## often (frames).
+const ORDER_EVERY := 30
 
 enum { WALK, TO_DOOR, INSIDE, FROM_DOOR, TO_SPOT, IDLE, FROM_SPOT, CROSS }
 
@@ -42,6 +53,12 @@ var city: CityDistrict
 ## cell -> {"doors": Array of [path_s, door_point], "open": bool (park/plaza)}
 var blocks: Dictionary = {}
 var people: Array[Dictionary] = []
+## (Graphics G1) cell -> the people in that block, so each frame only the
+## blocks near the camera are visited, not all 900 people.
+var _by_block: Dictionary = {}
+## People who crossed to another block since the last update: [person, old cell].
+var _crossed: Array = []
+var _order: Array = []
 
 var _mm: Array[MultiMesh] = []
 var _buffers: Array[PackedFloat32Array] = []
@@ -104,6 +121,37 @@ func set_blocks(new_blocks: Dictionary) -> void:
 		people.append(_new_person())
 	while people.size() > want:
 		people.pop_back()
+	_reindex()
+
+
+## Rebuilds the per-block index (and the visiting order) from `people`.
+func _reindex() -> void:
+	_by_block.clear()
+	_crossed.clear()
+	_order.clear()
+	for p in people:
+		if not _by_block.has(p.block):
+			_by_block[p.block] = []
+		_by_block[p.block].append(p)
+
+
+## Moves people who crossed the road into their new block's list.
+func _apply_crossings() -> void:
+	for c in _crossed:
+		var p: Dictionary = c[0]
+		var old: Array = _by_block.get(c[1], [])
+		for j in old.size():
+			if is_same(old[j], p):
+				old.remove_at(j)
+				break
+		if p.block == c[1]:
+			old.append(p)
+			continue
+		if not _by_block.has(p.block):
+			_by_block[p.block] = []
+			_order.clear()
+		_by_block[p.block].append(p)
+	_crossed.clear()
 
 
 func population() -> int:
@@ -150,7 +198,8 @@ func _new_person() -> Dictionary:
 	var p := {"block": cell, "s": _rng.randf() * 8.0 * LOOP, "dir": 1.0 if _rng.randf() < 0.5 else -1.0,
 		"state": WALK, "timer": _rng.randf_range(4.0, 25.0), "type": _rng.randi() % CHARACTERS.size(),
 		"pos": Vector3.ZERO, "yaw": 0.0, "from": Vector3.ZERO, "to": Vector3.ZERO, "target_s": 0.0,
-		"t_off": _rng.randf() * 10.0, "size": 1.0, "goal": false, "cheer": 0.0, "look": 0.0}
+		"t_off": _rng.randf() * 10.0, "size": 1.0, "goal": false, "cheer": 0.0, "look": 0.0,
+		"k": _rng.randi() % 6}  # which frames they move on, when further away
 	p.pos = _centre(cell) + _loop_point(p.s)
 	return p
 
@@ -175,37 +224,56 @@ func _process(delta: float) -> void:
 	var r2 := draw_radius * draw_radius
 	var s2 := STEP_RADIUS * STEP_RADIUS
 	var n2 := NEAR_RADIUS * NEAR_RADIUS
+	var c2 := CLOSE_RADIUS * CLOSE_RADIUS
 	_frame += 1
-	var i := 0
-	for p in people:
-		i += 1
-		var d2: float = (p.pos - eye).length_squared()
-		if d2 > s2:
-			continue
-		if d2 < n2:
-			_step(p, delta)
-		elif (i + _frame) % 3 == 0:
-			_step(p, delta * 3.0)
-		if p.state == INSIDE or p.size <= 0.02 or d2 > r2:
-			continue
-		var t: int = p.type
-		if counts[t] >= MAX_DRAWN:
-			continue
-		_write(t, counts[t], p)
-		counts[t] += 1
+	if not _crossed.is_empty():
+		_apply_crossings()
+	if _by_block.size() != 0 and (_order.is_empty() or _frame % ORDER_EVERY == 0):
+		_order = _by_block.keys()
+		var at := Vector2(eye.x, eye.z)
+		_order.sort_custom(func(a: Vector2i, b: Vector2i): return at.distance_squared_to(Vector2(a) * PITCH) < at.distance_squared_to(Vector2(b) * PITCH))
+	var reach := STEP_RADIUS + BLOCK_REACH
+	var f := _frame
+	for cell: Vector2i in _order:
+		if (_centre(cell) - eye).length_squared() > reach * reach:
+			continue  # nobody in this block is near enough to move or draw
+		for p: Dictionary in _by_block.get(cell, []):
+			var d2: float = (p.pos - eye).length_squared()
+			if d2 > s2:
+				continue
+			if d2 < c2:
+				_step(p, delta)
+			elif d2 < n2:
+				if (p.k + f) % 2 == 0:
+					_step(p, delta * 2.0)
+			elif (p.k + f) % 3 == 0:
+				_step(p, delta * 3.0)
+			if p.state == INSIDE or p.size <= 0.02 or d2 > r2:
+				continue
+			var t: int = p.type
+			if counts[t] >= MAX_DRAWN:
+				continue
+			_write(t, counts[t], p)
+			counts[t] += 1
+	if not _crossed.is_empty():
+		_apply_crossings()
 	for t in _mm.size():
 		_mm[t].buffer = _buffers[t]
 		_mm[t].visible_instance_count = counts[t]
 
 
 func _write(t: int, i: int, p: Dictionary) -> void:
-	var b := Basis(Vector3.UP, p.yaw).scaled(Vector3.ONE * SCALE * p.size)
-	var o: Vector3 = p.pos + Vector3(0, PAVEMENT_Y, 0)
+	# A turn about the up axis, scaled (written out: no Basis to build).
+	var sc: float = SCALE * p.size
+	var yaw: float = p.yaw
+	var c := cos(yaw) * sc
+	var s := sin(yaw) * sc
+	var o: Vector3 = p.pos
 	var buf := _buffers[t]
 	var k := i * 16
-	buf[k] = b.x.x; buf[k + 1] = b.y.x; buf[k + 2] = b.z.x; buf[k + 3] = o.x
-	buf[k + 4] = b.x.y; buf[k + 5] = b.y.y; buf[k + 6] = b.z.y; buf[k + 7] = o.y
-	buf[k + 8] = b.x.z; buf[k + 9] = b.y.z; buf[k + 10] = b.z.z; buf[k + 11] = o.z
+	buf[k] = c; buf[k + 1] = 0.0; buf[k + 2] = s; buf[k + 3] = o.x
+	buf[k + 4] = 0.0; buf[k + 5] = sc; buf[k + 6] = 0.0; buf[k + 7] = o.y + PAVEMENT_Y
+	buf[k + 8] = -s; buf[k + 9] = 0.0; buf[k + 10] = c; buf[k + 11] = o.z
 	buf[k + 12] = p.t_off
 	buf[k + 13] = 2.0 if p.cheer > 0.0 else (1.0 if p.state == IDLE else 0.0)
 	buf[k + 14] = 0.0
@@ -261,7 +329,7 @@ func _step(p: Dictionary, delta: float) -> void:
 			_face_along(p, c)
 			p.timer -= delta
 			# Passing a corner: sometimes cross the road to the next block.
-			if not p.goal and _rng.randf() < 0.3 and _crossed_corner(before, p.s, p.dir):
+			if not p.goal and _crossed_corner(before, p.s, p.dir) and _rng.randf() < 0.3:
 				_try_cross(p, c)
 				return
 			if p.timer <= 0.0 and not p.goal:
@@ -323,6 +391,7 @@ func _try_cross(p: Dictionary, c: Vector3) -> void:
 	if options.is_empty():
 		return
 	var next: Vector2i = options[_rng.randi() % options.size()]
+	_crossed.append([p, p.block])  # (moved to the new block's list after this update)
 	var nc := _centre(next)
 	# The neighbour's corner straight across the road.
 	var local := c + corner - nc

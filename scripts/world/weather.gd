@@ -35,6 +35,66 @@ var _washed_this_cloud := false
 var _rainbow_age := 0.0
 var _last_side := 0.0
 var _sound: AudioStreamPlayer3D
+## (Graphics G1) The cloud's shape and the raindrop, made once while the
+## game loads, not in the frame a cloud turns up (that was a 36 ms frame).
+var _cloud_mesh: Mesh
+var _cloud_mat: Material
+var _drop: QuadMesh
+
+
+func _ready() -> void:
+	_build_parts()
+	# Draw one of each, out of sight under the sea, for a couple of frames
+	# so the graphics card has its shaders ready before the first cloud.
+	var warm := Node3D.new()
+	warm.name = "WarmUp"
+	add_child(warm)
+	warm.top_level = true
+	warm.global_position = Vector3(0, -400, 0)
+	warm.scale = Vector3.ONE * 0.01
+	warm.add_child(_cloud_instance())
+	var r := CPUParticles3D.new()
+	r.amount = 1
+	r.mesh = _drop
+	warm.add_child(r)
+	for i in 3:
+		await get_tree().process_frame
+	warm.queue_free()
+
+
+func _cloud_instance() -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = "CloudShape"
+	mi.mesh = _cloud_mesh
+	mi.material_override = _cloud_mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
+func _build_parts() -> void:
+	# A soft grey, puffy cloud (a few overlapping balls, merged into one).
+	var tmp := Node3D.new()
+	for b: Array in [[Vector3(0, 0, 0), 34.0], [Vector3(30, -4, 8), 26.0], [Vector3(-28, -3, -6), 28.0],
+			[Vector3(8, 10, -20), 24.0], [Vector3(-10, 6, 24), 22.0], [Vector3(40, -2, -18), 18.0], [Vector3(-42, -6, 16), 18.0]]:
+		var ball := BuildKit.add(tmp, BuildKit.sphere(b[1], 12), "c3cbd4", b[0])
+		ball.scale = Vector3(1.0, 0.62, 1.0)
+		ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	MeshMerge.merge_children(tmp)
+	for c in tmp.get_children():
+		if c is MeshInstance3D and not c.is_queued_for_deletion():
+			_cloud_mesh = (c as MeshInstance3D).mesh
+			_cloud_mat = (c as MeshInstance3D).material_override
+	tmp.free()
+	_drop = QuadMesh.new()
+	_drop.size = Vector2(0.18, 3.0)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	m.billboard_keep_scale = true
+	m.albedo_color = Color(0.85, 0.92, 1.0, 0.55)
+	_drop.material = m
+	Sfx.get_loop("amb_rain")  # (loaded now, not when the first cloud arrives)
 
 
 func _physics_process(delta: float) -> void:
@@ -92,13 +152,10 @@ func spawn_cloud() -> void:
 	cloud.top_level = true
 	cloud.global_position = c
 	cloud.scale = Vector3.ONE * 0.05
-	# A soft grey, puffy cloud (a few overlapping balls).
-	for b: Array in [[Vector3(0, 0, 0), 34.0], [Vector3(30, -4, 8), 26.0], [Vector3(-28, -3, -6), 28.0],
-			[Vector3(8, 10, -20), 24.0], [Vector3(-10, 6, 24), 22.0], [Vector3(40, -2, -18), 18.0], [Vector3(-42, -6, 16), 18.0]]:
-		var ball := BuildKit.add(cloud, BuildKit.sphere(b[1], 12), "c3cbd4", b[0])
-		ball.scale = Vector3(1.0, 0.62, 1.0)
-		ball.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	MeshMerge.merge_children(cloud)
+	# A soft grey, puffy cloud (made once, in _build_parts).
+	if _cloud_mesh == null:
+		_build_parts()
+	cloud.add_child(_cloud_instance())
 	# The rain: light streaks falling from its base.
 	rain = CPUParticles3D.new()
 	rain.name = "Rain"
@@ -113,16 +170,7 @@ func spawn_cloud() -> void:
 	rain.gravity = Vector3.ZERO
 	rain.initial_velocity_min = 40.0
 	rain.initial_velocity_max = 44.0
-	var q := QuadMesh.new()
-	q.size = Vector2(0.18, 3.0)
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-	m.billboard_keep_scale = true
-	m.albedo_color = Color(0.85, 0.92, 1.0, 0.55)
-	q.material = m
-	rain.mesh = q
+	rain.mesh = _drop
 	rain.visibility_aabb = AABB(Vector3(-CLOUD_RADIUS, -fall - 20.0, -CLOUD_RADIUS), Vector3(CLOUD_RADIUS * 2.0, fall + 40.0, CLOUD_RADIUS * 2.0))
 	cloud.add_child(rain)
 	# A soft shower hiss under it (never thunder).
