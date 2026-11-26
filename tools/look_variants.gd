@@ -2,9 +2,11 @@ class_name LookVariants
 extends RefCounted
 ## Graphics G2: the lighting and environment options, as settings applied on
 ## top of the current look for a screenshot A/B (./dev.sh shots -- --variants=...).
-## Nothing here changes the game: the chosen ones get copied into
-## resources/world_environment.tres, the sun in island_map.gd and the indoor
-## environment once the parent has picked.
+## Nothing here changes the game. The parent's picks (Nov 26: AgX,
+## softer glow, horizon fog + haze, golden sun with ambient 0.6, no extra
+## grade, warm indoors) are now the defaults in world_environment.tres,
+## island_map.gd, environment/indoor.tres and building_generator.gd, so
+## these variants now apply on top of that new look.
 ##
 ## Each variant: "item" (the plan's G2 item number), "label" (plain words),
 ## "env" (outdoor Environment properties), "sun" (DirectionalLight3D

@@ -16,13 +16,13 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_overlay"):
 		visible = not visible
-	# With the overlay showing, T flips the tonemapper between Linear (the
-	# game's) and AgX, to compare (Phase 11). Not saved; never the default.
+	# With the overlay showing, T flips the tonemapper between AgX (the
+	# game's since Graphics G2) and Linear, to compare. Not saved.
 	if visible and event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).physical_keycode == KEY_T:
 		toggle_tonemap()
 
 
-## Linear <-> AgX on the world's environment (for comparing). Returns the new one.
+## AgX <-> Linear on the world's environment (for comparing). Returns the new one.
 func toggle_tonemap() -> int:
 	var env := _environment()
 	if env == null:
