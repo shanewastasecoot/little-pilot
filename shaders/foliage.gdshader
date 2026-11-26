@@ -24,8 +24,11 @@ uniform float max_saturation = 0.9;
 uniform vec2 value_range = vec2(0.18, 0.95);
 uniform bool alpha_scissor = false;
 uniform float alpha_cut = 0.5;
+// Graphics G3: a little darker at the foot, where the tree meets the ground.
+uniform float base_shade : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 v_world;
+varying float v_h;
 
 vec3 to_hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -45,6 +48,7 @@ vec3 to_rgb(vec3 c) {
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
 	float h = clamp(VERTEX.y / max(height, 0.001), 0.0, 1.0);
+	v_h = h;
 	float bend = h * h * mix(0.25, 1.0, leafiness);
 	float dist = length(origin - CAMERA_POSITION_WORLD);
 	float fade = 1.0 - smoothstep(fade_start, fade_end, dist);
@@ -71,7 +75,7 @@ void fragment() {
 	vec3 hsv = to_hsv(srgb);
 	hsv.y = min(hsv.y, max_saturation);
 	hsv.z = clamp(hsv.z, value_range.x, value_range.y);
-	ALBEDO = pow(to_rgb(hsv), vec3(2.2));
+	ALBEDO = pow(to_rgb(hsv), vec3(2.2)) * mix(1.0 - base_shade, 1.0, smoothstep(0.0, 0.22, v_h));
 	ROUGHNESS = roughness;
 	SPECULAR = specular;
 	if (alpha_scissor) {

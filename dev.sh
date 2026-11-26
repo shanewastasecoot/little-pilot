@@ -11,6 +11,7 @@
 #   bench-sim     simulation cost along a fixed route, headless (not FPS)
 #   bench-render  frame times per area on screen, 1280x800 (add -- --bench-...)
 #   shots [label] pictures from fixed camera spots -> user://bench/shots/<label>/
+#                 (then variants, then extras like --contact=0,0,0)
 #   audit-aircraft  what each aircraft model is made of (parts, triangles...)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -69,7 +70,7 @@ case "${1:-}" in
           $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_render.tscn "$@" 2>&1 \
             | grep -vE "^(Godot Engine|Vulkan|WARNING|   at:|$)" ;;
   shots)  shift
-          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_shots.tscn -- --label="${1:-now}" --variants="${2:-}" 2>&1 \
+          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_shots.tscn -- --label="${1:-now}" --variants="${2:-}" "${@:3}" 2>&1 \
             | grep -E "shot|Saved|SCRIPT ERROR" ;;
   audit-aircraft) $GODOT --headless --path . res://tools/aircraft_audit.tscn 2>&1 | grep -vE "^(Godot Engine|WARNING|   at:|$)" ;;
   *)      sed -n '2,14p' "$0"; exit 1 ;;

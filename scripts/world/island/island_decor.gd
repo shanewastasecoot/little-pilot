@@ -11,6 +11,9 @@ static func scatter(parent: Node3D, path: String, count: int, centre: Vector2, r
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
 	var data: Array = AssetLib.mesh_of(path)
+	var box: AABB = data[1] * (data[0] as Mesh).get_aabb()
+	var foot := maxf(box.size.x, box.size.z) * 0.5  # (radius at scale 1)
+	var shade := TerrainBuilder.TREE_SHADE if StyleProfiles.profile_of(path) == StyleProfiles.Profile.FOLIAGE else TerrainBuilder.GROUND_SHADE
 	var xforms: Array[Transform3D] = []
 	var spots: Array[Vector3] = []
 	var tries := 0
@@ -28,6 +31,7 @@ static func scatter(parent: Node3D, path: String, count: int, centre: Vector2, r
 		var local := Vector3(p.x - centre.x, h - 0.3, p.y - centre.y)
 		xforms.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * s), local) * data[1])
 		spots.append(local)
+		TerrainBuilder.add_spot(p, foot * s, shade)  # (G3: darker ground at its foot)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = data[0]

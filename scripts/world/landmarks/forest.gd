@@ -95,6 +95,7 @@ func _plant(body: StaticBody3D, tiles: Dictionary, colors: Dictionary, rng: Rand
 	body.shape_owner_add_shape(owner, _tree_shape)
 	body.shape_owner_set_transform(owner, Transform3D(Basis.IDENTITY, Vector3(px, h + 7.0 * s, pz)))
 	tree_count += 1
+	TerrainBuilder.add_spot(Vector2(px, pz), 3.5 * s, TerrainBuilder.TREE_SHADE)  # (G3: forest floor)
 
 
 static var _tree_shape: CylinderShape3D = BuildKit.cyl_shape(3.2, 14.0)
