@@ -148,12 +148,26 @@ static func _rebuild(mesh: ArrayMesh, edit: Callable) -> void:
 		edit.call(s, arrays)
 		saved.append([mesh.surface_get_primitive_type(s), arrays, _lods(mesh, s),
 			mesh.surface_get_material(s), mesh.surface_get_name(s)])
+	var had_shadow := mesh.shadow_mesh != null
 	mesh.clear_surfaces()
+	mesh.shadow_mesh = null
 	for d: Array in saved:
 		mesh.add_surface_from_arrays(d[0], d[1], [], d[2])
 		var s := mesh.get_surface_count() - 1
 		mesh.surface_set_material(s, d[3])
 		mesh.surface_set_name(s, d[4])
+	# The importer's shadow-only copy no longer matches the new surfaces
+	# (left in, the rocks cast a huge shadow over everything and the GPU time
+	# doubled at Dragon Peak): make a matching one, positions only.
+	if had_shadow:
+		var shadow := ArrayMesh.new()
+		for d: Array in saved:
+			var a := []
+			a.resize(Mesh.ARRAY_MAX)
+			a[Mesh.ARRAY_VERTEX] = d[1][Mesh.ARRAY_VERTEX]
+			a[Mesh.ARRAY_INDEX] = d[1][Mesh.ARRAY_INDEX]
+			shadow.add_surface_from_arrays(d[0], a, [], d[2])
+		mesh.shadow_mesh = shadow
 
 
 ## The importer's LODs for surface `s`: {edge length: indices}.
