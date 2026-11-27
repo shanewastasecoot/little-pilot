@@ -12,6 +12,10 @@ extends RefCounted
 ## Changed materials are cached by the original, so identical assets still
 ## share one material (and still batch). AssetLib applies this when it
 ## places or merges a model (set `enabled` false to compare).
+## Graphics G3: STATIC_WORLD models carry baked contact shading in their
+## vertex colours (ContactShade); placed ones join the "contact_ground"
+## group so TerrainBuilder can darken the ground around them, and trees get
+## a slightly darker base where they meet the ground.
 
 enum Profile { STATIC_WORLD, FOLIAGE, GLASS, AIRCRAFT, ANIMATED_CHARACTER, EMISSIVE, WATER, UNTREATED }
 
@@ -21,6 +25,7 @@ const MAX_SATURATION := 0.9
 const VALUE_RANGE := Vector2(0.18, 0.95)
 const ROUGHNESS := 0.85
 const SPECULAR := 0.3
+const TREE_BASE_SHADE := 0.3  ## G3: how much darker a tree is at its foot
 
 ## By file name (in assets/environment/) or folder. Anything not listed
 ## under assets/environment is UNTREATED.
@@ -36,6 +41,7 @@ const BY_FILE := {
 }
 
 static var _cache := {}
+static var _rescaled := {}
 
 
 static func profile_of(path: String) -> Profile:
@@ -53,9 +59,13 @@ static func apply(node: Node, path: String) -> void:
 	var p := profile_of(path)
 	if not enabled or not p in [Profile.STATIC_WORLD, Profile.FOLIAGE]:
 		return
+	if p == Profile.STATIC_WORLD:
+		node.add_to_group("contact_ground")
 	for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 		if mi.mesh == null or mi.material_override != null:
 			continue
+		if p == Profile.STATIC_WORLD:
+			_contact_strength(mi.mesh)
 		var h := maxf(mi.mesh.get_aabb().end.y, 0.01)
 		for s in mi.mesh.get_surface_count():
 			var src := mi.get_active_material(s)
@@ -70,6 +80,8 @@ static func apply_mesh(mesh: Mesh, path: String) -> Mesh:
 	var p := profile_of(path)
 	if not enabled or mesh == null or not p in [Profile.STATIC_WORLD, Profile.FOLIAGE]:
 		return mesh
+	if p == Profile.STATIC_WORLD:
+		_contact_strength(mesh)
 	var h := maxf(mesh.get_aabb().end.y, 0.01)
 	for s in mesh.get_surface_count():
 		var src := mesh.surface_get_material(s)
@@ -104,6 +116,7 @@ static func material_for(src: Material, p: Profile, height := 1.0) -> Material:
 		sm.set_shader_parameter("specular", SPECULAR)
 		sm.set_shader_parameter("height", height)
 		sm.set_shader_parameter("leafiness", 0.0 if _is_trunk(std.albedo_color) else 1.0)
+		sm.set_shader_parameter("base_shade", TREE_BASE_SHADE * ContactShade.ground_strength)
 		sm.set_shader_parameter("max_saturation", MAX_SATURATION)
 		sm.set_shader_parameter("value_range", VALUE_RANGE)
 		var scissor := std.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED
@@ -127,6 +140,15 @@ static func vertex_colour(c: Color, path: String) -> Color:
 	if not enabled or not profile_of(path) in [Profile.STATIC_WORLD, Profile.FOLIAGE]:
 		return c
 	return Color.from_hsv(c.h, minf(c.s, MAX_SATURATION), clampf(c.v, VALUE_RANGE.x, VALUE_RANGE.y), c.a)
+
+
+## (Screenshot A/B only) a model's baked contact shading at
+## ContactShade.strength instead of as baked. Each mesh once.
+static func _contact_strength(mesh: Mesh) -> void:
+	if is_equal_approx(ContactShade.strength, 1.0) or not mesh is ArrayMesh or _rescaled.has(mesh):
+		return
+	_rescaled[mesh] = true
+	ContactShade.rescale(mesh, ContactShade.strength)
 
 
 ## Really glowing (emission on AND a visible emission colour: some imported

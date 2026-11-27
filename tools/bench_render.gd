@@ -23,7 +23,9 @@ extends Node
 ## Bench toggles (`./dev.sh bench-render -- --bench-shadows=2048` etc.; see
 ## BenchToggles) change settings for this run only, never the defaults.
 ## `-- --bench-areas=city,rain` measures only those areas;
-## `-- --bench-measure=10` changes MEASURE.
+## `-- --bench-measure=10` changes MEASURE; `-- --bench-shots` saves what
+## each area looks like (user://bench/area_<name>_<run>.jpg); `-- --contact=0,0,0` turns the
+## G3 contact shading off (models,terrain,ground).
 
 ## name, kind, where, stick turn
 const AREAS := [
@@ -44,6 +46,7 @@ const OUT := "user://bench/render.json"
 const HITCHES := "user://bench/hitches.json"
 
 var _main: Node
+var _shots := false  ## --bench-shots: a picture of each area, halfway through
 var _plane: Aircraft
 var _first_frame_ms := 0
 var _measure := MEASURE
@@ -67,6 +70,14 @@ func _ready() -> void:
 			only = a.trim_prefix("--bench-areas=").split(",")
 		elif a.begins_with("--bench-measure="):
 			_measure = float(a.trim_prefix("--bench-measure="))
+		elif a == "--bench-shots":
+			_shots = true
+		elif a.begins_with("--contact="):
+			# (Graphics G3) contact shading strengths: models,terrain,ground.
+			var k := a.trim_prefix("--contact=").split(",")
+			ContactShade.strength = float(k[0])
+			ContactShade.terrain_strength = float(k[1]) if k.size() > 1 else ContactShade.strength
+			ContactShade.ground_strength = float(k[2]) if k.size() > 2 else ContactShade.strength
 	_main = load("res://scenes/main/main.tscn").instantiate()
 	add_child(_main)
 	await get_tree().process_frame
@@ -107,9 +118,14 @@ func _area(area: Array, warm: bool) -> Dictionary:
 	var gpu: Array[float] = []
 	var start := Time.get_ticks_usec()
 	var sd := StallDetector.current
+	var shot_taken := not _shots
 	while Time.get_ticks_usec() - start < int(_measure * 1e6):
 		await get_tree().process_frame
 		_keep_going(kind, at)
+		if not shot_taken and Time.get_ticks_usec() - start > int(_measure * 5e5):
+			# (--bench-shots) what the camera sees halfway through.
+			shot_taken = true
+			get_viewport().get_texture().get_image().save_jpg("user://bench/area_%s_%s.jpg" % [name, "warm" if warm else "cold"], 0.85)
 		var f: Dictionary = sd.last_frame if sd else {}
 		if f.is_empty():
 			continue

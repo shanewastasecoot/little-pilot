@@ -32,6 +32,8 @@ uniform float min_sat = 0.28;
 uniform vec3 to_hsv = vec3(0.6, 0.7, 1.0);
 uniform float roughness = 0.6;
 uniform float metallic = 0.0;
+// (Graphics G3) baked contact shading in the vertex colours, if any.
+uniform bool use_vertex_shade = false;
 vec3 rgb2hsv(vec3 c) {
 	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
 	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
@@ -58,6 +60,9 @@ void fragment() {
 	float shade = clamp(hsv.z / 0.96, 0.4, 1.1);
 	vec3 painted = to_linear(hsv2rgb(vec3(to_hsv.x, to_hsv.y, clamp(to_hsv.z * shade, 0.0, 1.0))));
 	ALBEDO = mix(c.rgb, painted, k);
+	if (use_vertex_shade) {
+		ALBEDO *= COLOR.rgb;
+	}
 	ROUGHNESS = roughness;
 	METALLIC = metallic;
 }
@@ -119,4 +124,5 @@ func _shader_material(mat: BaseMaterial3D) -> ShaderMaterial:
 	m.set_shader_parameter("to_hsv", Vector3(to_color.h, to_color.s, to_color.v))
 	m.set_shader_parameter("roughness", mat.roughness)
 	m.set_shader_parameter("metallic", mat.metallic)
+	m.set_shader_parameter("use_vertex_shade", mat.vertex_color_use_as_albedo)
 	return m

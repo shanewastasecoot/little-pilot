@@ -52,6 +52,8 @@ func _ready() -> void:
 		rc.min_saturation = CityPlan.tint_min_saturation(event.tint_hue)
 		rc.to_color = event.tint
 		_model.add_child(rc)
+	if CityGrowth.is_walk_in(str(event.model)):
+		_solid_while_building()
 	_shape = BoxShape3D.new()
 	_body = BuildKit.collider(self, _shape)
 	# Steer the no-crash plane round it like the city's other buildings.
@@ -66,6 +68,27 @@ func _ready() -> void:
 	if _height > 45.0:
 		city.make_crane(_site, Vector3(event.size.x * 0.5 + 10.0, 0, -event.size.z * 0.5 - 6.0), _height + 20.0)
 	set_progress(0.0)
+
+
+## A walk-in house's walls are drawn from the outside only, with open
+## window holes: while it goes up you'd see right through it. Like the
+## finished ones (CityGrowth._batch_add, _glass_core): both sides of every
+## face, and the dim box just inside the walls, rising with them.
+func _solid_while_building() -> void:
+	for mi: MeshInstance3D in _model.find_children("*", "MeshInstance3D", true, false):
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i)
+			if m:
+				mi.set_surface_override_material(i, CityGrowth.two_sided(m))
+	var s: float = event.scale
+	for b: Array in CityGrowth.walls_of(str(event.model), s, event.offset):
+		var box := MeshInstance3D.new()
+		box.name = "Inside"
+		box.mesh = CityGrowth.inside_box()
+		box.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# (walls_of is house-local; the model is offset and scaled.)
+		box.transform = Transform3D(Basis().scaled(b[1] / s), (b[0] - event.offset) / s)
+		_model.add_child(box)
 
 
 ## 0 = just started, 1 = finished (but still has its scaffold).

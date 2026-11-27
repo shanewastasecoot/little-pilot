@@ -173,6 +173,11 @@ func _batch_add(e: Dictionary) -> void:
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF  # never moves
+		# Always the full model: a MultiMesh picks ONE level of detail for
+		# every copy from the whole batch's bounds (mostly far away), so even
+		# a building right in front of you got the simplest version, with
+		# windows and walls missing: see-through, just after it was finished.
+		mmi.lod_bias = FULL_DETAIL
 		_batch_root.add_child(mmi)
 		_batches[key] = {"mmi": mmi, "xforms": [] as Array[Transform3D], "xf": data[1]}
 	var batch: Dictionary = _batches[key]
@@ -195,24 +200,33 @@ func _batch_add(e: Dictionary) -> void:
 ## stay hidden behind the house. Purely visual (the real insides are built up
 ## above); all of them are one MultiMesh: one draw.
 const INSIDE_INSET := 0.5     # m in from the outer walls
+const FULL_DETAIL := 128.0    # lod_bias that keeps the full model at any distance
 const INSIDE_COLOUR := Color("55617a")  # like a dim room seen through a window
 ## model|scale -> [[centre, size] for each floor's box (house-local)]
 static var _walls_of := {}
 
 
-func _glass_core(e: Dictionary) -> void:
-	if not _batches.has("|inside"):
-		var cube := BoxMesh.new()
+## The box drawn just inside a walk-in house's walls (one shared mesh).
+static var _inside_box: BoxMesh
+static func inside_box() -> BoxMesh:
+	if _inside_box == null:
+		_inside_box = BoxMesh.new()
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = INSIDE_COLOUR
 		mat.roughness = 0.3
-		cube.material = mat
+		_inside_box.material = mat
+	return _inside_box
+
+
+func _glass_core(e: Dictionary) -> void:
+	if not _batches.has("|inside"):
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = cube
+		mm.mesh = inside_box()
 		var mmi := MultiMeshInstance3D.new()
 		mmi.name = "HouseInsides"
 		mmi.multimesh = mm
+		mmi.lod_bias = FULL_DETAIL
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 		_batch_root.add_child(mmi)
@@ -320,24 +334,29 @@ static func is_walk_in(model: String) -> bool:
 ## materials, and the roof-recolour shader materials of tinted houses).
 static func double_sided(mesh: Mesh) -> Mesh:
 	var copy: Mesh = mesh.duplicate()
-	var done := {}
 	for i in copy.get_surface_count():
 		var m := copy.surface_get_material(i)
-		if m == null:
-			continue
-		if not done.has(m):
-			if m is BaseMaterial3D:
-				var d := m.duplicate() as BaseMaterial3D
-				d.cull_mode = BaseMaterial3D.CULL_DISABLED
-				done[m] = d
-			elif m is ShaderMaterial and (m as ShaderMaterial).shader:
-				var sd := m.duplicate() as ShaderMaterial
-				sd.shader = _two_sided_shader((m as ShaderMaterial).shader)
-				done[m] = sd
-			else:
-				done[m] = m
-		copy.surface_set_material(i, done[m])
+		if m != null:
+			copy.surface_set_material(i, two_sided(m))
 	return copy
+
+
+## Material `m` drawing both sides of every face (cached: plain materials,
+## and the roof-recolour shader materials of tinted houses).
+static var _two_sided_mats := {}
+static func two_sided(m: Material) -> Material:
+	if not _two_sided_mats.has(m):
+		if m is BaseMaterial3D:
+			var d := m.duplicate() as BaseMaterial3D
+			d.cull_mode = BaseMaterial3D.CULL_DISABLED
+			_two_sided_mats[m] = d
+		elif m is ShaderMaterial and (m as ShaderMaterial).shader:
+			var sd := m.duplicate() as ShaderMaterial
+			sd.shader = _two_sided_shader((m as ShaderMaterial).shader)
+			_two_sided_mats[m] = sd
+		else:
+			_two_sided_mats[m] = m
+	return _two_sided_mats[m]
 
 
 ## The same shader, drawing both sides of every face (one copy per shader).
@@ -389,6 +408,10 @@ func _build_lot(e: Dictionary) -> void:
 ## All outer-ring road segments in three draw calls: asphalt (one merged
 ## mesh), centre dashes and street lights (MultiMeshes). Rebuilt whenever a
 ## lot adds roads (rare: a few times an hour at most).
+## Where each street light along the new roads stands (local), for the tests.
+var street_lights: Array[Vector3] = []
+
+
 func _build_roads() -> void:
 	if _roads:
 		_roads.free()
@@ -399,6 +422,7 @@ func _build_roads() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var dashes: Array[Transform3D] = []
 	var lights: Array[Transform3D] = []
+	street_lights.clear()
 	var light: Array = AssetLib.mesh_of(CityDistrict.ENV + "street_light.glb")
 	for seg in _segments.values():
 		var a: Vector3 = seg[0]
@@ -412,10 +436,11 @@ func _build_roads() -> void:
 		for d in 4:
 			var t := (d + 0.5) / 4.0
 			dashes.append(Transform3D(Basis(Vector3.UP, yaw), a.lerp(b, t) + Vector3(0, 0.32, 0)))
-		for t in [0.0, 0.5]:
+		for t in [0.25, 0.75]:  # (not at the ends: a crossing's light would stand in the cross street)
 			var p := a.lerp(b, t)
 			var side := Vector3(0, 0, ROAD_W * 0.5 + 1.5) if along_x else Vector3(ROAD_W * 0.5 + 1.5, 0, 0)
 			lights.append(Transform3D(Basis(Vector3.UP, PI if along_x else PI * 0.5).scaled(Vector3.ONE * 1.6), p + side) * light[1])
+			street_lights.append(p + side)
 	_roads.add_child(CityDistrict.pavements(_lot_cells))
 	var road := MeshInstance3D.new()
 	road.mesh = st.commit()

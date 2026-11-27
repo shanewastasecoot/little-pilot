@@ -35,6 +35,7 @@ func _ready() -> void:
 		add_child(LandingPads.windsock(pad))
 	_place_details()
 	add_child(Clouds.new())
+	TerrainBuilder.shade_ground(get_tree())  # (G3: darker ground under trees, rocks, buildings)
 
 
 ## The sky, fog, glow and tonemap (resources/world_environment.tres: tune it

@@ -94,9 +94,15 @@ static func merged_mesh(path: String, from_hue := -1.0, hue_range := 0.06, to_co
 			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 			var normals = arrays[Mesh.ARRAY_NORMAL]
 			var indices = arrays[Mesh.ARRAY_INDEX]
+			# (G3 baked contact shading, only STATIC_WORLD models have it)
+			var shade = arrays[Mesh.ARRAY_COLOR] if StyleProfiles.profile_of(path) == StyleProfiles.Profile.STATIC_WORLD else null
 			var order: PackedInt32Array = indices if indices != null else PackedInt32Array(range(verts.size()))
 			for idx in order:
-				st.set_color(col)
+				if shade != null:
+					var v := 1.0 - (1.0 - (shade[idx] as Color).r) * ContactShade.strength
+					st.set_color(Color(col.r * v, col.g * v, col.b * v, col.a))
+				else:
+					st.set_color(col)
 				if normals != null:
 					st.set_normal((xf.basis * normals[idx]).normalized())
 				st.add_vertex(xf * verts[idx])

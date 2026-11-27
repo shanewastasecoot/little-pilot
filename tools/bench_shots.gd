@@ -11,6 +11,10 @@ const SPOTS := [
 	["farmland", Vector3(-420, 40, 660), Vector3(-560, 8, 494)],
 	["lagoon_shallows", Vector3(40, 26, -2150), Vector3(-120, 0, -2300)],
 	["dragon_peak", Vector3(260, 270, -1260), Vector3(-180, 190, -1640)],
+	# (Graphics G3) close up, where contact shading shows.
+	["farm_close", Vector3(-522, 21, 534), Vector3(-560, 13, 494)],
+	["city_street", Vector3(250, 22, 420), Vector3(320, 12, 500)],
+	["forest_edge", Vector3(-610, 140, -20), Vector3(-610, 30, -340)],
 ]
 
 var _main: Node
@@ -36,6 +40,13 @@ func _ready() -> void:
 			_variants = Array(a.trim_prefix("--variants=").split(",", false))
 			if _variants == ["all"]:
 				_variants = LookVariants.VARIANTS.keys()
+		elif a.begins_with("--contact="):
+			# (Graphics G3) contact shading strengths: models,terrain,ground
+			# (1 = as baked, 0 = off), e.g. --contact=0,0,0 for "before".
+			var k := a.trim_prefix("--contact=").split(",")
+			ContactShade.strength = float(k[0])
+			ContactShade.terrain_strength = float(k[1]) if k.size() > 1 else ContactShade.strength
+			ContactShade.ground_strength = float(k[2]) if k.size() > 2 else ContactShade.strength
 	_dir = "user://bench/shots/%s/" % label
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_dir))
 	SaveManager.use_path("user://bench_shots.cfg")

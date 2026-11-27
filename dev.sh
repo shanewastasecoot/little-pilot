@@ -11,6 +11,7 @@
 #   bench-sim     simulation cost along a fixed route, headless (not FPS)
 #   bench-render  frame times per area on screen, 1280x800 (add -- --bench-...)
 #   shots [label] pictures from fixed camera spots -> user://bench/shots/<label>/
+#                 (then variants, then extras like --contact=0,0,0)
 #   audit-aircraft  what each aircraft model is made of (parts, triangles...)
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -21,7 +22,7 @@ case "${1:-}" in
   editor) $GODOT --path . --editor ;;
   run)    if [[ "${2:-}" == full ]]; then $GODOT --path . --fullscreen; else $GODOT --path .; fi ;;
   test)   fail=0
-          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test treasure_test post_office_test city_house_test hat_shop_test reactions_test credits_test aircraft_view_test save_safety_test style_test audio_test service_test livery_test skywriting_test summary_test sticker_book_test parachute_test boat_test seaplane_test loop_test follow_test all_stars_test weather_test stress_test; do
+          for t in controller_test save_test crash_test dragon_test star_run_test city_growth_test landing_test walk_test character_test character_screen_test delivery_test house_test treasure_test post_office_test city_house_test hat_shop_test reactions_test credits_test aircraft_view_test save_safety_test style_test contact_shade_test audio_test service_test livery_test skywriting_test summary_test sticker_book_test parachute_test boat_test seaplane_test loop_test follow_test all_stars_test weather_test stress_test; do
             echo "=== $t"
             # Capture the exit code directly (a pipe would lose it).
             out=$($GODOT --headless --path . --fixed-fps 60 "res://tests/$t.tscn" 2>&1) && status=0 || status=$?
@@ -69,7 +70,7 @@ case "${1:-}" in
           $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_render.tscn "$@" 2>&1 \
             | grep -vE "^(Godot Engine|Vulkan|WARNING|   at:|$)" ;;
   shots)  shift
-          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_shots.tscn -- --label="${1:-now}" --variants="${2:-}" 2>&1 \
+          $GODOT --path . --resolution 1280x800 --rendering-method mobile res://tools/bench_shots.tscn -- --label="${1:-now}" --variants="${2:-}" "${@:3}" 2>&1 \
             | grep -E "shot|Saved|SCRIPT ERROR" ;;
   audit-aircraft) $GODOT --headless --path . res://tools/aircraft_audit.tscn 2>&1 | grep -vE "^(Godot Engine|WARNING|   at:|$)" ;;
   *)      sed -n '2,14p' "$0"; exit 1 ;;
