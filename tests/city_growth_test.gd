@@ -13,6 +13,8 @@ extends Node
 ##           road (except crossing at corners), and people really do go in
 ##           and come back out of doors
 ##   lights  no street light stands in a road (they used to at crossings)
+##   solid   finished buildings always draw the full model (a simplified one
+##           was see-through); walk-in houses going up are solid too
 ##   reset   "Restart the city" puts everything back to the start
 ## Exit code 0 = pass, 1 = fail.
 
@@ -172,6 +174,7 @@ func _live_checks(main: Node) -> void:
 	_check("the full city builds", g._active.is_empty() and g.opened_count(g.now()) == g.plan.size() and city._sites.is_empty())
 	_check("a full city's crowd is capped", crowd.population() == CityCrowd.MAX_PEOPLE)
 	_street_light_checks(city, g)
+	_solid_building_checks(city, g)
 	_crowd_walk_checks(crowd)
 
 
@@ -232,6 +235,42 @@ func _street_light_checks(city: CityDistrict, g: CityGrowth) -> void:
 			if off < CityDistrict.ROAD_W * 0.5 and bad == "":
 				bad = "- one in the road at %s" % at
 	_check("street lights stand beside the roads, not in them (%d lights) %s" % [spots.size(), bad], spots.size() > 100 and bad == "")
+
+
+## Buildings never look see-through: finished ones (in MultiMesh batches)
+## always use the full model, not a simplified one picked for the whole
+## batch; walk-in houses still going up draw both sides of their walls and
+## have the dim box inside, like finished ones.
+func _solid_building_checks(city: CityDistrict, g: CityGrowth) -> void:
+	var low := 0
+	for key in g._batches:
+		if (g._batches[key].mmi as GeometryInstance3D).lod_bias < CityGrowth.FULL_DETAIL:
+			low += 1
+	_check("finished buildings always draw the full model (%d batches simplified)" % low, low == 0 and g._batches.size() > 3)
+	var pick := {}
+	for e: Dictionary in g.plan:
+		if str(e.get("model", "")) != "" and CityGrowth.is_walk_in(str(e.model)) \
+				and not CityGrowth.walls_of(str(e.model), float(e.scale), e.offset).is_empty():
+			pick = e
+			break
+	var b := CityBuild.new().setup(pick, city)
+	add_child(b)
+	b.set_progress(0.5)
+	var model: Node3D = b._model
+	var one_sided := 0
+	for mi: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		if mi.name == "Inside":
+			continue
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i)
+			if m is BaseMaterial3D and (m as BaseMaterial3D).cull_mode != BaseMaterial3D.CULL_DISABLED:
+				one_sided += 1
+			elif m is ShaderMaterial and not "cull_disabled" in (m as ShaderMaterial).shader.code:
+				one_sided += 1
+	var insides := model.find_children("Inside", "MeshInstance3D", true, false).size()
+	_check("a %s going up draws both sides of its walls (%d one-sided)" % [pick.model, one_sided], one_sided == 0)
+	_check("and has the dim box inside (%d)" % insides, insides > 0)
+	b.queue_free()
 
 
 func _check(name: String, ok: bool) -> void:

@@ -14,7 +14,7 @@ extends RefCounted
 ## `strength` scales everything at runtime (1 = as baked, 0 = off) so the
 ## screenshot A/B (./dev.sh shots) can compare; the game always uses 1.
 
-## (Tuned by the parent's pick in the screenshot A/B.)
+## (The parent picked this "Subtle" strength from the screenshot A/B, Nov 26.)
 const BAKED_STRENGTH := 1.0  ## how much of the full occlusion is kept
 const DARKEST := 0.3  ## the darkest a vertex gets (linear), before BAKED_STRENGTH
 const RES := 48  ## voxels along the model's longest side
