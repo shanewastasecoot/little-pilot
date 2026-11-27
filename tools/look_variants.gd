@@ -11,7 +11,8 @@ extends RefCounted
 ## Each variant: "item" (the plan's G2 item number), "label" (plain words),
 ## "env" (outdoor Environment properties), "sun" (DirectionalLight3D
 ## properties), "indoor" (indoor Environment properties), "lut" (a colour
-## grade made here), "lamps" (glowing bulbs in lamp shades, indoors).
+## grade made here), "lamps" (glowing bulbs in lamp shades, indoors),
+## "terrain" / "runway" (G4 shader parameters).
 
 ## The sky's horizon colour (shaders/sky.gdshader, world_environment.tres).
 const HORIZON := Color(0.7490196, 0.9019608, 1.0)
@@ -42,6 +43,11 @@ const VARIANTS := {
 	"grade_plain": {"item": 5, "label": "Plain: contrast 1.12, saturation 1.15",
 		"env": {"adjustment_contrast": 1.12, "adjustment_saturation": 1.15}},
 	"grade_lut": {"item": 5, "label": "Warm storybook colour grade (LUT)", "lut": true},
+	# Graphics G4: close-up terrain detail (and the runway's asphalt), by strength.
+	"g4_off": {"item": 40, "label": "Off (plain colours, as before)", "terrain": {"strength": 0.0}, "runway": {"strength": 0.0}},
+	"g4_subtle": {"item": 40, "label": "Subtle", "terrain": {"strength": 0.6}, "runway": {"strength": 0.6}},
+	"g4_medium": {"item": 40, "label": "Medium", "terrain": {"strength": 1.0}, "runway": {"strength": 1.0}},
+	"g4_strong": {"item": 40, "label": "Strong", "terrain": {"strength": 1.6}, "runway": {"strength": 1.6}},
 	# 6. Indoors.
 	"indoor_warm": {"item": 6, "label": "Warmer, softer light indoors, glowing lamps",
 		"indoor": {"ambient_light_color": Color(1.0, 0.86, 0.68), "ambient_light_energy": 0.55,
@@ -60,6 +66,10 @@ func apply(name: String, env: Environment, sun: DirectionalLight3D, indoor: Envi
 	_set_all(env, v.get("env", {}))
 	_set_all(sun, v.get("sun", {}))
 	_set_all(indoor, v.get("indoor", {}))
+	for k in v.get("terrain", {}):
+		_set_all(TerrainBuilder.material(), {"shader_parameter/" + k: v.terrain[k]})
+	for k in v.get("runway", {}):
+		_set_all(Airport.runway_material(), {"shader_parameter/" + k: v.runway[k]})
 	if v.get("lut", false) and env:
 		_set_all(env, {"adjustment_color_correction": warm_lut()})
 	if lamps_in and v.has("room_lights"):

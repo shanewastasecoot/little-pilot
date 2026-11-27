@@ -13,6 +13,9 @@ extends RefCounted
 ## of slopes are a little darker (ContactShade.terrain_cavity), and after the
 ## world is placed shade_ground() darkens the ground under forests, rocks
 ## and buildings. Both only change vertex colours: no runtime cost.
+##
+## Graphics G4: drawn with shaders/terrain.gdshader (material()), which adds
+## soft close-up detail per kind of ground, fading out with distance.
 
 const DEEP := -24.0
 
@@ -99,11 +102,7 @@ static func build(parent: Node3D, height_fn: Callable, color_fn: Callable, centr
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	_built.append([mesh, arrays, ox, oz, step, n])
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.vertex_color_is_srgb = true
-	mat.roughness = 0.95
-	mesh.surface_set_material(0, mat)
+	mesh.surface_set_material(0, material())
 
 	var body := StaticBody3D.new()
 	body.name = node_name
@@ -120,6 +119,19 @@ static func build(parent: Node3D, height_fn: Callable, color_fn: Callable, centr
 	cs.shape = shape
 	body.add_child(cs)
 	print_verbose("%s: %d triangles in %d ms" % [node_name, indices.size() / 3, Time.get_ticks_msec() - t0])
+
+
+## Graphics G4: the terrain shader (shaders/terrain.gdshader), one material
+## shared by every island: the vertex colours as before plus close-up detail.
+const SHADER := "res://shaders/terrain.gdshader"
+const DETAIL := "res://assets/terrain/detail.png"
+static var _material: ShaderMaterial
+static func material() -> ShaderMaterial:
+	if _material == null:
+		_material = ShaderMaterial.new()
+		_material.shader = load(SHADER)
+		_material.set_shader_parameter("detail_tex", load(DETAIL))
+	return _material
 
 
 ## Graphics G3: darkens the ground under everything in the "contact_ground"

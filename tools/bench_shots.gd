@@ -15,6 +15,12 @@ const SPOTS := [
 	["farm_close", Vector3(-522, 21, 534), Vector3(-560, 13, 494)],
 	["city_street", Vector3(250, 22, 420), Vector3(320, 12, 500)],
 	["forest_edge", Vector3(-610, 140, -20), Vector3(-610, 30, -340)],
+	# (Graphics G4) standing on each kind of ground, and the runway's end.
+	["meadow_foot", Vector3(-60, 19.4, -122), Vector3(-20, 15, -160)],
+	["beach_foot", Vector3(-1229, 5.0, 3), Vector3(-1262, 1, 30)],
+	["rock_close", Vector3(-203, 96, -750), Vector3(-224, 88, -758)],
+	["snow_close", Vector3(290, 275, -830), Vector3(269, 260, -849)],
+	["runway_close", Vector3(395, 13.5, 12), Vector3(330, 10, 0)],
 ]
 
 var _main: Node
