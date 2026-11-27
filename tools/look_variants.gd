@@ -12,7 +12,9 @@ extends RefCounted
 ## "env" (outdoor Environment properties), "sun" (DirectionalLight3D
 ## properties), "indoor" (indoor Environment properties), "lut" (a colour
 ## grade made here), "lamps" (glowing bulbs in lamp shades, indoors),
-## "terrain" / "runway" (G4 shader parameters).
+## "terrain" / "runway" (G4 shader parameters), "aa" (G5: an --bench-aa
+## value, BenchToggles.aa_settings), "shadow_size" (G5: the sun's shadow map), "shadow_filter" (G5: soft
+## shadow filter quality 0-5; more = smoother shadow edges, no dots).
 
 ## The sky's horizon colour (shaders/sky.gdshader, world_environment.tres).
 const HORIZON := Color(0.7490196, 0.9019608, 1.0)
@@ -48,6 +50,15 @@ const VARIANTS := {
 	"g4_subtle": {"item": 40, "label": "Subtle", "terrain": {"strength": 0.6}, "runway": {"strength": 0.6}},
 	"g4_medium": {"item": 40, "label": "Medium", "terrain": {"strength": 1.0}, "runway": {"strength": 1.0}},
 	"g4_strong": {"item": 40, "label": "Strong", "terrain": {"strength": 1.6}, "runway": {"strength": 1.6}},
+	# Graphics G5: smoothing jagged edges (item 50) and shadow detail (51).
+	# Filter 3 (high) removes the dotty pattern at shadow edges that the
+	# low filter leaves (FXAA's blur was half hiding it).
+	"aa_now": {"item": 50, "label": "As now (2x MSAA + FXAA, low shadow filter)", "aa": "msaa2+fxaa"},
+	"aa_fxaa_sf3": {"item": 50, "label": "Smooth shadow edges (2x MSAA + FXAA)", "aa": "msaa2+fxaa", "shadow_filter": 3},
+	"aa_smaa_sf3": {"item": 50, "label": "Smooth shadow edges + sharper SMAA", "aa": "msaa2+smaa", "shadow_filter": 3},
+	"aa_msaa4_sf3": {"item": 50, "label": "Smooth shadow edges + 4x MSAA", "aa": "msaa4", "shadow_filter": 3},
+	"sh_4096": {"item": 51, "label": "Shadow map 4096 (as now)", "shadow_size": 4096, "shadow_filter": 3},
+	"sh_2048": {"item": 51, "label": "Shadow map 2048", "shadow_size": 2048, "shadow_filter": 3},
 	# 6. Indoors.
 	"indoor_warm": {"item": 6, "label": "Warmer, softer light indoors, glowing lamps",
 		"indoor": {"ambient_light_color": Color(1.0, 0.86, 0.68), "ambient_light_energy": 0.55,
@@ -57,6 +68,7 @@ const VARIANTS := {
 
 var _saved := []  # [object, property, old value]
 var _added: Array[Node] = []
+var _shadow_changed := false
 
 
 ## Applies variant `name` (undo with restore()). `lamps_in`: the interior to
@@ -70,6 +82,16 @@ func apply(name: String, env: Environment, sun: DirectionalLight3D, indoor: Envi
 		_set_all(TerrainBuilder.material(), {"shader_parameter/" + k: v.terrain[k]})
 	for k in v.get("runway", {}):
 		_set_all(Airport.runway_material(), {"shader_parameter/" + k: v.runway[k]})
+	var vp := (Engine.get_main_loop() as SceneTree).root
+	if v.has("aa"):
+		var aa := BenchToggles.aa_settings(v.aa)
+		_set_all(vp, {"msaa_3d": aa[0], "screen_space_aa": aa[1]})
+	if v.has("shadow_size"):
+		RenderingServer.directional_shadow_atlas_set_size(v.shadow_size, true)
+		_shadow_changed = true
+	if v.has("shadow_filter"):
+		RenderingServer.directional_soft_shadow_filter_set_quality(v.shadow_filter)
+		_shadow_changed = true
 	if v.get("lut", false) and env:
 		_set_all(env, {"adjustment_color_correction": warm_lut()})
 	if lamps_in and v.has("room_lights"):
@@ -91,6 +113,12 @@ func restore() -> void:
 		if is_instance_valid(n):
 			n.queue_free()
 	_added.clear()
+	if _shadow_changed:
+		RenderingServer.directional_shadow_atlas_set_size(
+			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/size"), true)
+		RenderingServer.directional_soft_shadow_filter_set_quality(
+			ProjectSettings.get_setting("rendering/lights_and_shadows/directional_shadow/soft_shadow_filter_quality"))
+		_shadow_changed = false
 
 
 func _set_all(target: Object, props: Dictionary) -> void:

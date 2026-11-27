@@ -29,6 +29,7 @@ var _dir := ""
 ## (tools/look_variants.gd), as <spot>__<variant>.jpg; without it, one PNG
 ## per spot as before.
 var _variants: Array = []
+var _only: Array = []  ## --spots=a,b: just these spots (G5)
 var _look := LookVariants.new()
 var _env: Environment
 var _sun: DirectionalLight3D
@@ -46,6 +47,8 @@ func _ready() -> void:
 			_variants = Array(a.trim_prefix("--variants=").split(",", false))
 			if _variants == ["all"]:
 				_variants = LookVariants.VARIANTS.keys()
+		elif a.begins_with("--spots="):
+			_only = Array(a.trim_prefix("--spots=").split(",", false))
 		elif a.begins_with("--contact="):
 			# (Graphics G3) contact shading strengths: models,terrain,ground
 			# (1 = as baked, 0 = off), e.g. --contact=0,0,0 for "before".
@@ -136,6 +139,8 @@ func _hide_ui(hidden: bool) -> void:
 ## One spot: a PNG, or (with --variants) a JPEG per variant. Outdoor
 ## variants skip the inside of the house and indoor ones the outside.
 func _shoot(spot: String, indoors: bool, firework := false) -> void:
+	if not _only.is_empty() and spot not in _only:
+		return
 	if _variants.is_empty():
 		_save(spot)
 		return
@@ -161,8 +166,13 @@ func _shoot(spot: String, indoors: bool, firework := false) -> void:
 			await _frames(50)
 		else:
 			await _frames(8)
-		var path := _dir + "%s__%s.jpg" % [spot, v]
-		get_viewport().get_texture().get_image().save_jpg(path, 0.88)
+		# (G5: edges and shadows are compared as lossless PNGs; JPEG blurs them)
+		var lossless := item >= 50
+		var path := _dir + "%s__%s.%s" % [spot, v, "png" if lossless else "jpg"]
+		if lossless:
+			get_viewport().get_texture().get_image().save_png(path)
+		else:
+			get_viewport().get_texture().get_image().save_jpg(path, 0.88)
 		print("  shot ", path.get_file())
 		if burst:
 			burst.queue_free()
