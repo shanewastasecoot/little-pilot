@@ -16,9 +16,22 @@ func _init() -> void:
 	discovery_sound = "ding"
 
 
+## Graphics G4: the runway's asphalt shader (shared; tyre marks in the
+## touchdown zones, grain, repair patches).
+static var _runway_mat: ShaderMaterial
+static func runway_material() -> ShaderMaterial:
+	if _runway_mat == null:
+		_runway_mat = ShaderMaterial.new()
+		_runway_mat.shader = load("res://shaders/runway.gdshader")
+		_runway_mat.set_shader_parameter("detail_tex", load(TerrainBuilder.DETAIL))
+		_runway_mat.set_shader_parameter("half_size", IslandShape.RUNWAY_HALF)
+	return _runway_mat
+
+
 func build() -> void:
 	var half := IslandShape.RUNWAY_HALF
-	BuildKit.add(self, BuildKit.box(Vector3(half.x * 2.0, 0.4, half.y * 2.0)), "55585f", Vector3(0, 0.2, 0))
+	var runway := BuildKit.add(self, BuildKit.box(Vector3(half.x * 2.0, 0.4, half.y * 2.0)), "55585f", Vector3(0, 0.2, 0))
+	runway.material_override = runway_material()  # (G4: grain, patches, tyre marks)
 	var dashes := MultiMesh.new()  # centre-line dashes, one draw call
 	dashes.transform_format = MultiMesh.TRANSFORM_3D
 	dashes.mesh = BuildKit.box(Vector3(18, 0.1, 1.6))
