@@ -6,10 +6,11 @@ extends RefCounted
 ##   ./dev.sh bench-render -- --bench-shadows=2048 --bench-glow=off
 ##
 ##   --bench-shadows=4096|2048        the sun's shadow map size (default 4096)
-##   --bench-aa=msaa|ssaa|both|none   anti-aliasing (default: both = 2x MSAA + FXAA)
+##   --bench-aa=msaa|ssaa|both|none   anti-aliasing (both = 2x MSAA + FXAA, the old look;
+##              the default since G5 is 4x MSAA alone)
 ##              or parts joined by +: msaa2, msaa4, fxaa, smaa (G5), e.g.
 ##              --bench-aa=msaa2+smaa, --bench-aa=msaa4
-##   --bench-shadow-filter=0..5       soft shadow filter quality (default 1, low)
+##   --bench-shadow-filter=0..5       soft shadow filter quality (default 3, high, since G5)
 ##   --bench-refraction=on|off        the ocean's see-through refraction
 ##   --bench-far-waves=full|simple    simple: far-away waves fade out sooner
 ##   --bench-glow=on|off              the glow (bloom) on bright things

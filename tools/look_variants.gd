@@ -51,9 +51,11 @@ const VARIANTS := {
 	"g4_medium": {"item": 40, "label": "Medium", "terrain": {"strength": 1.0}, "runway": {"strength": 1.0}},
 	"g4_strong": {"item": 40, "label": "Strong", "terrain": {"strength": 1.6}, "runway": {"strength": 1.6}},
 	# Graphics G5: smoothing jagged edges (item 50) and shadow detail (51).
+	# The parent's pick (Nov 27): 4x MSAA with the high filter, 4096 map:
+	# now the defaults in project.godot, so "aa_msaa4_sf3" is the current look.
 	# Filter 3 (high) removes the dotty pattern at shadow edges that the
 	# low filter leaves (FXAA's blur was half hiding it).
-	"aa_now": {"item": 50, "label": "As now (2x MSAA + FXAA, low shadow filter)", "aa": "msaa2+fxaa"},
+	"aa_now": {"item": 50, "label": "Before G5 (2x MSAA + FXAA, low shadow filter)", "aa": "msaa2+fxaa", "shadow_filter": 1},
 	"aa_fxaa_sf3": {"item": 50, "label": "Smooth shadow edges (2x MSAA + FXAA)", "aa": "msaa2+fxaa", "shadow_filter": 3},
 	"aa_smaa_sf3": {"item": 50, "label": "Smooth shadow edges + sharper SMAA", "aa": "msaa2+smaa", "shadow_filter": 3},
 	"aa_msaa4_sf3": {"item": 50, "label": "Smooth shadow edges + 4x MSAA", "aa": "msaa4", "shadow_filter": 3},
