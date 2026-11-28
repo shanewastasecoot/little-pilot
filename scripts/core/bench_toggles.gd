@@ -6,13 +6,17 @@ extends RefCounted
 ##   ./dev.sh bench-render -- --bench-shadows=2048 --bench-glow=off
 ##
 ##   --bench-shadows=4096|2048        the sun's shadow map size (default 4096)
-##   --bench-aa=msaa|ssaa|both|none   anti-aliasing (default: both)
+##   --bench-aa=msaa|ssaa|both|none   anti-aliasing (both = 2x MSAA + FXAA, the old look;
+##              the default since G5 is 4x MSAA alone)
+##              or parts joined by +: msaa2, msaa4, fxaa, smaa (G5), e.g.
+##              --bench-aa=msaa2+smaa, --bench-aa=msaa4
+##   --bench-shadow-filter=0..5       soft shadow filter quality (default 3, high, since G5)
 ##   --bench-refraction=on|off        the ocean's see-through refraction
 ##   --bench-far-waves=full|simple    simple: far-away waves fade out sooner
 ##   --bench-glow=on|off              the glow (bloom) on bright things
 ##   --bench-crowd=<metres>           how far away townspeople are drawn (300)
 
-const KEYS := ["shadows", "aa", "refraction", "far-waves", "glow", "crowd"]
+const KEYS := ["shadows", "shadow-filter", "aa", "refraction", "far-waves", "glow", "crowd"]
 
 
 ## The toggles given on the command line: {"shadows": "2048", ...}.
@@ -38,11 +42,29 @@ static func apply(viewport: Viewport, env: Environment) -> void:
 		return
 	if t.has("shadows"):
 		RenderingServer.directional_shadow_atlas_set_size(int(t.shadows), true)
+	if t.has("shadow-filter"):
+		RenderingServer.directional_soft_shadow_filter_set_quality(int(t["shadow-filter"]))
 	if t.has("aa"):
-		var msaa: bool = t.aa in ["msaa", "both"]
-		var ssaa: bool = t.aa in ["ssaa", "both"]
-		viewport.msaa_3d = Viewport.MSAA_2X if msaa else Viewport.MSAA_DISABLED
-		viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if ssaa else Viewport.SCREEN_SPACE_AA_DISABLED
+		var aa := aa_settings(t.aa)
+		viewport.msaa_3d = aa[0]
+		viewport.screen_space_aa = aa[1]
 	if t.has("glow") and env:
 		env.glow_enabled = t.glow != "off"
 	print("Bench toggles: ", t)
+
+
+## [msaa_3d, screen_space_aa] for an --bench-aa value (see the top).
+static func aa_settings(v: String) -> Array:
+	var legacy := {"msaa": "msaa2", "ssaa": "fxaa", "both": "msaa2+fxaa", "none": ""}
+	var parts := Array(String(legacy.get(v, v)).split("+", false))
+	var msaa := Viewport.MSAA_DISABLED
+	if "msaa2" in parts:
+		msaa = Viewport.MSAA_2X
+	elif "msaa4" in parts:
+		msaa = Viewport.MSAA_4X
+	var ss := Viewport.SCREEN_SPACE_AA_DISABLED
+	if "fxaa" in parts:
+		ss = Viewport.SCREEN_SPACE_AA_FXAA
+	elif "smaa" in parts:
+		ss = Viewport.SCREEN_SPACE_AA_SMAA
+	return [msaa, ss]
